@@ -1,0 +1,61 @@
+
+<div class="container">
+    <div class="row row-cols-1 g-5">
+        <div class="col">
+            <h3 class="mb-3">Contact</h3>
+            <ul class="list-group">
+                <li>Ingame: <strong>Felix.9127</strong></li>
+                <li>via Discord: <strong>rollback#6598</strong></li>
+                <li>Send us an E-Mail at <a href="mailto:contact@gw2auth.com">contact@gw2auth.com</a></li>
+            </ul>
+        </div>
+        <div class="col">
+            <h3 class="mb-3">Cookies used on this website</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle">
+                    <colgroup>
+                        <col class="w-100" />
+                        <col class="w-auto" />
+                        <col class="w-auto" />
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Scope</th>
+                        <th scope="col">Details</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <ng-container *ngFor="let cookie of cookieInformations">
+                        <tr>
+                            <td>{{cookie.name}}</td>
+                            <td>{{cookie.scope}}</td>
+                            <td>
+                                <button type="button" class="btn btn-secondary" (click)="collapse.toggle()">
+                                    <fa-icon [icon]="collapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="no-transition" #collapse="ngbCollapse" [ngbCollapse]="true">
+                            <td colspan="3">
+                                <div class="p-2">
+                                    {{cookie.description}}
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-container>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col">
+            <h3 class="mb-3">Data</h3>
+            <ul class="list-group">
+                <li>We keep access and error logs of this website. Your IP-Address appears is present in these logs, however, we won't use it for anything other than identifying usage of this website and identifying errors</li>
+                <li>If you login on this website using GitHub, we will store your GitHub User-ID to identify you as one user on subsequent logins</li>
+                <li>If you login/register on this website using the "GW2Auth Login", your login information is stored using the AWS-Service Amazon Cognito. The data required for the login is managed by AWS. We cannot see your chosen password at any time</li>
+                <li>We save data you explicitly created inside your account management. At any point, while being logged in, you can remove this data partly or delete your account. We don't save any such data without being logged in</li>
+            </ul>
+        </div>
+    </div>
+</div>

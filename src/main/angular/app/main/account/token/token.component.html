@@ -1,0 +1,78 @@
+<div class="container">
+    <div class="row gy-5">
+        <div class="col-12">
+            <ng-container [ngSwitch]="tokens.length">
+                <h3 *ngSwitchCase="0" class="mb-3">You haven't added any API-Tokens yet</h3>
+                <ng-container *ngSwitchDefault>
+                    <h3 class="mb-3">Your API-Tokens</h3>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <colgroup>
+                                <col class="w-100" />
+                                <col class="w-auto" />
+                                <col class="w-auto "/>
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Verified</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <ng-container *ngFor="let token of tokens">
+                                <tr>
+                                    <td>{{token.displayName}}</td>
+                                    <td>
+                                        <span class="badge rounded-pill p-2" [ngClass]="token.isVerified ? 'bg-success' : 'bg-danger'" ngbTooltip="By verifying your GuildWars 2 Accounts at GW2Auth, we make sure no one else can add API-Tokens belonging to you to their GW2Auth Account">
+                                            <fa-icon [icon]="token.isVerified ? faCheck : faBan"></fa-icon>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-secondary" (click)="permissionsCollapse.toggle()">
+                                                <fa-icon [icon]="permissionsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" (click)="openEditTokenModal(token)">
+                                                <fa-icon [icon]="faEdit"></fa-icon>
+                                            </button>
+                                            <button type="button" class="btn btn-danger" (click)="openDeleteTokenModal(token)">
+                                                <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="no-transition" #permissionsCollapse="ngbCollapse" [ngbCollapse]="fragment != token.gw2AccountId">
+                                    <td colspan="3">
+                                        <div class="container-fluid p-2">
+                                            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
+                                                <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                                    <div class="col">
+                                                        <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="token.gw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                    </div>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </ng-container>
+                            </tbody>
+                        </table>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </div>
+
+        <div class="col-12">
+            <h3 class="mb-3">Add a new API-Token</h3>
+            <form>
+                <div class="mb-3">
+                    <label [htmlFor]="'api-token'" class="form-label">API-Token</label>
+                    <input type="text" class="form-control" [id]="'api-token'" [attr.aria-describedby]="'api-token-help'" [(ngModel)]="addTokenValue" name="token" [disabled]="addTokenLoading" />
+                    <div [id]="'api-token-help'" class="form-text">You can only add one API-Token per GW2-Account. If you want to update the API-Token for a GW2-Account you already have linked another API-Token for, update it in the table above.</div>
+                </div>
+                <app-button-loadable [class]="'btn-primary'" [disabled]="addTokenValue.length < 1" [loading]="addTokenLoading" (click)="onAddTokenClick()" [faIcon]="faSave">Save</app-button-loadable>
+            </form>
+        </div>
+    </div>
+</div>

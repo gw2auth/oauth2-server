@@ -1,0 +1,77 @@
+<div class="container">
+    <div class="row row-cols-1 gy-5">
+        <div *ngIf="clientRegistrations.length > 0" class="col">
+            <h3 class="mb-3">Your Clients</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle">
+                    <colgroup>
+                        <col class="w-100" />
+                        <col class="w-auto" />
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <ng-container *ngFor="let clientRegistration of clientRegistrations">
+                        <tr>
+                            <td>{{clientRegistration.displayName}}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-secondary" (click)="detailsCollapse.toggle()">
+                                        <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                    </button>
+                                    <button type="button" class="btn btn-danger" (click)="openDeleteClientModal(clientRegistration)">
+                                        <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="true">
+                            <td colspan="2">
+                                <div class="container-fluid p-2">
+                                    <div class="row row-cols-1 g-3">
+                                        <div class="col">
+                                            <label [htmlFor]="'creationTime'" class="form-label">Created At</label>
+                                            <input type="text" class="form-control" [id]="'creationTime'" [(ngModel)]="clientRegistration.creationTime" name="creationTime" disabled />
+                                        </div>
+                                        <div class="col">
+                                            <label [htmlFor]="'clientId'" class="form-label">Client-ID</label>
+                                            <app-input-copyable [inputId]="'clientId'" [inputValue]="clientRegistration.clientId"></app-input-copyable>
+                                        </div>
+                                        <div class="col">
+                                            <label [htmlFor]="'clientSecret'" class="form-label">Client-Secret</label>
+                                            <input type="text" class="form-control" [id]="'clientSecret'" [attr.aria-describedby]="'clientSecretDescription'" disabled value="***************" />
+                                            <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation</div>
+                                        </div>
+                                        <div class="col">
+                                            <label [htmlFor]="'authorizationGrantTypes'" class="form-label">Authorization Grant Types</label>
+                                            <div [id]="'authorizationGrantTypes'">
+                                                <div class="form-check" *ngFor="let authorizationGrantType of clientRegistration.authorizationGrantTypes">
+                                                    <input class="form-check-input" type="checkbox" value="" [id]="'authorizationGrantType-' + authorizationGrantType" disabled checked />
+                                                    <label class="form-check-label" [htmlFor]="'authorizationGrantType-' + authorizationGrantType">{{authorizationGrantTypeDisplayName(authorizationGrantType)}}</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <label [htmlFor]="'redirectUri'" class="form-label">Redirect URI</label>
+                                            <app-input-copyable [inputId]="'redirectUri'" [inputValue]="clientRegistration.redirectUri"></app-input-copyable>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-container>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col">
+            <h3 class="mb-3">New Client</h3>
+            <p>Clients are used by developers to integrate GW2Auth into their application</p>
+            <a class="btn btn-primary" role="button" [routerLink]="['/', 'account', 'client', 'create']">Register a new client</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,18 @@
+<main class="p-5">
+    <div class="container mw-sm">
+        <div class="row row-cols-1 gy-3">
+            <div class="col">
+                <a href="/oauth2/authorization/github" role="button" class="btn btn-dark w-100"><fa-icon [icon]="faGithub"></fa-icon> Login with GitHub</a>
+            </div>
+            <div class="col">
+                <a href="/oauth2/authorization/google" role="button" class="btn btn-light w-100"><fa-icon [icon]="faGoogle"></fa-icon> Login with Google</a>
+            </div>
+            <div class="col">
+                <div class="divider"> OR </div>
+            </div>
+            <div class="col">
+                <a href="/oauth2/authorization/cognito" role="button" class="btn btn-primary w-100"><fa-icon [icon]="faUserShield"></fa-icon> Login with GW2Auth</a>
+            </div>
+        </div>
+    </div>
+</main>

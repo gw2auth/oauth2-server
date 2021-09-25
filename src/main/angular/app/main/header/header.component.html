@@ -1,0 +1,26 @@
+<nav class="navbar navbar-expand-md fixed-top navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" [routerLink]="['/', '/']">GW2Auth</a>
+
+        <button class="navbar-toggler" type="button" (click)="navbarCollapse.toggle()" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" #navbarCollapse="ngbCollapse" [ngbCollapse]="true">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" [routerLink]="['/', '/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
+                </li>
+
+                <li *ngIf="isAuthenticated" class="nav-item">
+                    <a class="nav-link" [routerLink]="['/', 'account']" routerLinkActive="active">Account</a>
+                </li>
+            </ul>
+
+            <div class="form-inline" [ngSwitch]="isAuthenticated">
+                <a *ngSwitchCase="false" class="btn btn-primary" role="button" [routerLink]="['/login']">Login</a>
+                <a *ngSwitchCase="true" class="btn btn-danger" role="button" (click)="onLogoutClick()">Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,11 @@
+com.gw2auth:
+  url: "https://gw2auth.com"
+  oauth2:
+    keypair:
+      id: "9b051022-aeba-4767-9e98-d6f1b7b4d09f"
+      path: "/opt/app/id_rsa"
+
+server:
+  forward-headers-strategy: native
+  tomcat:
+    redirect-context-root: false

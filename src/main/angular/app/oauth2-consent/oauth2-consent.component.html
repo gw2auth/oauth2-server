@@ -1,0 +1,97 @@
+<main class="p-5">
+    <div class="container mw-sm text-center">
+        <div class="row row-cols-1 gy-3">
+            <ng-container [ngSwitch]="oauth2ConsentInformation">
+                <div *ngSwitchCase="null" class="col">
+                    Loading consent information ...
+                </div>
+                <ng-container *ngSwitchDefault>
+                    <ng-container *ngIf="oauth2ConsentInformation! as info">
+                        <div class="col">
+                            <div class="card bg-dark">
+                                <div class="card-header">
+                                    <h2>Authorize {{info.clientRegistration.displayName}}</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div class="border border-secondary rounded-2 p-3 mb-3">
+                                        <div class="card-title mb-3">Requested permissions</div>
+                                        <div class="container-fluid">
+                                            <div class="row row-cols-1 row-cols-sm-2 g-2">
+                                                <ng-container *ngFor="let requestedGw2ApiPermission of info.requestedGw2ApiPermissions">
+                                                    <div class="col">
+                                                        <app-gw2-api-permission-badge [gw2ApiPermission]="requestedGw2ApiPermission" [isPresent]="true"></app-gw2-api-permission-badge>
+                                                    </div>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="border border-secondary rounded-2 p-3 mb-3">
+                                        <ng-container [ngSwitch]="info.apiTokensWithSufficientPermissions.length">
+                                            <ng-container *ngSwitchCase="0">
+                                                <div class="mb-3">You have no account with the required permissions</div>
+                                            </ng-container>
+                                            <ng-container *ngSwitchDefault>
+                                                <div class="mb-3">Select the GW2-Accounts you want the application give API access to</div>
+
+                                                <div class="list-group mb-3">
+                                                    <button *ngFor="let apiToken of info.apiTokensWithSufficientPermissions"
+                                                            type="button"
+                                                            class="list-group-item list-group-item-action"
+                                                            [ngClass]="selectedGw2AccountIds.has(apiToken.gw2AccountId) ? 'active' : ''"
+                                                            [disabled]="getApiTokenValidStatus(apiToken) != 1"
+                                                            (click)="onSelectedGw2AccountChange(apiToken.gw2AccountId)">
+
+                                                        <fa-icon *ngIf="selectedGw2AccountIds.has(apiToken.gw2AccountId)" [icon]="faCheck"></fa-icon> {{apiToken.displayName}}
+                                                        <ng-container [ngSwitch]="getApiTokenValidStatus(apiToken)">
+                                                            <span *ngSwitchCase="-1" class="position-absolute end-0 me-2 spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                            <span *ngSwitchCase="0" class="position-absolute end-0 me-2 badge rounded-pill bg-danger">Invalid / Expired</span>
+                                                        </ng-container>
+                                                    </button>
+                                                </div>
+                                            </ng-container>
+                                        </ng-container>
+
+                                        <div class="mb-3" *ngIf="info.apiTokensWithInsufficientPermissions.length > 0">
+                                            <ng-template #apiTokensWithInsufficientPermissionsTooltip>
+                                                <p *ngFor="let apiToken of info.apiTokensWithInsufficientPermissions">{{apiToken.displayName}}</p>
+                                            </ng-template>
+
+                                            <small>You have <strong [ngbTooltip]="apiTokensWithInsufficientPermissionsTooltip">{{info.apiTokensWithInsufficientPermissions.length}} more GW2-Account(s)</strong> which don't have enough permissions for this request</small>
+                                        </div>
+
+                                        <small class="align-middle">Missing your GW2-Account? <a href="" (click)="onManageTokensClick($event)">Manage your API-Tokens</a></small>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <ng-container [ngSwitch]="selectedGw2AccountIds.size">
+                                        <div *ngSwitchCase="0" class="mb-3">
+                                            <small>You have to select at least one GW2-Account to continue</small>
+                                        </div>
+                                        <div *ngSwitchDefault class="mb-3">
+                                            <small><span class="badge rounded-pill bg-success">{{selectedGw2AccountIds.size}}</span> GW2-Accounts selected</small>
+                                        </div>
+                                    </ng-container>
+
+                                    <form method="post" [action]="info.submitFormUri" (ngSubmit)="onSubmit($event)">
+                                        <ng-container *ngFor="let entry of info.submitFormParameters | keyvalue">
+                                            <input *ngFor="let value of entry.value" type="hidden" [name]="entry.key" [value]="value" />
+                                        </ng-container>
+
+                                        <ng-container *ngFor="let selectedGw2AccountId of selectedGw2AccountIds">
+                                            <input type="hidden" [name]="'token:' + selectedGw2AccountId" value="" />
+                                        </ng-container>
+
+                                        <div class="d-flex justify-content-center">
+                                            <button class="btn btn-success w-100 me-1" type="submit" [disabled]="selectedGw2AccountIds.size < 1">Authorize</button>
+                                            <a class="btn btn-outline-danger w-100 ms-1" role="button" [href]="info.cancelUri">Cancel</a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </ng-container>
+                </ng-container>
+            </ng-container>
+        </div>
+    </div>
+</main>

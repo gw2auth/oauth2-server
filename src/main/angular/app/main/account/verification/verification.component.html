@@ -1,0 +1,116 @@
+<div class="container">
+    <div class="row row-cols-1 gy-5">
+        <div *ngIf="startedChallenge != null" class="col">
+            <h3 class="mb-3">Started challenge</h3>
+            <div class="card bg-dark">
+                <div class="card-header">
+                    <h5>{{startedChallenge.challengeName}}</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="border border-secondary rounded-2 p-3 mb-3" [innerHTML]="startedChallenge.message"></div>
+
+                    <div class="border border-secondary rounded-2 p-3">
+                        <div class="mb-3">Select the GW2-Account you performed the verification with</div>
+
+                        <ng-container *ngIf="tokens.length > 0">
+                            <div class="list-group mb-3">
+                                <button *ngFor="let token of tokens"
+                                        type="button"
+                                        class="list-group-item list-group-item-action"
+                                        [ngClass]="token.gw2ApiToken == selectedGw2ApiToken ? 'active' : ''"
+                                        (click)="onTokenSelectClick(token)">
+
+                                    <fa-icon *ngIf="token.gw2ApiToken == selectedGw2ApiToken" [icon]="faCheck"></fa-icon> {{token.displayName}}
+                                </button>
+                            </div>
+
+                            <div class="divider mb-3">OR</div>
+                        </ng-container>
+
+                        <div class="mb-3">Paste a new API-Token for the GW2-Account you performed the verification with</div>
+
+                        <form class="text-start">
+                            <label [htmlFor]="'verificationNewApiToken'" class="form-label">API-Token</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" [id]="'verificationNewApiToken'" [(ngModel)]="verificationNewApiToken" />
+                                <button class="btn btn-secondary" [disabled]="verificationNewApiToken.length < 1" (click)="onUseNewApiTokenClick()"><fa-icon [icon]="faCheck"></fa-icon></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <p *ngIf="selectedGw2ApiToken == null" class="mb-3"><small>You have to select a GW2-Account or paste a API-Token to continue</small></p>
+                    <app-button-loadable [class]="'btn-primary'" [disabled]="selectedGw2ApiToken == null" [loading]="verificationSubmitInProgress" (click)="onSubmitChallengeClick(startedChallenge)">Submit</app-button-loadable>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <h3 class="mb-3">Available verification challenges</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle">
+                    <colgroup>
+                        <col class="w-100" />
+                        <col class="w-auto "/>
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <ng-container *ngFor="let challenge of availableChallenges">
+                        <tr>
+                            <td>{{challenge.name}}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-secondary" (click)="detailsCollapse.toggle()">
+                                        <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="true">
+                            <td colspan="2">
+                                <div class="container-fluid p-2">
+                                    <div class="row row-cols-1 g-3">
+                                        <div class="col">
+                                            <div class="border border-secondary rounded-2 p-3 mb-3" [innerHTML]="challenge.description"></div>
+                                        </div>
+                                        <div class="col">
+                                            <label [htmlFor]="'challengeRequiredGw2ApiPermissions-' + challenge.id" class="form-label">Required Permissions</label>
+                                            <div class="container-fluid" [id]="'challengeRequiredGw2ApiPermissions-' + challenge.id">
+                                                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
+                                                    <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                                        <div class="col">
+                                                            <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="challenge.requiredGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                        </div>
+                                                    </ng-container>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <app-button-loadable [class]="'btn-primary'" [loading]="startChallengeInProgress" (click)="onStartChallengeClick(challenge)">Start this challenge</app-button-loadable>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-container>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div *ngIf="pendingChallenges.length > 0" class="col">
+            <h3 class="mb-3">Pending challenges</h3>
+            <div class="list-group">
+                <div *ngFor="let pendingChallenge of pendingChallenges" class="list-group-item">
+                    <p class="mb-1">For GW2-Account-ID {{pendingChallenge.gw2AccountId}}</p>
+                    <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

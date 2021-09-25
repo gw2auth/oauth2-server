@@ -1,0 +1,114 @@
+@import '~bootstrap/scss/functions';
+@import '~bootstrap/scss/variables';
+
+$body-bg: #0c0f15;
+$body-color: $gray-100;
+
+// region toast
+$toast-background-color: $black;
+$toast-border-color: $gray-600;
+$toast-header-background-color: $toast-background-color;
+$toast-header-border-color: $toast-border-color;
+$toast-header-color: $body-color;
+// endregion
+
+// region modal
+$modal-content-bg: $dark;
+$modal-header-border-color: $gray-600;
+$modal-footer-border-color: $gray-600;
+// endregion
+
+// region list-group
+$list-group-bg: $gray-800;
+$list-group-color: $body-color;
+$list-group-active-bg: $success;
+$list-group-active-border-color: $list-group-active-bg;
+$list-group-disabled-bg: $gray-700;
+$list-group-disabled-color: $list-group-color;
+$list-group-hover-bg: $list-group-active-bg;
+$list-group-action-color: $list-group-color;
+$list-group-action-hover-color: $list-group-action-color;
+// endregion
+
+// region default close button
+$btn-close-color: $body-color;
+// endregion
+
+@import '~bootstrap/scss/bootstrap';
+
+// region inputs
+input {
+  background-color: $black !important;
+  color: $body-color !important;
+}
+// endregion
+
+// region list-group-item-action active
+.list-group-item-action:focus:not(.active) {
+  &:hover {
+    background-color: $list-group-active-bg !important;
+  }
+
+  &:not(:hover) {
+    background-color: $list-group-bg !important;
+  }
+}
+// endregion
+
+// region max width utility
+@each $w-name, $width in $container-max-widths {
+  .mw-#{$w-name} {
+    max-width: $width;
+  }
+
+  .m-#{$w-name} {
+    width: $width;
+  }
+}
+// endregion
+
+.mt-6 {
+  margin-top: 3.5rem!important;
+}
+
+.mt-7 {
+  margin-top: 4rem!important;
+}
+
+.collapsing.no-transition {
+  transition: none !important;
+}
+
+// region divider
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.divider::before,.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid $body-color;
+}
+
+.divider:not(:empty)::before {
+  margin-right: .25em;
+}
+
+.divider:not(:empty)::after {
+  margin-left: .25em;
+}
+
+@each $name, $color in $theme-colors {
+  .divider-#{$name}::before,.divider-#{$name}::after {
+    border-bottom: 1px solid $color !important;
+  }
+}
+// endregion
+
+// region custom border colors
+.border-body-color {
+  border-color: $body-color;
+}
+// endregion

@@ -1,0 +1,98 @@
+<div class="container">
+    <div class="row row-cols-1 gy-5">
+        <div class="col">
+            <ng-container [ngSwitch]="clientAuthorizations.length">
+                <h3 *ngSwitchCase="0">You haven't authorized any application yet</h3>
+                <ng-container *ngSwitchDefault>
+                    <h3 class="mb-3">Your Applications</h3>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped align-middle">
+                            <colgroup>
+                                <col class="w-100" />
+                                <col class="w-auto "/>
+                            </colgroup>
+                            <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <ng-container *ngFor="let clientAuthorization of clientAuthorizations">
+                                <tr>
+                                    <td>{{clientAuthorization.clientRegistration.displayName}}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-secondary" (click)="detailsCollapse.toggle()">
+                                                <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                            </button>
+                                            <button type="button" class="btn btn-danger" (click)="openDeleteClientAuthorizationModal(clientAuthorization)">
+                                                <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="true">
+                                    <td colspan="2">
+                                        <div class="container-fluid p-2">
+                                            <div class="row row-cols-1 g-3">
+                                                <div class="col">
+                                                    <label [htmlFor]="'accountSub'" class="form-label">User-ID</label>
+                                                    <app-input-copyable [inputId]="'accountSub'" [aria-describedby]="'accountSubDescription'" [inputValue]="clientAuthorization.accountSub"></app-input-copyable>
+                                                    <div [id]="'accountSubDescription'" class="form-text">Your unique User-ID at this application. If the application admin asks for your User-ID, send him this one</div>
+                                                </div>
+                                                <div class="col">
+                                                    <label [htmlFor]="'authorizedGw2ApiPermissions'" class="form-label">Permissions</label>
+                                                    <div class="container-fluid" [id]="'authorizedGw2ApiPermissions'">
+                                                        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
+                                                            <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                                                <div class="col">
+                                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="clientAuthorization.authorizedGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                                </div>
+                                                            </ng-container>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col">
+                                                    <label [htmlFor]="'tokens'" class="form-label">API-Tokens</label>
+                                                    <div class="list-group" [id]="'tokens'" [attr.aria-describedby]="'tokensDescription'">
+                                                        <a *ngFor="let token of clientAuthorization.tokens" [routerLink]="['', 'account', 'token']" [fragment]="token.gw2AccountId" class="list-group-item">
+                                                            <p class="mb-1">{{token.displayName}}</p>
+                                                            <ng-container [ngSwitch]="isCurrentlyActive(token.expirationTime)">
+                                                                <ng-container *ngSwitchCase="false">
+                                                                    <p class="mb-1"><small class="text-muted">Expired: The application has to acquire a new token at GW2Auth to be able to use it again. No action required by you</small></p>
+                                                                    <p class="mb-0"><small class="text-muted">Last active until {{token.expirationTime.toLocaleString()}}</small></p>
+                                                                </ng-container>
+                                                                <ng-container *ngSwitchDefault>
+                                                                    <small class="text-muted">Active until {{token.expirationTime.toLocaleString()}}</small>
+                                                                </ng-container>
+                                                            </ng-container>
+                                                        </a>
+                                                    </div>
+                                                    <div [id]="'tokensDescription'" class="form-text">The application receives subtokens which are created using the authorized API-Tokens. It will never receive your actual API-Token. Subtokens are short-lived API-Tokens with reduced permissions</div>
+                                                </div>
+                                                <div class="col">
+                                                    <label [htmlFor]="'logs'" class="form-label">Logs</label>
+                                                    <div class="list-group mb-1" [id]="'logs'">
+                                                        <div *ngFor="let log of clientAuthorization.logs" class="list-group-item">
+                                                            <p class="mb-1">{{log.timestamp.toLocaleString()}}</p>
+                                                            <ul class="list-group list-group-flush list-group-numbered">
+                                                                <li *ngFor="let message of log.messages" class="list-group-item">{{message}}</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-primary" [disabled]="clientAuthorization.nextLogPage == -1" (click)="onLoadNextLogPageClick(clientAuthorization)">Load more</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </ng-container>
+                            </tbody>
+                        </table>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </div>
+    </div>
+</div>
