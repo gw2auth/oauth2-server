@@ -97,7 +97,6 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     @Override
     @Transactional
     public void updateTokens(long accountId, long clientRegistrationId, Map<String, ClientAuthorization.Token> tokens) {
-        this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
         this.clientAuthorizationTokenRepository.saveAll(
                 tokens.entrySet().stream()
                         .map((e) -> new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, e.getKey(), e.getValue().gw2ApiSubtoken(), e.getValue().expirationTime()))
