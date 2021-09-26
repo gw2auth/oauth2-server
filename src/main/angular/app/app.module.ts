@@ -36,6 +36,7 @@ import {VerificationService} from './service/verification.service';
 import { PrivacyPolicyComponent } from './privacy-policy/privacy-policy.component';
 import { SettingsComponent } from './main/account/settings/settings.component';
 import {ButtonLoadableComponent} from './general/button-loadable.component';
+import {AccountService} from './main/account/settings/account.service';
 
 @NgModule({
   declarations: [
@@ -71,7 +72,7 @@ import {ButtonLoadableComponent} from './general/button-loadable.component';
     FormsModule,
     NgbModule
   ],
-  providers: [HTTP_INTERCEPTOR_PROVIDERS, TokenService, ToastService, OAuth2ConsentService, ClientRegistrationService, ClientAuthorizationService, Gw2ApiService, VerificationService],
+  providers: [HTTP_INTERCEPTOR_PROVIDERS, TokenService, ToastService, OAuth2ConsentService, ClientRegistrationService, ClientAuthorizationService, Gw2ApiService, VerificationService, AccountService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

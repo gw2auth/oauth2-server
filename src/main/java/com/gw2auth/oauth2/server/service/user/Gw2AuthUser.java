@@ -12,18 +12,10 @@ import java.util.Map;
 public class Gw2AuthUser implements OAuth2User, OidcUser {
 
     private final OAuth2User parent;
-    private final OidcUser oidcParent;
     private final long accountId;
 
     public Gw2AuthUser(OAuth2User parent, long accountId) {
         this.parent = parent;
-        this.oidcParent = null;
-        this.accountId = accountId;
-    }
-
-    public Gw2AuthUser(OidcUser parent, long accountId) {
-        this.parent = parent;
-        this.oidcParent = parent;
         this.accountId = accountId;
     }
 
@@ -71,10 +63,10 @@ public class Gw2AuthUser implements OAuth2User, OidcUser {
     }
 
     private OidcUser verifyOidcUser() {
-        if (this.oidcParent == null) {
-            throw new UnsupportedOperationException();
+        if (this.parent instanceof OidcUser) {
+            return (OidcUser) this.parent;
         }
 
-        return this.oidcParent;
+        throw new UnsupportedOperationException();
     }
 }

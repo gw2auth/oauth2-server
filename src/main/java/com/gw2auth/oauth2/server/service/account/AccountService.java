@@ -10,5 +10,7 @@ public interface AccountService {
 
     List<AccountFederation> getAccountFederations(long accountId);
 
+    boolean deleteAccountFederation(long accountId, String issuer, String idAtIssuer);
+
     boolean deleteAccount(long accountId);
 }

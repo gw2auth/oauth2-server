@@ -1,9 +1,69 @@
 <div class="container">
     <div class="row row-cols-1 gy-5">
         <div class="col">
-            <h3 class="mb-3">Add another Login provider</h3>
-            <a href="/oauth2/authorization/github" role="button" class="btn btn-dark mb-1"><fa-icon [icon]="faGithub"></fa-icon> GitHub</a>
-            <a href="/oauth2/authorization/cognito" role="button" class="btn btn-primary"><fa-icon [icon]="faUserShield"></fa-icon> GW2Auth</a>
+            <h3 class="mb-3">Your Login providers</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle">
+                    <colgroup>
+                        <col class="w-50" />
+                        <col class="w-50" />
+                        <col class="w-auto "/>
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th scope="col">Provider</th>
+                        <th scope="col">User-ID</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let federation of federations">
+                        <td>
+                            <fa-icon [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
+                            <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
+                        </td>
+                        <td>{{federation.idAtIssuer}}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger" [disabled]="federations.length < 2" (click)="openDeleteFederationModal(federation)">
+                                <fa-icon [icon]="faTrashAlt"></fa-icon>
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col">
+            <h3 class="mb-1">Add another Login provider</h3>
+            <div class="mb-3">
+                <small>
+                    You can add multiple accounts of the same provider to your GW2Auth-Account.
+                    It is not possible to link one provider account to multiple GW2Auth-Accounts.
+                    If you want to do that, please delete the GW2Auth-Account the wanted provider account is currently linked to first.
+                </small>
+            </div>
+            <div class="container-fluid">
+                <div class="row row-cols-1 row-cols-md-3 g-3">
+                    <div class="col">
+                        <a href="/api/account/federation/github" role="button" class="btn btn-dark w-100"><fa-icon [icon]="faGithub"></fa-icon> GitHub</a>
+                    </div>
+                    <div class="col">
+                        <a href="/api/account/federation/google" role="button" class="btn btn-light w-100"><fa-icon [icon]="faGoogle"></fa-icon> Google</a>
+                    </div>
+                    <div class="col">
+                        <a href="/api/account/federation/cognito" role="button" class="btn btn-primary w-100"><fa-icon [icon]="faUserShield"></fa-icon> GW2Auth</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <h3 class="mb-3">Delete account</h3>
+            <button type="button" class="btn btn-danger" [attr.aria-describedby]="'delete_account_description'" (click)="openDeleteAccountModal()">
+                <fa-icon [icon]="faTrashAlt"></fa-icon> Delete your account
+            </button>
+            <div [id]="'delete_account_description'" class="form-text">By deleting your account, we delete everything that is linked to it. This operation can't be reverted.</div>
         </div>
     </div>
 </div>

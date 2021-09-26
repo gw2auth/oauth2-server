@@ -5,6 +5,7 @@ import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +54,19 @@ public class AccountServiceImpl implements AccountService {
         return this.accountFederationRepository.findAllByAccountId(accountId).stream()
                 .map(AccountFederation::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteAccountFederation(long accountId, String issuer, String idAtIssuer) {
+        final int federationCount = this.accountFederationRepository.countByAccountId(accountId);
+
+        // at least one federation has to be kept, otherwise the user could not login anymore
+        if (federationCount < 2) {
+            throw new AccountServiceException("Can't delete the last federation of an account", HttpStatus.NOT_ACCEPTABLE);
+        }
+
+        return this.accountFederationRepository.deleteByAccountIdAndIssuerAndIdAtIssuer(accountId, issuer, idAtIssuer);
     }
 
     @Override

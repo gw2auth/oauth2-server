@@ -1,36 +1,31 @@
 package com.gw2auth.oauth2.server.service.user;
 
-import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 @Service
-public class Gw2AuthOidcUserService extends OidcUserService {
+public class Gw2AuthOidcUserService extends AbstractUserService implements OAuth2UserService<OidcUserRequest, OidcUser> {
 
-    private final AccountService accountService;
+    private final OAuth2UserService<OidcUserRequest, OidcUser> parent;
+
+    public Gw2AuthOidcUserService(AccountService accountService, OAuth2UserService<OidcUserRequest, OidcUser> parent) {
+        super(accountService);
+        this.parent = parent;
+    }
 
     @Autowired
     public Gw2AuthOidcUserService(AccountService accountService) {
-        this.accountService = accountService;
+        this(accountService, new OidcUserService());
     }
 
     @Override
     public Gw2AuthUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        final OidcUser user = super.loadUser(userRequest);
-
-        final String issuer = userRequest.getClientRegistration().getRegistrationId();
-        final String id = user.getName();
-
-        final Account account = AuthenticationHelper.getUser()
-                .map((alreadyLoggedInUser) -> this.accountService.addAccountFederationOrReturnExisting(alreadyLoggedInUser.getAccountId(), issuer, id))
-                .orElseGet(() -> this.accountService.getOrCreateAccount(issuer, id));
-
-        return new Gw2AuthUser(user, account.id());
+        return loadUser(userRequest, this.parent.loadUser(userRequest));
     }
 }

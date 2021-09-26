@@ -35,7 +35,7 @@ export class AuthService {
           .pipe(
               // 2xx codes -> logout success, 403 -> was already logged out
               map((resp: HttpResponse<any>) => (resp.status >= 200 && resp.status < 300) || resp.status == 403),
-              catchError((err) => of(false))
+              catchError((err) => of(err.status == 403))
           )
           .subscribe((resp) => {
               if (resp) {
