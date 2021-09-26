@@ -1,6 +1,6 @@
 import {Component, OnInit} from '@angular/core';
-import {ClientRegistrationService} from '../../../service/client-registration.service';
-import {AuthorizationGrantType, ClientRegistrationPrivate, authorizationGrantTypeDisplayName} from '../../../service/client-registration.model';
+import {ClientRegistrationService} from './client-registration.service';
+import {AuthorizationGrantType, ClientRegistrationPrivate, authorizationGrantTypeDisplayName} from './client-registration.model';
 import {faAngleDoubleDown, faAngleDoubleUp, faTrashAlt, faCopy} from '@fortawesome/free-solid-svg-icons';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';

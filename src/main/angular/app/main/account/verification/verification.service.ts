@@ -3,9 +3,7 @@ import {HttpClient} from '@angular/common/http';
 import {Observable} from "rxjs";
 import {VerificationChallenge, VerificationChallengeBootstrap, VerificationChallengePending, VerificationChallengeStart, VerificationChallengeSubmit} from "./verification.model";
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable()
 export class VerificationService {
 
     constructor(private readonly httpClient: HttpClient) {

@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import {ClientAuthorizationService} from '../../../service/client-authorization.service';
-import {ClientAuthorization, ClientAuthorizationLog, Token} from '../../../service/client-authorization.model';
+import {ClientAuthorizationService} from './client-authorization.service';
+import {ClientAuthorization, ClientAuthorizationLog, Token} from './client-authorization.model';
 import {faTrashAlt, faAngleDoubleDown, faAngleDoubleUp} from '@fortawesome/free-solid-svg-icons';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ApiError, Gw2ApiPermission} from '../../../service/general.model';
 import {ToastService} from '../../../toast/toast.service';
-import {ClientRegistrationPublic} from "../../../service/client-registration.model";
+import {ClientRegistrationPublic} from "../client/client-registration.model";
 
 
 class InternalClientAuthorization {

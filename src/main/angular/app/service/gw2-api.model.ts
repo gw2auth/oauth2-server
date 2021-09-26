@@ -5,3 +5,8 @@ export interface Gw2TokenInfo {
     name: string;
     permissions: Gw2ApiPermission[];
 }
+
+export interface Gw2Item {
+    name: string;
+    icon: string;
+}

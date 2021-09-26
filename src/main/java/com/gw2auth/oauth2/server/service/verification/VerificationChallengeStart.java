@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.service.verification;
 
-public record VerificationChallengeStart(long challengeId, String challengeName, String message) {
+import java.util.Map;
+
+public record VerificationChallengeStart(long challengeId, Map<String, Object> message) {
 
 }

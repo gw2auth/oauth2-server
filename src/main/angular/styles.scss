@@ -112,3 +112,10 @@ input {
   border-color: $body-color;
 }
 // endregion
+
+// region imgs
+img.img-fluid.img-text {
+  height: 1em;
+  width: auto;
+}
+// endregion

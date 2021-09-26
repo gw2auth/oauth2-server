@@ -7,6 +7,8 @@ import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationE
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class VerificationServiceImpl implements VerificationService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VerificationServiceImpl.class);
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
@@ -80,7 +84,7 @@ public class VerificationServiceImpl implements VerificationService {
 
                     return deserialize(entity.stateClass(), entity.state())
                             .map((state) -> buildMessage(verificationChallenge, state, userLocale))
-                            .map((msg) -> new VerificationChallengeStart(entity.challengeId(), verificationChallenge.getName(), msg));
+                            .map((msg) -> new VerificationChallengeStart(entity.challengeId(), msg));
                 });
     }
 
@@ -114,7 +118,7 @@ public class VerificationServiceImpl implements VerificationService {
                 new Gw2AccountVerificationChallengeEntity(accountId, "", challengeId, state.getClass().getName(), stateJson, null, null, null)
         );
 
-        return new VerificationChallengeStart(entity.challengeId(), verificationChallenge.getName(), buildMessage(verificationChallenge, state, userLocale));
+        return new VerificationChallengeStart(entity.challengeId(), buildMessage(verificationChallenge, state, userLocale));
     }
 
     @Override
@@ -200,18 +204,24 @@ public class VerificationServiceImpl implements VerificationService {
         final Instant now = Instant.now();
         final List<Gw2AccountVerificationChallengeEntity> entities = this.gw2AccountVerificationChallengeRepository.findAllPending();
 
-        for (Gw2AccountVerificationChallengeEntity entity : entities) {
-            try {
-                if (entity.timeoutAt().isBefore(now)) {
-                    this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
-                } else {
-                    verify(entity);
+        if (!entities.isEmpty()) {
+            LOG.info("processing {} pending challenges", entities.size());
+
+            for (Gw2AccountVerificationChallengeEntity entity : entities) {
+                try {
+                    if (entity.timeoutAt().isBefore(now)) {
+                        this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                    } else {
+                        verify(entity);
+                    }
+                } catch (Exception e) {
+                    LOG.warn("unexpected exception during verification of challenge", e);
                 }
-            } catch (Exception e) {}
+            }
         }
     }
 
-    private <S> boolean verify(VerificationChallenge<S> verificationChallenge, Object state, String gw2ApiToken) {
+    private static <S> boolean verify(VerificationChallenge<S> verificationChallenge, Object state, String gw2ApiToken) {
         return verificationChallenge.verify((S) state, gw2ApiToken);
     }
 
@@ -223,7 +233,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
     }
 
-    private <S> String buildMessage(VerificationChallenge<S> verificationChallenge, Object state, Locale locale) {
+    private static <S> Map<String, Object> buildMessage(VerificationChallenge<S> verificationChallenge, Object state, Locale locale) {
         return verificationChallenge.buildMessage((S) state, locale);
     }
 }

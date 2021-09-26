@@ -3,9 +3,7 @@ import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {ClientAuthorization, ClientAuthorizationLogs} from './client-authorization.model';
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable()
 export class ClientAuthorizationService {
 
     constructor(private readonly http: HttpClient) {

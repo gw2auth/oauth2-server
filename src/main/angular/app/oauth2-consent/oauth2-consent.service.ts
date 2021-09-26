@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {Params} from '@angular/router';
-import {ClientRegistrationPublic} from '../service/client-registration.model';
+import {ClientRegistrationPublic} from '../main/account/client/client-registration.model';
 import {Gw2ApiPermission} from '../service/general.model';
 import {Token} from '../service/token.model';
 

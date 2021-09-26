@@ -1,16 +1,22 @@
-import {Gw2ApiPermission} from "./general.model";
+import {Gw2ApiPermission} from '../../../service/general.model';
+
+export interface ApiTokenNameMessage {
+    apiTokenName: string;
+}
+
+export interface TpBuyOrderMessage {
+    gw2ItemId: number;
+    buyOrderCoins: number;
+}
 
 export interface VerificationChallenge {
     id: number;
-    name: string;
-    description: string;
     requiredGw2ApiPermissions: Gw2ApiPermission[];
 }
 
 export interface VerificationChallengeStart {
     challengeId: number;
-    challengeName: string;
-    message: string;
+    message: Map<string, any>;
 }
 
 export interface VerificationChallengePending {

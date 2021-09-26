@@ -1,10 +1,13 @@
 import { Component, OnInit } from '@angular/core';
-import {VerificationService} from '../../../service/verification.service';
+import {VerificationService} from './verification.service';
 import {TokenService} from '../../../service/token.service';
-import {VerificationChallenge, VerificationChallengePending, VerificationChallengeStart} from '../../../service/verification.model';
-import {faAngleDoubleUp, faAngleDoubleDown, faCheck} from '@fortawesome/free-solid-svg-icons';
+import {VerificationChallenge, VerificationChallengePending, VerificationChallengeStart, ApiTokenNameMessage, TpBuyOrderMessage} from './verification.model';
+import {faCheck} from '@fortawesome/free-solid-svg-icons';
 import {Gw2ApiPermission} from '../../../service/general.model';
 import {Token} from '../../../service/token.model';
+import {Gw2ApiService} from '../../../service/gw2-api.service';
+import {Observable, of} from 'rxjs';
+import {catchError, map} from 'rxjs/operators';
 
 
 @Component({
@@ -14,8 +17,6 @@ import {Token} from '../../../service/token.model';
 })
 export class VerificationComponent implements OnInit {
 
-  faAngleDoubleUp = faAngleDoubleUp;
-  faAngleDoubleDown = faAngleDoubleDown;
   faCheck = faCheck;
 
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
@@ -25,13 +26,16 @@ export class VerificationComponent implements OnInit {
   pendingChallenges: VerificationChallengePending[] = [];
   tokens: Token[] = [];
 
+  tpBuyOrderMessageObservableCache = new Map<any, Observable<{ gold: number, silver: number, copper: number, name: string, icon: string}>>();
+
   startChallengeInProgress = false;
 
   selectedGw2ApiToken: string | null = null;
+  selectedTokenName: string | null = null;
   verificationSubmitInProgress = false;
   verificationNewApiToken = '';
 
-  constructor(private readonly verificationService: VerificationService, private readonly tokenService: TokenService) { }
+  constructor(private readonly verificationService: VerificationService, private readonly tokenService: TokenService, private readonly gw2ApiService: Gw2ApiService) { }
 
   ngOnInit(): void {
     this.verificationService.getBootstrap().subscribe((bootstrap) => {
@@ -41,6 +45,47 @@ export class VerificationComponent implements OnInit {
     });
 
     this.tokenService.getTokens().subscribe((tokens) => this.tokens = tokens);
+  }
+
+  getChallengeName(id: number): string {
+    switch (id) {
+      case 1: return 'API-Token Name';
+      case 2: return 'TP Buy-Order';
+      default: return 'Unknown';
+    }
+  }
+
+  asApiTokenMessage(message: Map<string, any>): string {
+    return (<ApiTokenNameMessage><unknown>message).apiTokenName;
+  }
+
+  asTpBuyOrderMessage(message: Map<string, any>): Observable<{ gold: number, silver: number, copper: number, name: string, icon: string}> {
+    let observable = this.tpBuyOrderMessageObservableCache.get(message);
+
+    if (observable == undefined) {
+      const tpBuyOrderMessage = <TpBuyOrderMessage><unknown>message;
+
+      observable = this.gw2ApiService.getItem(tpBuyOrderMessage.gw2ItemId).pipe(
+          map((gw2Item) => {
+            let coins = tpBuyOrderMessage.buyOrderCoins;
+
+            const copper = coins % 100;
+            coins = (coins - copper) / 100;
+
+            const silver = coins % 100;
+            coins = (coins - silver) / 100;
+
+            return {gold: coins, silver: silver, copper: copper, name: gw2Item.name, icon: gw2Item.icon};
+          }),
+          catchError((e) => {
+            return of({gold: 0, silver: 0, copper: 0, name: '', icon: ''});
+          })
+      );
+
+      this.tpBuyOrderMessageObservableCache.set(message, observable);
+    }
+
+    return observable;
   }
 
   onStartChallengeClick(challenge: VerificationChallenge): void {
@@ -55,8 +100,12 @@ export class VerificationComponent implements OnInit {
   onTokenSelectClick(token: Token): void {
     if (this.selectedGw2ApiToken == token.gw2ApiToken) {
       this.selectedGw2ApiToken = null;
+      this.selectedTokenName = null;
+      this.verificationNewApiToken = '';
     } else {
       this.selectedGw2ApiToken = token.gw2ApiToken;
+      this.selectedTokenName = token.displayName;
+      this.verificationNewApiToken = token.gw2ApiToken;
     }
   }
 
@@ -76,5 +125,6 @@ export class VerificationComponent implements OnInit {
 
   onUseNewApiTokenClick(): void {
     this.selectedGw2ApiToken = this.verificationNewApiToken;
+    this.selectedTokenName = this.verificationNewApiToken;
   }
 }

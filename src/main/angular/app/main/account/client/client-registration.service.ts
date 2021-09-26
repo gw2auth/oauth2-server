@@ -3,9 +3,7 @@ import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {ClientRegistrationCreation, ClientRegistrationCreationRequest, ClientRegistrationPrivate} from './client-registration.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class ClientRegistrationService {
 
   constructor(private readonly http: HttpClient) { }

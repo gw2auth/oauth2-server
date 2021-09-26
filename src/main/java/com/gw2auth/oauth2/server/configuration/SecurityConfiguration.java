@@ -49,7 +49,7 @@ public class SecurityConfiguration {
                                     "connect-src 'self' https://api.guildwars2.com",
                                     "script-src 'self' 'unsafe-inline'",
                                     "style-src 'self' 'unsafe-inline'",
-                                    "img-src 'self' data:"
+                                    "img-src 'self' https://render.guildwars2.com https://wiki.guildwars2.com/images/ data:"
                             )));
                 })
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
