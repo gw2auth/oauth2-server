@@ -33,10 +33,11 @@ import {HTTP_INTERCEPTOR_PROVIDERS} from './http-inceptors';
 import {Gw2ApiService} from './service/gw2-api.service';
 import { VerificationComponent } from './main/account/verification/verification.component';
 import {VerificationService} from './main/account/verification/verification.service';
-import { PrivacyPolicyComponent } from './privacy-policy/privacy-policy.component';
+import { PrivacyPolicyComponent } from './main/privacy-policy/privacy-policy.component';
 import { SettingsComponent } from './main/account/settings/settings.component';
 import {ButtonLoadableComponent} from './general/button-loadable.component';
 import {AccountService} from './main/account/settings/account.service';
+import { LegalComponent } from './main/legal/legal.component';
 
 @NgModule({
   declarations: [
@@ -62,7 +63,8 @@ import {AccountService} from './main/account/settings/account.service';
     PrivacyPolicyComponent,
     LoginComponent,
     SettingsComponent,
-    ButtonLoadableComponent
+    ButtonLoadableComponent,
+    LegalComponent
   ],
   imports: [
     BrowserModule,

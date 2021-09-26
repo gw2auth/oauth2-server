@@ -12,8 +12,9 @@ import {ClientComponent} from './main/account/client/client.component';
 import {ClientCreateComponent} from './main/account/client/client-create.component';
 import {ApplicationComponent} from './main/account/application/application.component';
 import {VerificationComponent} from './main/account/verification/verification.component';
-import {PrivacyPolicyComponent} from './privacy-policy/privacy-policy.component';
+import {PrivacyPolicyComponent} from './main/privacy-policy/privacy-policy.component';
 import {SettingsComponent} from './main/account/settings/settings.component';
+import {LegalComponent} from './main/legal/legal.component';
 
 const routes: Routes = [
   {
@@ -22,6 +23,7 @@ const routes: Routes = [
     children: [
       { path: '', component: HomeComponent },
       { path: 'privacy-policy', component: PrivacyPolicyComponent },
+      { path: 'legal', component: LegalComponent },
       {
         path: 'account',
         component: AccountComponent,

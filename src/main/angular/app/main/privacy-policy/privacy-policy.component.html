@@ -1,0 +1,86 @@
+<div class="p-5">
+    <div class="container mw-md">
+        <div class="row row-cols-1 g-5">
+            <div class="col">
+                <h3 class="mb-3">Cookies used on this website</h3>
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped align-middle">
+                        <colgroup>
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Expiration</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <ng-container *ngFor="let cookie of cookieInformations">
+                            <tr>
+                                <td>{{cookie.name}}</td>
+                                <td>{{cookie.type}}</td>
+                                <td>{{cookie.expiration}}</td>
+                                <td>
+                                    <button type="button" class="btn btn-secondary" (click)="collapse.toggle()">
+                                        <fa-icon [icon]="collapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="no-transition" #collapse="ngbCollapse" [ngbCollapse]="true">
+                                <td colspan="4">
+                                    <div class="p-2">
+                                        {{cookie.description}}
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-container>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col">
+                <h3 class="mb-3">Data</h3>
+                <div class="list-group">
+                    <div class="list-group-item">
+                        We keep access and error logs of this website. Your IP-Address may appear in these logs, however, we never use the IP-Address to perform any kind of tracking or analytics
+                    </div>
+                    <div class="list-group-item">
+                        If you register on this website using the "GW2Auth-Login", your login information is managed by the AWS-Service "Amazon Cognito".
+                        We can't see your password used to register or login using the "GW2Auth-Login" at any time.
+                        If you wish to have your "GW2Auth-Login" to be deleted, please <a routerLink="/legal">contact us</a> via E-Mail.
+                    </div>
+                    <div class="list-group-item">
+                        The login of this website is realized by using different OAuth2-Providers. For any login provider, we only store the most minimal information possible to identify your account.
+                        That is: a combination of the chosen login provider and your unique User-ID given to us by the login provider.
+                    </div>
+                    <div class="list-group-item">
+                        We store data that has been explicitly created by you using your Account-Management.
+                    </div>
+                    <div class="list-group-item">
+                        In the nature of this website as a OAuth2-Authorization-Server for other applications, we share a limited amount of data with external applications that have been authorized by you.
+                        If you login on an external application using GW2Auth and authorize it to access your GW2-Accounts, we pass the following information to the external website in order to give them the authorized access:
+
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item">
+                                A unique User-ID that identifies your GW2Auth-Account at the external application. The shared User-ID is unique per external application.
+                            </div>
+                            <div class="list-group-item">
+                                The unique GW2-Account-IDs you authorized the external application to have access to
+                            </div>
+                            <div class="list-group-item">
+                                GW2-API-Subtokens for the GW2-Accounts you authorized the external application to have access to.
+                            </div>
+                        </div>
+
+                        <small>External applications receive OAuth2 Access-Tokens and Refresh-Tokens once your authorized the application access</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
