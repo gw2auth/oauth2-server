@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@EnableScheduling
 public class VerificationServiceImpl implements VerificationService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VerificationServiceImpl.class);
@@ -199,7 +201,7 @@ public class VerificationServiceImpl implements VerificationService {
         return isVerified;
     }
 
-    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    @Scheduled(fixedRate = 1000L * 60L)
     public void tryVerify() {
         final Instant now = Instant.now();
         final List<Gw2AccountVerificationChallengeEntity> entities = this.gw2AccountVerificationChallengeRepository.findAllPending();
