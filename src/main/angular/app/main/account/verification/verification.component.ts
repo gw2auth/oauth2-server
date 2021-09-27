@@ -12,8 +12,7 @@ import {catchError, map} from 'rxjs/operators';
 
 @Component({
   selector: 'app-verification',
-  templateUrl: './verification.component.html',
-  styleUrls: ['./verification.component.scss']
+  templateUrl: './verification.component.html'
 })
 export class VerificationComponent implements OnInit {
 

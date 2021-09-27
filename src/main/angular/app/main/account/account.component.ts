@@ -2,8 +2,7 @@ import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-main-account',
-  templateUrl: './account.component.html',
-  styleUrls: ['./account.component.scss']
+  templateUrl: './account.component.html'
 })
 export class AccountComponent implements OnInit {
 

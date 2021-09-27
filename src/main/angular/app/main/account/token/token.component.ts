@@ -14,8 +14,7 @@ import {ActivatedRoute} from "@angular/router";
 
 @Component({
   selector: 'app-main-account-token',
-  templateUrl: './token.component.html',
-  styleUrls: ['./token.component.scss']
+  templateUrl: './token.component.html'
 })
 export class TokenComponent implements OnInit {
 

@@ -31,8 +31,7 @@ class InternalClientAuthorization {
 
 @Component({
   selector: 'app-application',
-  templateUrl: './application.component.html',
-  styleUrls: ['./application.component.scss']
+  templateUrl: './application.component.html'
 })
 export class ApplicationComponent implements OnInit {
 

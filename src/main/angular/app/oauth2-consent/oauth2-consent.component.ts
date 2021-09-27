@@ -10,8 +10,7 @@ import {Token} from '../service/token.model';
 
 @Component({
   selector: 'app-oauth2-consent',
-  templateUrl: './oauth2-consent.component.html',
-  styleUrls: ['./oauth2-consent.component.scss']
+  templateUrl: './oauth2-consent.component.html'
 })
 export class OAuth2ConsentComponent implements OnInit {
 
