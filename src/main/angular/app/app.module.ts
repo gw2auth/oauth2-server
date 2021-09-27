@@ -38,6 +38,9 @@ import { SettingsComponent } from './main/account/settings/settings.component';
 import {ButtonLoadableComponent} from './general/button-loadable.component';
 import {AccountService} from './main/account/settings/account.service';
 import { LegalComponent } from './main/legal/legal.component';
+import { ClientDebugComponent } from './main/account/client/client-debug.component';
+import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
+import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
 
 @NgModule({
   declarations: [
@@ -64,7 +67,9 @@ import { LegalComponent } from './main/legal/legal.component';
     LoginComponent,
     SettingsComponent,
     ButtonLoadableComponent,
-    LegalComponent
+    LegalComponent,
+    ClientDebugComponent,
+    ClientDebugResponseComponent
   ],
   imports: [
     BrowserModule,
@@ -74,7 +79,7 @@ import { LegalComponent } from './main/legal/legal.component';
     FormsModule,
     NgbModule
   ],
-  providers: [HTTP_INTERCEPTOR_PROVIDERS, TokenService, ToastService, OAuth2ConsentService, ClientRegistrationService, ClientAuthorizationService, Gw2ApiService, VerificationService, AccountService],
+  providers: [HTTP_INTERCEPTOR_PROVIDERS, TokenService, ToastService, OAuth2ConsentService, ClientRegistrationService, ClientAuthorizationService, Gw2ApiService, VerificationService, AccountService, Oauth2ClientService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

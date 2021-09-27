@@ -8,8 +8,7 @@ import {of} from 'rxjs';
 
 @Component({
   selector: 'app-client-create',
-  templateUrl: './client-create.component.html',
-  styleUrls: ['./client-create.component.scss']
+  templateUrl: './client-create.component.html'
 })
 export class ClientCreateComponent implements OnInit {
 

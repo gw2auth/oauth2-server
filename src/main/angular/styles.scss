@@ -37,7 +37,7 @@ $btn-close-color: $body-color;
 @import '~bootstrap/scss/bootstrap';
 
 // region inputs
-input {
+input,textarea {
   background-color: $black !important;
   color: $body-color !important;
 }

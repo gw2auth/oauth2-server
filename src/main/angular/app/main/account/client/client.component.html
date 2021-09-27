@@ -59,6 +59,9 @@
                                             <label [htmlFor]="'redirectUri'" class="form-label">Redirect URI</label>
                                             <app-input-copyable [inputId]="'redirectUri'" [inputValue]="clientRegistration.redirectUri"></app-input-copyable>
                                         </div>
+                                        <div class="col">
+                                            <a *ngIf="isTestRedirectUri(clientRegistration)" role="button" class="btn btn-primary" [routerLink]="['', 'account', 'client', clientRegistration.clientId, 'debug']">Debug</a>
+                                        </div>
                                     </div>
                                 </div>
                             </td>

@@ -15,6 +15,8 @@ import {VerificationComponent} from './main/account/verification/verification.co
 import {PrivacyPolicyComponent} from './main/privacy-policy/privacy-policy.component';
 import {SettingsComponent} from './main/account/settings/settings.component';
 import {LegalComponent} from './main/legal/legal.component';
+import {ClientDebugComponent} from './main/account/client/client-debug.component';
+import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 
 const routes: Routes = [
   {
@@ -33,6 +35,8 @@ const routes: Routes = [
           { path: 'application', component: ApplicationComponent },
           { path: 'client', component: ClientComponent },
           { path: 'client/create', component: ClientCreateComponent },
+          { path: 'client/debug', component: ClientDebugResponseComponent },
+          { path: 'client/:clientId/debug', component: ClientDebugComponent },
           { path: 'verification', component: VerificationComponent },
           { path: 'settings', component: SettingsComponent },
         ]

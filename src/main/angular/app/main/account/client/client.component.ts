@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import {ClientRegistrationService} from './client-registration.service';
 import {AuthorizationGrantType, ClientRegistrationPrivate, authorizationGrantTypeDisplayName} from './client-registration.model';
 import {faAngleDoubleDown, faAngleDoubleUp, faTrashAlt, faCopy} from '@fortawesome/free-solid-svg-icons';
@@ -6,12 +6,12 @@ import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {ToastService} from '../../../toast/toast.service';
 import {ApiError} from '../../../service/general.model';
+import {DOCUMENT} from '@angular/common';
 
 
 @Component({
   selector: 'app-client',
-  templateUrl: './client.component.html',
-  styleUrls: ['./client.component.scss']
+  templateUrl: './client.component.html'
 })
 export class ClientComponent implements OnInit {
 
@@ -22,7 +22,7 @@ export class ClientComponent implements OnInit {
 
   clientRegistrations: ClientRegistrationPrivate[] = [];
 
-  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly modalService: NgbModal, private readonly toastService: ToastService) { }
+  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly modalService: NgbModal, private readonly toastService: ToastService, @Inject(DOCUMENT) private readonly document: Document) { }
 
   ngOnInit(): void {
     this.clientRegistrationService.getClientRegistrations().subscribe((clientRegistrations) => this.clientRegistrations = clientRegistrations);
@@ -30,6 +30,11 @@ export class ClientComponent implements OnInit {
 
   authorizationGrantTypeDisplayName(authorizationGrantType: AuthorizationGrantType): string {
     return authorizationGrantTypeDisplayName(authorizationGrantType);
+  }
+
+  isTestRedirectUri(clientRegistration: ClientRegistrationPrivate): boolean {
+      return clientRegistration.redirectUri.startsWith(this.document.location.origin)
+          && clientRegistration.redirectUri.endsWith('/account/client/debug');
   }
 
   openDeleteClientModal(clientRegistration: ClientRegistrationPrivate): void {
