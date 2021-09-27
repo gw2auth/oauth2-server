@@ -71,6 +71,7 @@ public class OAuth2AuthorizationServiceImpl implements OAuth2AuthorizationServic
         final List<Module> securityModules = SecurityJackson2Modules.getModules(classLoader);
         this.objectMapper.registerModules(securityModules);
         this.objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
+        this.objectMapper.registerModule(new Java9CollectionJackson2Module());
         this.objectMapper.addMixIn(Gw2AuthUser.class, Gw2AuthUserMixin.class);
 
         this.resultSetExtractor = new OAuth2AuthorizationResultSetExtractor();
@@ -176,7 +177,7 @@ public class OAuth2AuthorizationServiceImpl implements OAuth2AuthorizationServic
         return this.jdbcOperations.query(LOAD_AUTHORIZATION_SQL + filter, pss, this.resultSetExtractor);
     }
 
-    private String writeJson(Object object) {
+    private String writeJson(Map<String, Object> object) {
         try {
             return this.objectMapper.writeValueAsString(object);
         } catch (IOException e) {
