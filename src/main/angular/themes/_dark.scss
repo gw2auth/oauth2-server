@@ -1,0 +1,49 @@
+@media (prefers-color-scheme: dark) {
+  @import '~bootstrap/scss/functions';
+  @import '~bootstrap/scss/variables';
+  @import 'vars';
+
+  $accent: $dark;
+  $accent-color: $gray-100;
+  $accent-button: $secondary;
+
+  $body-bg: #0c0f15;
+  $body-color: $gray-100;
+
+  // region toast
+  $toast-background-color: $black;
+  $toast-border-color: $gray-600;
+  $toast-header-background-color: $toast-background-color;
+  $toast-header-border-color: $toast-border-color;
+  $toast-header-color: $body-color;
+  // endregion
+
+  // region modal
+  $modal-content-bg: $dark;
+  $modal-header-border-color: $gray-600;
+  $modal-footer-border-color: $gray-600;
+  // endregion
+
+  // region list-group
+  $list-group-bg: $gray-800;
+  $list-group-color: $body-color;
+  $list-group-active-bg: $success;
+  $list-group-active-border-color: $list-group-active-bg;
+  $list-group-disabled-bg: $gray-700;
+  $list-group-disabled-color: $list-group-color;
+  $list-group-hover-bg: shade-color($list-group-active-bg, 60%);
+  $list-group-action-color: $list-group-color;
+  $list-group-action-hover-color: $list-group-action-color;
+  // endregion
+
+  @import 'global_pre';
+  @import '~bootstrap/scss/bootstrap';
+  @import 'global_post';
+
+  // region inputs
+  input,textarea {
+    background-color: $black !important;
+    color: $body-color !important;
+  }
+  // endregion
+}

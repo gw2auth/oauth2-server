@@ -21,7 +21,7 @@ import {faTrashAlt, faTimes} from '@fortawesome/free-solid-svg-icons';
             </form>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-dark" (click)="dismiss()"><fa-icon [icon]="faTimes"></fa-icon> Cancel</button>
+            <button type="button" class="btn btn-accent" (click)="dismiss()"><fa-icon [icon]="faTimes"></fa-icon> Cancel</button>
             <button type="button" class="btn btn-danger" [disabled]="!confirmed" (click)="close()"><fa-icon [icon]="faTrashAlt"></fa-icon> Delete</button>
         </div>
     `

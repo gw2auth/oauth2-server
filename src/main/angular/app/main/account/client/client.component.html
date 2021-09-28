@@ -3,7 +3,7 @@
         <div *ngIf="clientRegistrations.length > 0" class="col">
             <h3 class="mb-3">Your Clients</h3>
             <div class="table-responsive">
-                <table class="table table-dark table-striped align-middle">
+                <table class="table table-accent table-striped align-middle">
                     <colgroup>
                         <col class="w-100" />
                         <col class="w-auto" />
@@ -20,7 +20,7 @@
                             <td>{{clientRegistration.displayName}}</td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-secondary" (click)="detailsCollapse.toggle()">
+                                    <button type="button" class="btn btn-accent" (click)="detailsCollapse.toggle()">
                                         <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                     </button>
                                     <button type="button" class="btn btn-danger" (click)="openDeleteClientModal(clientRegistration)">

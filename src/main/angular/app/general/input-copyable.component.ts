@@ -8,7 +8,7 @@ import {faCopy} from '@fortawesome/free-solid-svg-icons';
         <ng-template #copyResponse let-message="message">{{message}}</ng-template>
         <div class="input-group">
             <input type="text" class="form-control" [id]="inputId" [disabled]="disabled" [value]="inputValue" [attr.aria-describedby]="ariaDescribedBy" />
-            <button class="btn btn-secondary" #t="ngbTooltip" [ngbTooltip]="copyResponse" [closeDelay]="1000" triggers="manual" (click)="onCopyClick(t, inputValue)"><fa-icon [icon]="faCopy"></fa-icon></button>
+            <button class="btn btn-accent" #t="ngbTooltip" [ngbTooltip]="copyResponse" [closeDelay]="1000" triggers="manual" (click)="onCopyClick(t, inputValue)"><fa-icon [icon]="faCopy"></fa-icon></button>
         </div>
     `
 })

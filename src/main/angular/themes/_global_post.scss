@@ -1,0 +1,84 @@
+@import '~bootstrap/scss/functions';
+@import '~bootstrap/scss/variables';
+@import 'vars';
+
+// region list-group-item-action active
+.list-group-item-action:focus:not(.active) {
+  &:hover {
+    background-color: $list-group-active-bg !important;
+  }
+
+  &:not(:hover) {
+    background-color: $list-group-bg !important;
+  }
+}
+// endregion
+
+// region max width utility
+@each $w-name, $width in $container-max-widths {
+  .mw-#{$w-name} {
+    max-width: $width;
+  }
+
+  .m-#{$w-name} {
+    width: $width;
+  }
+}
+// endregion
+
+// region divider
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.divider::before,.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid $body-color;
+}
+
+.divider:not(:empty)::before {
+  margin-right: .25em;
+}
+
+.divider:not(:empty)::after {
+  margin-left: .25em;
+}
+
+@each $name, $color in $theme-colors {
+  .divider-#{$name}::before,.divider-#{$name}::after {
+    border-bottom: 1px solid $color !important;
+  }
+}
+// endregion
+
+// region custom border colors
+.border-body-color {
+  border-color: $body-color;
+}
+// endregion
+
+.bg-accent {
+  background-color: $accent !important;
+  color: $accent-color !important;
+
+  a:not(.active) {
+    color: $accent-color;
+  }
+}
+
+.table-accent {
+  tr {
+    color: $accent-color !important;
+  }
+}
+
+.border-accent {
+  border-color: $accent-button !important;
+}
+
+.btn-accent {
+  @include button-variant($accent-button, $accent-button);
+}

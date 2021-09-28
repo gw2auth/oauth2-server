@@ -6,7 +6,7 @@
                 <ng-container *ngSwitchDefault>
                     <h3 class="mb-3">Your API-Tokens</h3>
                     <div class="table-responsive">
-                        <table class="table table-dark table-striped align-middle">
+                        <table class="table table-accent table-striped align-middle">
                             <colgroup>
                                 <col class="w-100" />
                                 <col class="w-auto" />
@@ -30,10 +30,10 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-secondary" (click)="permissionsCollapse.toggle()">
+                                            <button type="button" class="btn btn-accent" (click)="permissionsCollapse.toggle()">
                                                 <fa-icon [icon]="permissionsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                             </button>
-                                            <button type="button" class="btn btn-secondary" (click)="openEditTokenModal(token)">
+                                            <button type="button" class="btn btn-accent" (click)="openEditTokenModal(token)">
                                                 <fa-icon [icon]="faEdit"></fa-icon>
                                             </button>
                                             <button type="button" class="btn btn-danger" (click)="openDeleteTokenModal(token)">
