@@ -8,7 +8,7 @@ import { LoginComponent } from './login/login.component';
 import { AccountComponent } from './main/account/account.component';
 import { HomeComponent } from './main/home/home.component';
 import { HeaderComponent } from './main/header/header.component';
-import { FooterComponent } from './main/footer/footer.component';
+import { FooterComponent } from './footer/footer.component';
 import { MainComponent } from './main/main.component';
 import { TokenComponent } from './main/account/token/token.component';
 import { SidebarComponent } from './main/account/sidebar/sidebar.component';
