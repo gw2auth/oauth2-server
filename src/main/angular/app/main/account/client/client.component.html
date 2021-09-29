@@ -20,7 +20,7 @@
                             <td>{{clientRegistration.displayName}}</td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-accent" (click)="detailsCollapse.toggle()">
+                                    <button type="button" class="btn btn-accent-inner" (click)="detailsCollapse.toggle()">
                                         <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                     </button>
                                     <button type="button" class="btn btn-danger" (click)="openDeleteClientModal(clientRegistration)">

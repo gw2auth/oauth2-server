@@ -34,7 +34,20 @@
               "src/main/angular/assets"
             ],
             "styles": [
-              "src/main/angular/styles.scss"
+              {
+                "input": "src/main/angular/styles.scss",
+                "bundleName": "app"
+              },
+              {
+                "input": "src/main/angular/themes/dark.scss",
+                "bundleName": "dark",
+                "inject": false
+              },
+              {
+                "input": "src/main/angular/themes/light.scss",
+                "bundleName": "light",
+                "inject": false
+              }
             ],
             "scripts": []
           },
@@ -102,7 +115,18 @@
               "src/main/angular/assets"
             ],
             "styles": [
-              "src/main/angular/styles.scss"
+              {
+                "input": "src/main/angular/styles.scss",
+                "bundleName": "app"
+              },
+              {
+                "input": "src/main/angular/themes/dark.scss",
+                "bundleName": "dark"
+              },
+              {
+                "input": "src/main/angular/themes/light.scss",
+                "bundleName": "light"
+              }
             ],
             "scripts": []
           }

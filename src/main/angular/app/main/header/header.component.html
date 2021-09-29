@@ -17,16 +17,14 @@
                 </li>
             </ul>
 
-            <!--
-            <div ngbDropdown>
-                <a class="nav-link" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
-                <div ngbDropdownMenu [attr.aria-labelledby]="'appearanceDropdown'">
-                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM)">System (Default)</a>
-                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT)">Light</a>
-                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK)">Dark</a>
-                </div>
+            <div class="nav-item dropdown" ngbDropdown>
+                <a class="nav-link dropdown-toggle" role="button" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
+                <ul class="dropdown-menu dropdown-menu-dark" [attr.aria-labelledby]="'appearanceDropdown'" ngbDropdownMenu>
+                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeAppearance == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM)">System</a></li>
+                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeAppearance == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT)">Light</a></li>
+                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeAppearance == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK)">Dark</a></li>
+                </ul>
             </div>
-            -->
 
             <div class="form-inline" [ngSwitch]="isAuthenticated">
                 <a *ngSwitchCase="false" class="btn btn-primary" role="button" [routerLink]="['/login']">Login</a>

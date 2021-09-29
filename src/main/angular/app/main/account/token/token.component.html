@@ -30,10 +30,10 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-accent" (click)="permissionsCollapse.toggle()">
+                                            <button type="button" class="btn btn-accent-inner" (click)="permissionsCollapse.toggle()">
                                                 <fa-icon [icon]="permissionsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                             </button>
-                                            <button type="button" class="btn btn-accent" (click)="openEditTokenModal(token)">
+                                            <button type="button" class="btn btn-accent-inner" (click)="openEditTokenModal(token)">
                                                 <fa-icon [icon]="faEdit"></fa-icon>
                                             </button>
                                             <button type="button" class="btn btn-danger" (click)="openDeleteTokenModal(token)">

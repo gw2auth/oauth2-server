@@ -26,7 +26,7 @@ import {Token} from '../../../service/token.model';
             </form>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-accent" (click)="dismiss()"><fa-icon [icon]="faTimes"></fa-icon> Cancel</button>
+            <button type="button" class="btn btn-accent-inner" (click)="dismiss()"><fa-icon [icon]="faTimes"></fa-icon> Cancel</button>
             <button type="button" class="btn btn-primary" (click)="close()"><fa-icon [icon]="faSave"></fa-icon> Save</button>
         </div>
     `

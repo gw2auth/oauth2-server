@@ -63,12 +63,12 @@
 .bg-accent {
   background-color: $accent !important;
   color: $accent-color !important;
+}
 
-  .border-accent {
-    border-color: $accent-inner !important;
-  }
+.btn-accent-inner {
+  @include button-variant($accent-inner, $accent-inner);
+}
 
-  .btn-accent {
-    @include button-variant($accent-inner, $accent-inner);
-  }
+.border-accent-inner {
+  border-color: $accent-inner !important;
 }

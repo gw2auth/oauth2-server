@@ -1,0 +1,21 @@
+@import '~bootstrap/scss/functions';
+@import '~bootstrap/scss/variables';
+@import 'vars';
+
+$list-group-hover-bg: tint-color($list-group-active-bg, 60%);
+
+$dropdown-dark-color:               $dropdown-color;
+$dropdown-dark-bg:                  $dropdown-bg;
+$dropdown-dark-border-color:        $dropdown-border-color;
+$dropdown-dark-divider-bg:          $dropdown-divider-bg;
+$dropdown-dark-link-color:          $dropdown-link-color;
+$dropdown-dark-link-hover-color:    $dropdown-link-hover-color;
+$dropdown-dark-link-hover-bg:       $dropdown-link-hover-bg;
+$dropdown-dark-link-active-color:   $dropdown-link-active-color;
+$dropdown-dark-link-active-bg:      $dropdown-link-active-bg;
+$dropdown-dark-link-disabled-color: $dropdown-link-disabled-color;
+$dropdown-dark-header-color:        $dropdown-header-color;
+
+@import 'global_pre';
+@import '~bootstrap/scss/bootstrap';
+@import 'global_post';

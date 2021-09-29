@@ -14,9 +14,12 @@ export class HeaderComponent implements OnInit {
   readonly DARK = 'dark';
 
   isAuthenticated: boolean = false;
+
+  themeAnchorElement: HTMLLinkElement;
   activeAppearance = this.SYSTEM;
 
   constructor(@Inject(DOCUMENT) private readonly document: Document, private readonly authService: AuthService) {
+    this.themeAnchorElement = <HTMLLinkElement>this.document.getElementById('themeSheetAnchor');
   }
 
   ngOnInit(): void {
@@ -27,15 +30,23 @@ export class HeaderComponent implements OnInit {
     if (value != this.activeAppearance) {
       this.activeAppearance = value;
 
-      this.document.documentElement.classList.remove('theme-light', 'theme-dark');
+      let applyAppearance = this.activeAppearance;
 
-      switch (this.activeAppearance) {
-        case this.DARK: {
-          this.document.documentElement.classList.add('theme-dark');
+      if (this.activeAppearance == this.SYSTEM) {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          applyAppearance = this.LIGHT;
+        } else {
+          applyAppearance = this.DARK;
+        }
+      }
+
+      switch (applyAppearance) {
+        case this.LIGHT: {
+          this.themeAnchorElement.href = '/light.css';
           break;
         }
-        case this.LIGHT: {
-          this.document.documentElement.classList.add('theme-light');
+        case this.DARK: {
+          this.themeAnchorElement.href = '/dark.css';
           break;
         }
       }

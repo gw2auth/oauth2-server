@@ -13,7 +13,7 @@
                                     <h2>Authorize {{info.clientRegistration.displayName}}</h2>
                                 </div>
                                 <div class="card-body">
-                                    <div class="border border-accent rounded-2 p-3 mb-3">
+                                    <div class="border border-accent-inner rounded-2 p-3 mb-3">
                                         <div class="card-title mb-3">Requested permissions</div>
                                         <div class="container-fluid">
                                             <div class="row row-cols-1 row-cols-sm-2 g-2">
@@ -25,7 +25,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="border border-accent rounded-2 p-3 mb-3">
+                                    <div class="border border-accent-inner rounded-2 p-3 mb-3">
                                         <ng-container [ngSwitch]="info.apiTokensWithSufficientPermissions.length">
                                             <ng-container *ngSwitchCase="0">
                                                 <div class="mb-3">You have no account with the required permissions</div>
