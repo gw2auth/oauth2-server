@@ -19,19 +19,6 @@
   <script type="text/javascript" charset="UTF-8">
     document.addEventListener('DOMContentLoaded', function () {
       const theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      const themeAnchorElement = document.getElementById('themeSheetAnchor');
-      let targetThemeURL;
-
-      if (theme === 'light') {
-        targetThemeURL = '/light.css';
-      } else {
-        targetThemeURL = '/dark.css';
-      }
-
-      if (themeAnchorElement.href !== targetThemeURL) {
-        themeAnchorElement.href = targetThemeURL;
-      }
-
       cookieconsent.run({"notice_banner_type":"interstitial","consent_type":"implied","palette":theme,"language":"en","page_load_consent_levels":["strictly-necessary"],"notice_banner_reject_button_hide":false,"preferences_center_close_button_hide":false,"website_name":"GW2Auth","open_preferences_center_selector":"#open_preferences_center","website_privacy_policy_url":"https://gw2auth.com/privacy-policy"});
     });
   </script>

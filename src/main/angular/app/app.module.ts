@@ -41,6 +41,8 @@ import { LegalComponent } from './main/legal/legal.component';
 import { ClientDebugComponent } from './main/account/client/client-debug.component';
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
+import {BrowserStorageService} from "./service/browser-storage.service";
+import {ColorSchemeService} from "./service/color-scheme.service";
 
 @NgModule({
   declarations: [
@@ -79,7 +81,20 @@ import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
     FormsModule,
     NgbModule
   ],
-  providers: [HTTP_INTERCEPTOR_PROVIDERS, TokenService, ToastService, OAuth2ConsentService, ClientRegistrationService, ClientAuthorizationService, Gw2ApiService, VerificationService, AccountService, Oauth2ClientService],
+  providers: [
+    HTTP_INTERCEPTOR_PROVIDERS,
+    TokenService,
+    ToastService,
+    OAuth2ConsentService,
+    ClientRegistrationService,
+    ClientAuthorizationService,
+    Gw2ApiService,
+    VerificationService,
+    AccountService,
+    Oauth2ClientService,
+    BrowserStorageService,
+    ColorSchemeService
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -1,6 +1,7 @@
-import {Component, Inject, OnInit} from '@angular/core';
-import {AuthService} from "../../auth.service";
-import {DOCUMENT} from '@angular/common';
+import {Component, OnInit} from '@angular/core';
+import {AuthService} from '../../auth.service';
+import {ColorSchemeService} from '../../service/color-scheme.service';
+import {ColorScheme} from '../../service/color-scheme.model';
 
 
 @Component({
@@ -9,48 +10,23 @@ import {DOCUMENT} from '@angular/common';
 })
 export class HeaderComponent implements OnInit {
 
-  readonly SYSTEM = 'system';
-  readonly LIGHT = 'light';
-  readonly DARK = 'dark';
+  SYSTEM = ColorScheme.SYSTEM;
+  LIGHT = ColorScheme.LIGHT;
+  DARK = ColorScheme.DARK;
 
   isAuthenticated: boolean = false;
+  activeColorScheme = ColorScheme.SYSTEM;
 
-  themeAnchorElement: HTMLLinkElement;
-  activeAppearance = this.SYSTEM;
-
-  constructor(@Inject(DOCUMENT) private readonly document: Document, private readonly authService: AuthService) {
-    this.themeAnchorElement = <HTMLLinkElement>this.document.getElementById('themeSheetAnchor');
+  constructor(private readonly authService: AuthService, private readonly colorSchemeService: ColorSchemeService) {
   }
 
   ngOnInit(): void {
     this.authService.isAuthenticated().subscribe((isAuthenticated) => this.isAuthenticated = isAuthenticated);
+    this.colorSchemeService.getPreferredColorScheme().subscribe((preferredColorScheme) => this.activeColorScheme = preferredColorScheme);
   }
 
-  onAppearanceClick(value: string): void {
-    if (value != this.activeAppearance) {
-      this.activeAppearance = value;
-
-      let applyAppearance = this.activeAppearance;
-
-      if (this.activeAppearance == this.SYSTEM) {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-          applyAppearance = this.LIGHT;
-        } else {
-          applyAppearance = this.DARK;
-        }
-      }
-
-      switch (applyAppearance) {
-        case this.LIGHT: {
-          this.themeAnchorElement.href = '/light.css';
-          break;
-        }
-        case this.DARK: {
-          this.themeAnchorElement.href = '/dark.css';
-          break;
-        }
-      }
-    }
+  onAppearanceClick(value: ColorScheme): void {
+    this.colorSchemeService.setPreferredColorScheme(value);
   }
 
   onLogoutClick(): void {
