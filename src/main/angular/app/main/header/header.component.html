@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-md fixed-top navbar-dark bg-accent">
+<nav class="navbar navbar-expand-md fixed-top navbar-light bg-accent">
     <div class="container-fluid">
         <a class="navbar-brand" [routerLink]="['/', '/']">GW2Auth</a>
 
@@ -16,6 +16,17 @@
                     <a class="nav-link" [routerLink]="['/', 'account']" routerLinkActive="active" (click)="navbarCollapse.toggle()">Account</a>
                 </li>
             </ul>
+
+            <!--
+            <div ngbDropdown>
+                <a class="nav-link" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
+                <div ngbDropdownMenu [attr.aria-labelledby]="'appearanceDropdown'">
+                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM)">System (Default)</a>
+                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT)">Light</a>
+                    <a ngbDropdownItem class="nav-link" [ngClass]="activeAppearance == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK)">Dark</a>
+                </div>
+            </div>
+            -->
 
             <div class="form-inline" [ngSwitch]="isAuthenticated">
                 <a *ngSwitchCase="false" class="btn btn-primary" role="button" [routerLink]="['/login']">Login</a>

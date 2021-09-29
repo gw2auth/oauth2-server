@@ -1,9 +1,11 @@
-@import '~bootstrap/scss/functions';
-@import '~bootstrap/scss/variables';
-@import 'vars';
+@media (prefers-color-scheme: light) {
+  @import '~bootstrap/scss/functions';
+  @import '~bootstrap/scss/variables';
+  @import 'vars';
 
-$list-group-hover-bg: tint-color($list-group-active-bg, 60%);
+  $list-group-hover-bg: tint-color($list-group-active-bg, 60%);
 
-@import 'global_pre';
-@import '~bootstrap/scss/bootstrap';
-@import 'global_post';
+  @import 'global_pre';
+  @import '~bootstrap/scss/bootstrap';
+  @import 'global_post';
+}

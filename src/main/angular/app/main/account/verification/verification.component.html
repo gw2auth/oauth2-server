@@ -47,7 +47,7 @@
                                 </button>
                             </div>
 
-                            <div class="divider divider-accent mb-3">OR</div>
+                            <div class="divider mb-3">OR</div>
 
                             <div class="mb-3">Use a new API-Token for the verification process</div>
                         </div>
@@ -101,7 +101,7 @@
                                 <div class="border border-accent rounded-2 p-3">
                                     <div class="mb-3">Required permissions</div>
                                     <div class="container-fluid" [id]="'challengeRequiredGw2ApiPermissions-' + challenge.id">
-                                        <div class="row row-cols-4 row-cols-lg-2 row-cols-xxl-3 g-2">
+                                        <div class="row row-cols-1 row-cols-sm-3 row-cols-md-4 row-cols-lg-2 row-cols-xxl-3 g-2">
                                             <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
                                                 <div class="col">
                                                     <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="challenge.requiredGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>

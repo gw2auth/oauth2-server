@@ -1,5 +1,5 @@
 @import '~bootstrap/scss/variables';
 @import 'vars';
 
-$theme-colors: map-merge($theme-colors, (accent: $accent));
-$table-variants: map-merge($table-variants, (accent: $accent));
+$theme-colors: map-merge($theme-colors, ("accent": $accent));
+$table-variants: map-merge($table-variants, ("accent": $accent));
