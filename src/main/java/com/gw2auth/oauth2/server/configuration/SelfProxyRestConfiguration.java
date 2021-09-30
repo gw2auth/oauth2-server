@@ -18,7 +18,7 @@ public class SelfProxyRestConfiguration {
         return new RestTemplateBuilder()
                 .rootUri("http://127.0.0.1:" + port)
                 .setConnectTimeout(Duration.ofMillis(100L))
-                .setReadTimeout(Duration.ofSeconds(1L))
+                .setReadTimeout(Duration.ofSeconds(20L))
                 .errorHandler(new ResponseErrorHandler() {
                     // interpret nothing as an error (handle it on the caller side)
                     @Override
