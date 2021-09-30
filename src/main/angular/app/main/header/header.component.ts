@@ -3,6 +3,7 @@ import {AuthService} from '../../auth.service';
 import {ColorSchemeService} from '../../service/color-scheme.service';
 import {ColorScheme} from '../../service/color-scheme.model';
 import {Subscription} from 'rxjs';
+import {NgbCollapse} from '@ng-bootstrap/ng-bootstrap';
 
 
 @Component({
@@ -40,6 +41,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   onAppearanceClick(value: ColorScheme): void {
     this.colorSchemeService.setPreferredColorScheme(value);
+  }
+
+  toggleIfShown(collapse: NgbCollapse): void {
+    if (!collapse.collapsed) {
+      collapse.toggle();
+    }
   }
 
   onLogoutClick(): void {

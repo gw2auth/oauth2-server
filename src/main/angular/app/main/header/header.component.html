@@ -9,22 +9,24 @@
         <div class="collapse navbar-collapse" #navbarCollapse="ngbCollapse" [ngbCollapse]="true">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" [routerLink]="['/', '/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="navbarCollapse.toggle()">Home</a>
+                    <a class="nav-link" [routerLink]="['/', '/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="toggleIfShown(navbarCollapse)">Home</a>
                 </li>
 
                 <li *ngIf="isAuthenticated" class="nav-item">
-                    <a class="nav-link" [routerLink]="['/', 'account']" routerLinkActive="active" (click)="navbarCollapse.toggle()">Account</a>
+                    <a class="nav-link" [routerLink]="['/', 'account']" routerLinkActive="active" (click)="toggleIfShown(navbarCollapse)">Account</a>
                 </li>
             </ul>
 
-            <div class="nav-item dropdown" ngbDropdown>
-                <a class="nav-link dropdown-toggle" role="button" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
-                <ul class="dropdown-menu dropdown-menu-dark" [attr.aria-labelledby]="'appearanceDropdown'" ngbDropdownMenu>
-                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeColorScheme == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM)">System</a></li>
-                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeColorScheme == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT)">Light</a></li>
-                    <li><a ngbDropdownItem class="dropdown-item" [ngClass]="activeColorScheme == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK)">Dark</a></li>
-                </ul>
-            </div>
+            <ul class="navbar-nav me-1">
+                <li class="nav-item dropdown" ngbDropdown>
+                    <a class="nav-link dropdown-toggle" role="button" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
+                    <ul class="dropdown-menu dropdown-menu-dark" [attr.aria-labelledby]="'appearanceDropdown'" ngbDropdownMenu>
+                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM); toggleIfShown(navbarCollapse)">System</a></li>
+                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT); toggleIfShown(navbarCollapse)">Light</a></li>
+                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK); toggleIfShown(navbarCollapse)">Dark</a></li>
+                    </ul>
+                </li>
+            </ul>
 
             <div class="form-inline" [ngSwitch]="isAuthenticated">
                 <a *ngSwitchCase="false" class="btn btn-primary" role="button" [routerLink]="['/login']">Login</a>
