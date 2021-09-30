@@ -46,6 +46,7 @@ export class BrowserStorageService {
     private readonly allowedConsentLevels = new Set<ConsentLevel>();
 
     constructor(@Inject(BROWSER_STORAGE) private readonly storage: Storage) {
+        this.allowedConsentLevels.add(ConsentLevel.STRICTLY_NECESSARY);
     }
 
     private getOrCreateNode(consentLevel: ConsentLevel, key: string): StorageNode {
@@ -53,20 +54,21 @@ export class BrowserStorageService {
         if (node == undefined) {
             node = new StorageNode(consentLevel, key);
             this.storageNodeMap.set(key, node);
+
+            // every node should have a value set so the subscribers fire once right at the start
+            node.next(null);
         }
 
         if (node.consentLevel != consentLevel) {
             throw new Error(`ConsentLevels for node ${key} do not match: ${node.consentLevel} and ${consentLevel}`);
         }
 
-        // every node should have a value set so the subscribers fire once right at the start
-        node.next(null);
-
         return node;
     }
 
     setAllowedConsentLevels(consentLevels: ConsentLevel[]): void {
         this.allowedConsentLevels.clear();
+        this.allowedConsentLevels.add(ConsentLevel.STRICTLY_NECESSARY);
 
         for (let consentLevel of consentLevels) {
             this.allowedConsentLevels.add(consentLevel);
@@ -75,9 +77,16 @@ export class BrowserStorageService {
         this.storageNodeMap.forEach((node, key) => {
             if (this.allowedConsentLevels.has(node.consentLevel)) {
                 if (!node.isPersistent) {
-                    const value = node.getValue();
+                    let value = node.getValue();
 
-                    if (value != null) {
+                    if (value == null) {
+                        value = this.storage.getItem(STORAGE_PREFIX + node.key);
+
+                        if (value != null) {
+                            node.isPersistent = true;
+                            node.next(value);
+                        }
+                    } else {
                         this.storage.setItem(STORAGE_PREFIX + node.key, value);
                         node.isPersistent = true;
                     }

@@ -34,10 +34,8 @@
               "src/main/angular/assets"
             ],
             "styles": [
-              {
-                "input": "src/main/angular/styles.scss",
-                "bundleName": "app"
-              },
+              "src/main/angular/styles.scss",
+              "node_modules/cookieconsent/build/cookieconsent.min.css",
               {
                 "input": "src/main/angular/themes/dark.scss",
                 "bundleName": "dark",
@@ -49,7 +47,9 @@
                 "inject": false
               }
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/cookieconsent/build/cookieconsent.min.js"
+            ]
           },
           "configurations": {
             "production": {
@@ -115,20 +115,22 @@
               "src/main/angular/assets"
             ],
             "styles": [
-              {
-                "input": "src/main/angular/styles.scss",
-                "bundleName": "app"
-              },
+              "src/main/angular/styles.scss",
+              "node_modules/cookieconsent/build/cookieconsent.min.css",
               {
                 "input": "src/main/angular/themes/dark.scss",
-                "bundleName": "dark"
+                "bundleName": "dark",
+                "inject": false
               },
               {
                 "input": "src/main/angular/themes/light.scss",
-                "bundleName": "light"
+                "bundleName": "light",
+                "inject": false
               }
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/cookieconsent/build/cookieconsent.min.js"
+            ]
           }
         }
       }

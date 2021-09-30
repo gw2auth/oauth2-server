@@ -2,7 +2,7 @@
     <div class="container mw-md">
         <div class="row row-cols-1 g-5">
             <div class="col">
-                <h3 class="mb-3">Cookies used on this website</h3>
+                <h3 class="mb-3">Cookies</h3>
                 <div class="table-responsive">
                     <table class="table table-accent table-striped align-middle">
                         <colgroup>
@@ -35,6 +35,45 @@
                                 <td colspan="4">
                                     <div class="p-2">
                                         {{cookie.description}}
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-container>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col">
+                <h3 class="mb-3">Local Storage</h3>
+                <div class="table-responsive">
+                    <table class="table table-accent table-striped align-middle">
+                        <colgroup>
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                            <col class="w-auto" />
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <ng-container *ngFor="let ls of localStorageInformations">
+                            <tr>
+                                <td>{{ls.name}}</td>
+                                <td>{{ls.type}}</td>
+                                <td>
+                                    <button type="button" class="btn btn-accent-inner" (click)="collapse.toggle()">
+                                        <fa-icon [icon]="collapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="no-transition" #collapse="ngbCollapse" [ngbCollapse]="true">
+                                <td colspan="3">
+                                    <div class="p-2">
+                                        {{ls.description}}
                                     </div>
                                 </td>
                             </tr>

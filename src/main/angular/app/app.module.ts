@@ -41,8 +41,43 @@ import { LegalComponent } from './main/legal/legal.component';
 import { ClientDebugComponent } from './main/account/client/client-debug.component';
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
-import {BrowserStorageService} from "./service/browser-storage.service";
-import {ColorSchemeService} from "./service/color-scheme.service";
+import {BrowserStorageService} from './service/browser-storage.service';
+import {ColorSchemeService} from './service/color-scheme.service';
+import {NgcCookieConsentConfig, NgcCookieConsentModule} from 'ngx-cookieconsent';
+
+
+const cookieConfig: NgcCookieConsentConfig = {
+  cookie: {
+    domain: ''
+  },
+  palette: {
+    popup: {
+      background: '#000'
+    },
+    button: {
+      background: '#f1d600'
+    }
+  },
+  position: 'bottom-right',
+  theme: 'edgeless',
+  type: 'opt-out',
+  layout: 'custom',
+  layouts: {'custom': '{{message}}{{compliance}}'},
+  elements:{
+    message: `
+    <span id="cookieconsent:desc" class="cc-message">
+      {{message}}<a aria-label="learn more about our privacy policy" tabindex="1" class="cc-link" href="{{privacyPolicyHref}}" target="_blank">{{privacyPolicyText}}</a>
+    </span>
+    `,
+  },
+  content:{
+    message: `This website uses Cookies and Local Storage to offer you the best possible experience. Find out more in our `,
+
+    privacyPolicyText: 'Privacy Policy',
+    privacyPolicyHref: '/privacy-policy'
+  }
+};
+
 
 @NgModule({
   declarations: [
@@ -79,7 +114,8 @@ import {ColorSchemeService} from "./service/color-scheme.service";
     HttpClientModule,
     FontAwesomeModule,
     FormsModule,
-    NgbModule
+    NgbModule,
+    NgcCookieConsentModule.forRoot(cookieConfig)
   ],
   providers: [
     HTTP_INTERCEPTOR_PROVIDERS,
