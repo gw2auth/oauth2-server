@@ -61,8 +61,9 @@ export class ClientComponent implements OnInit {
             }
         })
         .catch((e) => {
-          console.log(e);
-          this.toastService.show('Client deletion failed', 'The Client deletion failed for an unknown reason');
+          if (e) {
+              this.toastService.show('Client deletion failed', 'The Client deletion failed for an unknown reason');
+          }
         });
   }
 }
