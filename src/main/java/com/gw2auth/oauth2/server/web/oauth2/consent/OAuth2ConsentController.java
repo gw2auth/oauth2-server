@@ -104,10 +104,22 @@ public class OAuth2ConsentController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/oauth2/consent-deny")
-    public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
+    public ResponseEntity<Void> consentDeny(@AuthenticationPrincipal Gw2AuthUser user,
+                                            @RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
                                             @RequestParam(OAuth2ParameterNames.STATE) String state) {
 
         final ClientRegistration clientRegistration = this.clientRegistrationService.getClientRegistration(clientId).orElseThrow();
+
+        try {
+            final long accountId = user.getAccountId();
+            final long clientRegistrationId = clientRegistration.id();
+
+            this.clientAuthorizationService.deleteClientAuthorization(accountId, clientRegistrationId);
+            this.oAuth2AuthorizationService.removeByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
+        } catch (Exception e) {
+            LOG.warn("unexpected exception during consent-deny removal of authorization", e);
+        }
+
         final URI redirectUri = UriComponentsBuilder.fromHttpUrl(clientRegistration.redirectUri())
                 .replaceQueryParam(OAuth2ParameterNames.STATE, state)
                 .replaceQueryParam(OAuth2ParameterNames.ERROR, OAuth2ErrorCodes.ACCESS_DENIED)

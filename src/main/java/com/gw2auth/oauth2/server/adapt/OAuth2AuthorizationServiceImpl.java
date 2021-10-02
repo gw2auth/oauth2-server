@@ -169,7 +169,7 @@ public class OAuth2AuthorizationServiceImpl implements OAuth2AuthorizationServic
         }
     }
 
-    private void removeByAccountIdAndClientRegistrationId(long accountId, long clientRegistrationId) {
+    public void removeByAccountIdAndClientRegistrationId(long accountId, long clientRegistrationId) {
         this.jdbcOperations.update(REMOVE_AUTHORIZATION_SQL, accountId, clientRegistrationId);
     }
     
