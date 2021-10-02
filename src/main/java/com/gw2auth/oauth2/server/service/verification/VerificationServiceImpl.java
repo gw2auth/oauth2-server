@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class VerificationServiceImpl implements VerificationService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VerificationServiceImpl.class);
+    private static final String STARTED_CHALLENGE_GW2_ACCOUNT_ID = "";
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
@@ -76,11 +77,11 @@ public class VerificationServiceImpl implements VerificationService {
     public Optional<VerificationChallengeStart> getStartedChallenge(long accountId) {
         final Locale userLocale = LocaleContextHolder.getLocale();
 
-        return this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "")
+        return this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID)
                 .flatMap((entity) -> {
                     final VerificationChallenge<?> verificationChallenge = this.challengesById.get(entity.challengeId());
                     if (verificationChallenge == null) {
-                        this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, "");
+                        this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID);
                         return Optional.empty();
                     }
 
@@ -93,7 +94,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public List<VerificationChallengePending> getPendingChallenges(long accountId) {
         return this.gw2AccountVerificationChallengeRepository.findAllByAccountId(accountId).stream()
-                .filter((e) -> !e.gw2AccountId().equals(""))
+                .filter((e) -> !e.gw2AccountId().equals(STARTED_CHALLENGE_GW2_ACCOUNT_ID))
                 .map((e) -> new VerificationChallengePending(e.challengeId(), e.gw2AccountId(), e.startedAt()))
                 .collect(Collectors.toList());
 
@@ -117,7 +118,7 @@ public class VerificationServiceImpl implements VerificationService {
 
         final Locale userLocale = LocaleContextHolder.getLocale();
         final Gw2AccountVerificationChallengeEntity entity = this.gw2AccountVerificationChallengeRepository.save(
-                new Gw2AccountVerificationChallengeEntity(accountId, "", challengeId, state.getClass().getName(), stateJson, null, null, null)
+                new Gw2AccountVerificationChallengeEntity(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID, challengeId, state.getClass().getName(), stateJson, null, null, null)
         );
 
         return new VerificationChallengeStart(entity.challengeId(), buildMessage(verificationChallenge, state, userLocale));
@@ -126,12 +127,13 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     @Transactional
     public VerificationChallengeSubmit submitChallenge(long accountId, String gw2ApiToken) {
-        Gw2AccountVerificationChallengeEntity entity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "")
+        Gw2AccountVerificationChallengeEntity entity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID)
                 .orElseThrow(() -> new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID);
 
         final VerificationChallenge<?> challenge = this.challengesById.get(entity.challengeId());
         if (challenge == null) {
-            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, "");
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
@@ -159,7 +161,6 @@ public class VerificationServiceImpl implements VerificationService {
         final VerificationChallengePending verificationChallengePending;
 
         if (isVerified) {
-            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, "");
             verificationChallengePending = null;
         } else {
             this.gw2AccountVerificationChallengeRepository.save(entity);
@@ -190,7 +191,7 @@ public class VerificationServiceImpl implements VerificationService {
         final boolean isVerified = verify(challenge, state, entity.gw2ApiToken());
 
         if (isVerified) {
-            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, "");
+            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID);
             this.gw2AccountVerificationRepository.save(
                     this.gw2AccountVerificationRepository.findById(gw2AccountId)
                             .map((e) -> e.withAccountId(accountId))
