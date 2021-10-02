@@ -23,28 +23,29 @@ const routes: Routes = [
     path: '',
     component: MainComponent,
     children: [
-      { path: '', component: HomeComponent },
-      { path: 'privacy-policy', component: PrivacyPolicyComponent },
-      { path: 'legal', component: LegalComponent },
+      { path: '', component: HomeComponent},
+      { path: 'privacy-policy', component: PrivacyPolicyComponent, data: { title: 'Privacy Policy' } },
+      { path: 'legal', component: LegalComponent, data: { title: 'Legal' } },
       {
         path: 'account',
         component: AccountComponent,
         canActivate: [AuthGuard],
+        data: { title: 'Account' },
         children: [
-          { path: 'token', component: TokenComponent },
-          { path: 'application', component: ApplicationComponent },
-          { path: 'client', component: ClientComponent },
-          { path: 'client/create', component: ClientCreateComponent },
-          { path: 'client/debug', component: ClientDebugResponseComponent },
-          { path: 'client/:clientId/debug', component: ClientDebugComponent },
-          { path: 'verification', component: VerificationComponent },
-          { path: 'settings', component: SettingsComponent },
+          { path: 'token', component: TokenComponent, data: { title: 'API-Tokens' } },
+          { path: 'application', component: ApplicationComponent, data: { title: 'Applications' } },
+          { path: 'client', component: ClientComponent, data: { title: 'Clients' } },
+          { path: 'client/create', component: ClientCreateComponent, data: { title: 'Create Client' } },
+          { path: 'client/debug', component: ClientDebugResponseComponent, data: { title: 'Debug Client' } },
+          { path: 'client/:clientId/debug', component: ClientDebugComponent, data: { title: 'Debug Client' } },
+          { path: 'verification', component: VerificationComponent, data: { title: 'Verification' } },
+          { path: 'settings', component: SettingsComponent, data: { title: 'Settings' } },
         ]
       },
     ]
   },
-  { path: 'login', component: LoginComponent, canActivate: [NonAuthGuard] },
-  { path: 'oauth2/consent', component: OAuth2ConsentComponent, canActivate: [AuthGuard] }
+  { path: 'login', component: LoginComponent, canActivate: [NonAuthGuard], data: { title: 'Login' } },
+  { path: 'oauth2/consent', component: OAuth2ConsentComponent, canActivate: [AuthGuard], data: { title: 'Authorize' } }
 ];
 
 @NgModule({
