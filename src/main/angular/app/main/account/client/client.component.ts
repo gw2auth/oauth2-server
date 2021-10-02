@@ -5,7 +5,7 @@ import {faAngleDoubleDown, faAngleDoubleUp, faTrashAlt, faCopy} from '@fortaweso
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {ToastService} from '../../../toast/toast.service';
-import {ApiError} from '../../../service/general.model';
+import {ApiError} from '../../../common/common.model';
 import {DOCUMENT} from '@angular/common';
 
 

@@ -4,8 +4,8 @@ import {ActivatedRoute, Router} from '@angular/router';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
 import {faCheck, faSync} from '@fortawesome/free-solid-svg-icons';
-import {Gw2ApiService} from '../service/gw2-api.service';
-import {Token} from '../service/token.model';
+import {Gw2ApiService} from '../common/gw2-api.service';
+import {Token} from '../common/token.model';
 
 
 @Component({

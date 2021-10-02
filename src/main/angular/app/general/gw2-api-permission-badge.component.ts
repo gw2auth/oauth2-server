@@ -1,5 +1,5 @@
 import {Component, Input} from '@angular/core';
-import {Gw2ApiPermission, gw2ApiPermissionDisplayName} from '../service/general.model';
+import {Gw2ApiPermission, gw2ApiPermissionDisplayName} from '../common/common.model';
 import {faCheck, faBan} from '@fortawesome/free-solid-svg-icons';
 
 

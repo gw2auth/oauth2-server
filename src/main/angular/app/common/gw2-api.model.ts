@@ -1,4 +1,4 @@
-import {Gw2ApiPermission} from './general.model';
+import {Gw2ApiPermission} from './common.model';
 
 export interface Gw2TokenInfo {
     id: string;

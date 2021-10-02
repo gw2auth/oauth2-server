@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 import {NgbActiveModal} from '@ng-bootstrap/ng-bootstrap';
 import {faSave, faTimes} from '@fortawesome/free-solid-svg-icons';
-import {Token} from '../../../service/token.model';
+import {Token} from '../../../common/token.model';
 
 
 @Component({

@@ -1,7 +1,7 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {AuthService} from '../../auth.service';
-import {ColorSchemeService} from '../../service/color-scheme.service';
-import {ColorScheme} from '../../service/color-scheme.model';
+import {ColorSchemeService} from '../../common/color-scheme.service';
+import {ColorScheme} from '../../common/color-scheme.model';
 import {Subscription} from 'rxjs';
 import {NgbCollapse} from '@ng-bootstrap/ng-bootstrap';
 

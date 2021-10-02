@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import {VerificationService} from './verification.service';
-import {TokenService} from '../../../service/token.service';
+import {TokenService} from '../../../common/token.service';
 import {VerificationChallenge, VerificationChallengePending, VerificationChallengeStart, ApiTokenNameMessage, TpBuyOrderMessage} from './verification.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
-import {Gw2ApiPermission} from '../../../service/general.model';
-import {Token} from '../../../service/token.model';
-import {Gw2ApiService} from '../../../service/gw2-api.service';
+import {Gw2ApiPermission} from '../../../common/common.model';
+import {Token} from '../../../common/token.model';
+import {Gw2ApiService} from '../../../common/gw2-api.service';
 import {Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 

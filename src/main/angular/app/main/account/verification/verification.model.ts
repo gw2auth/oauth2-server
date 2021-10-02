@@ -1,4 +1,4 @@
-import {Gw2ApiPermission} from '../../../service/general.model';
+import {Gw2ApiPermission} from '../../../common/common.model';
 
 export interface ApiTokenNameMessage {
     apiTokenName: string;

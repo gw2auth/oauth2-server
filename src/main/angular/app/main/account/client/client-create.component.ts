@@ -3,7 +3,7 @@ import {ClientRegistrationService} from './client-registration.service';
 import {AuthorizationGrantType, authorizationGrantTypeDisplayName, ClientRegistrationCreation,} from './client-registration.model';
 import {catchError} from 'rxjs/operators';
 import {ToastService} from '../../../toast/toast.service';
-import {ApiError} from '../../../service/general.model';
+import {ApiError} from '../../../common/common.model';
 import {of} from 'rxjs';
 
 @Component({

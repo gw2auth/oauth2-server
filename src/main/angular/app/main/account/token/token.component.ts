@@ -1,11 +1,11 @@
 import {Component, OnInit} from '@angular/core';
-import {TokenService} from '../../../service/token.service';
+import {TokenService} from '../../../common/token.service';
 import { faAngleDoubleDown, faAngleDoubleUp, faEdit, faTrashAlt, faCheck, faBan, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
 import {ToastService} from '../../../toast/toast.service';
-import {ApiError, Gw2ApiPermission} from '../../../service/general.model';
-import {Token} from '../../../service/token.model';
+import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
+import {Token} from '../../../common/token.model';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {EditTokenComponent} from './edit-token.component';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';

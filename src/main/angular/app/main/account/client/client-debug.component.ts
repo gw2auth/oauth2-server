@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {ClientRegistrationPrivate} from './client-registration.model';
 import {ClientRegistrationService} from './client-registration.service';
-import {Gw2ApiPermission, gw2ApiPermissionDisplayName} from '../../../service/general.model';
+import {Gw2ApiPermission, gw2ApiPermissionDisplayName} from '../../../common/common.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
 
 

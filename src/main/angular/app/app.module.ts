@@ -12,7 +12,7 @@ import { FooterComponent } from './footer/footer.component';
 import { MainComponent } from './main/main.component';
 import { TokenComponent } from './main/account/token/token.component';
 import { SidebarComponent } from './main/account/sidebar/sidebar.component';
-import {TokenService} from './service/token.service';
+import {TokenService} from './common/token.service';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {FormsModule} from '@angular/forms';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
@@ -30,7 +30,7 @@ import {DeleteModalComponent} from "./general/delete-modal.component";
 import { ApplicationComponent } from './main/account/application/application.component';
 import {ClientAuthorizationService} from './main/account/application/client-authorization.service';
 import {HTTP_INTERCEPTOR_PROVIDERS} from './http-inceptors';
-import {Gw2ApiService} from './service/gw2-api.service';
+import {Gw2ApiService} from './common/gw2-api.service';
 import { VerificationComponent } from './main/account/verification/verification.component';
 import {VerificationService} from './main/account/verification/verification.service';
 import { PrivacyPolicyComponent } from './main/privacy-policy/privacy-policy.component';
@@ -41,8 +41,8 @@ import { LegalComponent } from './main/legal/legal.component';
 import { ClientDebugComponent } from './main/account/client/client-debug.component';
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
-import {BrowserStorageService} from './service/browser-storage.service';
-import {ColorSchemeService} from './service/color-scheme.service';
+import {BrowserStorageService} from './common/browser-storage.service';
+import {ColorSchemeService} from './common/color-scheme.service';
 import {NgcCookieConsentConfig, NgcCookieConsentModule} from 'ngx-cookieconsent';
 
 

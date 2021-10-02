@@ -1,5 +1,5 @@
 import {ClientRegistrationPublic} from '../client/client-registration.model';
-import {Gw2ApiPermission} from '../../../service/general.model';
+import {Gw2ApiPermission} from '../../../common/common.model';
 
 export interface Token {
     gw2AccountId: string;
