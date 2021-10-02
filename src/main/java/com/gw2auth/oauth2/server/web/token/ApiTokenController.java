@@ -1,10 +1,10 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.token;
 
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
-import com.gw2auth.oauth2.server.web.dto.ApiTokenResponse;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

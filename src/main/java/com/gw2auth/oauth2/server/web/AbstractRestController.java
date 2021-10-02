@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.web;
 
 import com.gw2auth.oauth2.server.service.Gw2AuthServiceException;
-import com.gw2auth.oauth2.server.web.dto.ApiErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

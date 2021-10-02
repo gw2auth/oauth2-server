@@ -1,9 +1,9 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.account;
 
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.user.AbstractUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
-import com.gw2auth.oauth2.server.web.dto.AccountFederationResponse;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

@@ -1,16 +1,18 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.oauth2.consent;
 
+import com.gw2auth.oauth2.server.adapt.OAuth2AuthorizationServiceImpl;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.util.Utils;
-import com.gw2auth.oauth2.server.web.dto.ApiTokenResponse;
-import com.gw2auth.oauth2.server.web.dto.ClientRegistrationPublicResponse;
-import com.gw2auth.oauth2.server.web.dto.OAuth2ConsentInfoResponse;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
+import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
-import com.gw2auth.oauth2.server.service.verification.VerificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -34,15 +36,23 @@ import java.util.stream.Collectors;
 @RestController
 public class OAuth2ConsentController extends AbstractRestController {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OAuth2ConsentController.class);
+
     private final ClientRegistrationService clientRegistrationService;
     private final ApiTokenService apiTokenService;
-    private final VerificationService verificationService;
+    private final ClientAuthorizationService clientAuthorizationService;
+    private final OAuth2AuthorizationServiceImpl oAuth2AuthorizationService;
 
     @Autowired
-    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, ApiTokenService apiTokenService, VerificationService verificationService) {
+    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService,
+                                   ApiTokenService apiTokenService,
+                                   ClientAuthorizationService clientAuthorizationService,
+                                   OAuth2AuthorizationServiceImpl oAuth2AuthorizationService) {
+
         this.clientRegistrationService = clientRegistrationService;
         this.apiTokenService = apiTokenService;
-        this.verificationService = verificationService;
+        this.clientAuthorizationService = clientAuthorizationService;
+        this.oAuth2AuthorizationService = oAuth2AuthorizationService;
     }
 
     @GetMapping(value = "/api/oauth2/consent", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -57,18 +67,17 @@ public class OAuth2ConsentController extends AbstractRestController {
                 .collect(Collectors.toSet());
 
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
-        final Set<String> verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(user.getAccountId());
 
-        final List<ApiTokenResponse> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
-        final List<ApiTokenResponse> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
+        final List<OAuth2ConsentInfoResponse.ApiTokenResponse> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
+        final List<OAuth2ConsentInfoResponse.ApiTokenResponse> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
 
         for (ApiToken apiToken : apiTokens) {
-            final ApiTokenResponse resultApiTokenResponse = ApiTokenResponse.create(apiToken, verifiedGw2AccountIds.contains(apiToken.gw2AccountId()));
+            final OAuth2ConsentInfoResponse.ApiTokenResponse resultApiToken = OAuth2ConsentInfoResponse.ApiTokenResponse.create(apiToken);
 
             if (apiToken.gw2ApiPermissions().containsAll(requestedGw2ApiPermissions)) {
-                apiTokensWithSufficientPermissionResponses.add(resultApiTokenResponse);
+                apiTokensWithSufficientPermissionResponses.add(resultApiToken);
             } else {
-                apiTokensWithInsufficientPermissionResponses.add(resultApiTokenResponse);
+                apiTokensWithInsufficientPermissionResponses.add(resultApiToken);
             }
         }
 

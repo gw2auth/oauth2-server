@@ -1,4 +1,4 @@
-package com.gw2auth.oauth2.server.web.dto;
+package com.gw2auth.oauth2.server.web.verification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

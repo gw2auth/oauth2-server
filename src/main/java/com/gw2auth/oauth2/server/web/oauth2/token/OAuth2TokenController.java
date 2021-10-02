@@ -1,6 +1,7 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.oauth2.token;
 
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;

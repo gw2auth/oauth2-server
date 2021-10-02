@@ -1,4 +1,4 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.client.authorization;
 
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationLogEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationLogRepository;
@@ -9,8 +9,7 @@ import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizatio
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
-import com.gw2auth.oauth2.server.web.dto.ClientAuthorizationLogsResponse;
-import com.gw2auth.oauth2.server.web.dto.ClientAuthorizationResponse;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

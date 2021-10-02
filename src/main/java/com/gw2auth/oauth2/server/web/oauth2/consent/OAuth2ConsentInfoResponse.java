@@ -1,7 +1,9 @@
-package com.gw2auth.oauth2.server.web.dto;
+package com.gw2auth.oauth2.server.web.oauth2.consent;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
+import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
 import org.springframework.util.MultiValueMap;
 
 import java.util.List;
@@ -15,4 +17,12 @@ public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") Clie
                                         @JsonProperty("apiTokensWithSufficientPermissions") List<ApiTokenResponse> apiTokensWithSufficientPermissionResponses,
                                         @JsonProperty("apiTokensWithInsufficientPermissions") List<ApiTokenResponse> apiTokensWithInsufficientPermissionResponses) {
 
+    public record ApiTokenResponse(@JsonProperty("gw2AccountId") String gw2AccountId,
+                                   @JsonProperty("gw2ApiToken") String gw2ApiToken,
+                                   @JsonProperty("displayName") String displayName) {
+
+        public static ApiTokenResponse create(ApiToken value) {
+            return new ApiTokenResponse(value.gw2AccountId(), value.gw2ApiToken(), value.displayName());
+        }
+    }
 }

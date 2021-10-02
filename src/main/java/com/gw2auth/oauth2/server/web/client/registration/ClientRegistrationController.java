@@ -1,10 +1,8 @@
-package com.gw2auth.oauth2.server.web;
+package com.gw2auth.oauth2.server.web.client.registration;
 
-import com.gw2auth.oauth2.server.web.dto.ClientRegistrationCreationRequest;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
-import com.gw2auth.oauth2.server.web.dto.ClientRegistrationCreationResponse;
-import com.gw2auth.oauth2.server.web.dto.ClientRegistrationPrivateResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

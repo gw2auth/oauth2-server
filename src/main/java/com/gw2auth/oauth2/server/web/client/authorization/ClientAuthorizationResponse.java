@@ -1,4 +1,4 @@
-package com.gw2auth.oauth2.server.web.dto;
+package com.gw2auth.oauth2.server.web.client.authorization;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
