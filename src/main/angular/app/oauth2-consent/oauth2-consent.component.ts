@@ -1,11 +1,10 @@
 import {Component, NgZone, OnInit} from '@angular/core';
-import {OAuth2ConsentInformation, OAuth2ConsentService} from './oauth2-consent.service';
+import {MinimalToken, OAuth2ConsentInformation, OAuth2ConsentService} from './oauth2-consent.service';
 import {ActivatedRoute, Router} from '@angular/router';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
 import {faCheck, faSync} from '@fortawesome/free-solid-svg-icons';
 import {Gw2ApiService} from '../common/gw2-api.service';
-import {Token} from '../common/token.model';
 
 
 @Component({
@@ -47,7 +46,7 @@ export class OAuth2ConsentComponent implements OnInit {
         });
   }
 
-  private updateApiTokenValidStatus(token: Token): void {
+  private updateApiTokenValidStatus(token: MinimalToken): void {
     if (!this.gw2ApiTokenValidStatus.has(token.gw2ApiToken)) {
       this.gw2ApiTokenValidStatus.set(token.gw2ApiToken, -1);
 
@@ -57,7 +56,7 @@ export class OAuth2ConsentComponent implements OnInit {
     }
   }
 
-  getApiTokenValidStatus(token: Token): number {
+  getApiTokenValidStatus(token: MinimalToken): number {
     const validStatus = this.gw2ApiTokenValidStatus.get(token.gw2ApiToken);
     return validStatus == undefined ? -1 : validStatus;
   }

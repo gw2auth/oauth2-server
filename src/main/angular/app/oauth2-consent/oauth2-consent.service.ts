@@ -4,7 +4,6 @@ import {Observable} from 'rxjs';
 import {Params} from '@angular/router';
 import {ClientRegistrationPublic} from '../main/account/client/client-registration.model';
 import {Gw2ApiPermission} from '../common/common.model';
-import {Token} from '../common/token.model';
 
 
 @Injectable()
@@ -18,12 +17,18 @@ export class OAuth2ConsentService {
     }
 }
 
+export interface MinimalToken {
+    gw2AccountId: string;
+    gw2ApiToken: string;
+    displayName: string;
+}
+
 export interface OAuth2ConsentInformation {
     clientRegistration: ClientRegistrationPublic;
     requestedGw2ApiPermissions: Gw2ApiPermission[];
     submitFormUri: string;
     submitFormParameters: Map<string, string[]>;
     cancelUri: string;
-    apiTokensWithSufficientPermissions: Token[];
-    apiTokensWithInsufficientPermissions: Token[];
+    apiTokensWithSufficientPermissions: MinimalToken[];
+    apiTokensWithInsufficientPermissions: MinimalToken[];
 }

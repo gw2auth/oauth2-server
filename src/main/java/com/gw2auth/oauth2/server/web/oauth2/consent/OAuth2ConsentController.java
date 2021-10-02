@@ -68,11 +68,11 @@ public class OAuth2ConsentController extends AbstractRestController {
 
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
 
-        final List<OAuth2ConsentInfoResponse.ApiTokenResponse> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
-        final List<OAuth2ConsentInfoResponse.ApiTokenResponse> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
+        final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
+        final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
 
         for (ApiToken apiToken : apiTokens) {
-            final OAuth2ConsentInfoResponse.ApiTokenResponse resultApiToken = OAuth2ConsentInfoResponse.ApiTokenResponse.create(apiToken);
+            final OAuth2ConsentInfoResponse.MinimalApiToken resultApiToken = OAuth2ConsentInfoResponse.MinimalApiToken.create(apiToken);
 
             if (apiToken.gw2ApiPermissions().containsAll(requestedGw2ApiPermissions)) {
                 apiTokensWithSufficientPermissionResponses.add(resultApiToken);
