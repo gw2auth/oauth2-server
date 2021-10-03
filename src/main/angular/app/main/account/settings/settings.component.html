@@ -1,38 +1,48 @@
 <div class="container">
     <div class="row row-cols-1 gy-5">
-        <div class="col">
-            <h3 class="mb-3">Your Login providers</h3>
-            <div class="table-responsive">
-                <table class="table table-accent table-striped align-middle">
-                    <colgroup>
-                        <col class="w-50" />
-                        <col class="w-50" />
-                        <col class="w-auto "/>
-                    </colgroup>
-                    <thead>
-                    <tr>
-                        <th scope="col">Provider</th>
-                        <th scope="col">User-ID</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr *ngFor="let federation of federations">
-                        <td>
-                            <fa-icon [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
-                            <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
-                        </td>
-                        <td>{{federation.idAtIssuer}}</td>
-                        <td>
-                            <button type="button" class="btn btn-danger" [disabled]="federations.length < 2" (click)="openDeleteFederationModal(federation)">
-                                <fa-icon [icon]="faTrashAlt"></fa-icon>
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
+        <ng-container [ngSwitch]="federations">
+            <div *ngSwitchCase="null" class="col">
+                Loading ...
             </div>
-        </div>
+            <div *ngSwitchDefault class="col">
+                <h3 class="mb-3">Your Login providers</h3>
+                <div class="table-responsive">
+                    <table class="table table-accent table-striped align-middle">
+                        <colgroup>
+                            <col class="w-50" />
+                            <col class="w-50" />
+                            <col class="w-auto "/>
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">Provider</th>
+                            <th scope="col">User-ID</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr *ngFor="let federation of federations!.accountFederations">
+                            <td>
+                                <fa-icon [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
+                                <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
+                            </td>
+                            <td>
+                                <div class="position-relative">
+                                    {{federation.idAtIssuer}}
+                                    <span *ngIf="isCurrentFederation(federation)" class="position-absolute end-0 me-2 badge rounded-pill bg-success">Current login</span>
+                                </div>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger" [disabled]="federations!.accountFederations.length < 2 || isCurrentFederation(federation)" (click)="openDeleteFederationModal(federation)">
+                                    <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </ng-container>
 
         <div class="col">
             <h3 class="mb-1">Add another Login provider</h3>

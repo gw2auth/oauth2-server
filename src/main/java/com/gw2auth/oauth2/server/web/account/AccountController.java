@@ -16,7 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
@@ -38,10 +37,13 @@ public class AccountController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<AccountFederationResponse> getAccountFederations(@AuthenticationPrincipal Gw2AuthUser user) {
-        return this.accountService.getAccountFederations(user.getAccountId()).stream()
-                .map(AccountFederationResponse::create)
-                .collect(Collectors.toList());
+    public AccountFederationsResponse getAccountFederations(@AuthenticationPrincipal Gw2AuthUser user) {
+        return new AccountFederationsResponse(
+                AccountFederationResponse.create(user.getAccountFederation()),
+                this.accountService.getAccountFederations(user.getAccountId()).stream()
+                        .map(AccountFederationResponse::create)
+                        .collect(Collectors.toList())
+        );
     }
 
     // I really wouldve liked to make this a POST request, to enable all the security features that are enabled on POST
@@ -70,8 +72,12 @@ public class AccountController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
-    public boolean deleteAccountFederation(@AuthenticationPrincipal Gw2AuthUser user, @RequestParam("issuer") String issuer, @RequestParam("idAtIssuer") String idAtIssuer) {
-        return this.accountService.deleteAccountFederation(user.getAccountId(), issuer, idAtIssuer);
+    public ResponseEntity<Boolean> deleteAccountFederation(@AuthenticationPrincipal Gw2AuthUser user, @RequestParam("issuer") String issuer, @RequestParam("idAtIssuer") String idAtIssuer) {
+        if (user.getAccountFederation().issuer().equals(issuer) && user.getAccountFederation().idAtIssuer().equals(idAtIssuer)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        return ResponseEntity.ok(this.accountService.deleteAccountFederation(user.getAccountId(), issuer, idAtIssuer));
     }
 
     @DeleteMapping(value = "/api/account", produces = MediaType.APPLICATION_JSON_VALUE)

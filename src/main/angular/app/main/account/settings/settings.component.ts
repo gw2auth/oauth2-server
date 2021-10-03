@@ -1,11 +1,11 @@
 import {Component, OnInit} from '@angular/core';
 import {faGithub, faGoogle} from '@fortawesome/free-brands-svg-icons';
 import {faQuestion, faTrashAlt, faUserShield} from '@fortawesome/free-solid-svg-icons';
-import {AccountFederation} from './account.model';
-import {AccountService} from "./account.service";
+import {AccountFederation, AccountFederations} from './account.model';
+import {AccountService} from './account.service';
 import {IconProp} from '@fortawesome/fontawesome-svg-core';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
-import {DeleteModalComponent} from "../../../general/delete-modal.component";
+import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ToastService} from '../../../toast/toast.service';
 import {AuthService} from '../../../auth.service';
 
@@ -22,7 +22,7 @@ export class SettingsComponent implements OnInit {
   faQuestion = faQuestion;
   faTrashAlt = faTrashAlt;
 
-  federations: AccountFederation[] = [];
+  federations: AccountFederations | null = null;
 
   constructor(private readonly accountService: AccountService, private readonly toastService: ToastService, private readonly modalService: NgbModal, private readonly authService: AuthService) { }
 
@@ -48,6 +48,11 @@ export class SettingsComponent implements OnInit {
     }
   }
 
+  isCurrentFederation(federation: AccountFederation): boolean {
+    const current = this.federations!.currentAccountFederation;
+    return federation.issuer == current.issuer && federation.idAtIssuer == current.idAtIssuer;
+  }
+
   openDeleteFederationModal(federation: AccountFederation): void {
     const issuer = federation.issuer;
     const idAtIssuer = federation.idAtIssuer;
@@ -67,7 +72,9 @@ export class SettingsComponent implements OnInit {
         .then((success) => {
           if (success) {
             this.toastService.show('Login provider deleted', 'The Login provider has been deleted successfully');
-            this.federations = this.federations.filter((v) => !(v.issuer == issuer && v.idAtIssuer == idAtIssuer));
+
+            const federations = this.federations!;
+            federations.accountFederations = federations.accountFederations.filter((v) => !(v.issuer == issuer && v.idAtIssuer == idAtIssuer));
 
             return null;
           } else {
