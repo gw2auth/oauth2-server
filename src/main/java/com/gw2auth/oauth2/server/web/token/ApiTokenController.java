@@ -46,13 +46,13 @@ public class ApiTokenController extends AbstractRestController {
         // aggregate authorizations for later lookup
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), gw2AccountIds);
         final Set<Long> clientRegistrationIds = new HashSet<>(clientAuthorizations.size());
-        final Map<String, List<ClientAuthorization>> clientAuthorizationsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
+        final Map<String, Set<Long>> clientRegistrationIdsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
 
         for (ClientAuthorization clientAuthorization : clientAuthorizations) {
             clientRegistrationIds.add(clientAuthorization.clientRegistrationId());
 
             for (String gw2AccountId : clientAuthorization.tokens().keySet()) {
-                clientAuthorizationsByGw2AccountId.computeIfAbsent(gw2AccountId, (k) -> new ArrayList<>()).add(clientAuthorization);
+                clientRegistrationIdsByGw2AccountId.computeIfAbsent(gw2AccountId, (k) -> new HashSet<>()).add(clientAuthorization.clientRegistrationId());
             }
         }
 
@@ -66,14 +66,14 @@ public class ApiTokenController extends AbstractRestController {
         final List<ApiTokenResponse> response = new ArrayList<>(apiTokens.size());
 
         for (ApiToken apiToken : apiTokens) {
-            final List<ClientAuthorization> authorizationsForThisToken = clientAuthorizationsByGw2AccountId.get(apiToken.gw2AccountId());
+            final Set<Long> clientRegistrationIdsForThisToken = clientRegistrationIdsByGw2AccountId.get(apiToken.gw2AccountId());
             final List<ApiTokenResponse.Authorization> authorizations;
 
-            if (authorizationsForThisToken != null && !authorizationsForThisToken.isEmpty()) {
-                authorizations = new ArrayList<>(authorizationsForThisToken.size());
+            if (clientRegistrationIdsForThisToken != null && !clientRegistrationIdsForThisToken.isEmpty()) {
+                authorizations = new ArrayList<>(clientRegistrationIdsForThisToken.size());
 
-                for (ClientAuthorization clientAuthorization : authorizationsForThisToken) {
-                    final ClientRegistration clientRegistration = clientRegistrationById.get(clientAuthorization.clientRegistrationId());
+                for (long clientRegistrationId : clientRegistrationIdsForThisToken) {
+                    final ClientRegistration clientRegistration = clientRegistrationById.get(clientRegistrationId);
 
                     if (clientRegistration != null) {
                         authorizations.add(ApiTokenResponse.Authorization.create(clientRegistration));
