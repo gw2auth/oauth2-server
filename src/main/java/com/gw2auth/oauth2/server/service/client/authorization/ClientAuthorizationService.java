@@ -4,10 +4,13 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ClientAuthorizationService {
 
     List<ClientAuthorization> getClientAuthorizations(long accountId);
+
+    List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds);
 
     Optional<ClientAuthorization> getClientAuthorization(long accountId, long clientRegistrationId);
 

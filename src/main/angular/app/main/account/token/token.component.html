@@ -30,8 +30,8 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-accent-inner" (click)="permissionsCollapse.toggle()">
-                                                <fa-icon [icon]="permissionsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                            <button type="button" class="btn btn-accent-inner" (click)="detailsCollapse.toggle()">
+                                                <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                             </button>
                                             <button type="button" class="btn btn-accent-inner" (click)="openEditTokenModal(token)">
                                                 <fa-icon [icon]="faEdit"></fa-icon>
@@ -42,15 +42,32 @@
                                         </div>
                                     </td>
                                 </tr>
-                                <tr class="no-transition" #permissionsCollapse="ngbCollapse" [ngbCollapse]="fragment != token.gw2AccountId">
+                                <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="fragment != token.gw2AccountId">
                                     <td colspan="3">
                                         <div class="container-fluid p-2">
-                                            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
-                                                <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
-                                                    <div class="col">
-                                                        <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="token.gw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                            <div class="row row-cols-1 g-3">
+                                                <div class="col">
+                                                    <label [htmlFor]="'gw2ApiPermissions'" class="form-label">Permissions</label>
+                                                    <div class="container-fluid" [id]="'gw2ApiPermissions'">
+                                                        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
+                                                            <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                                                <div class="col">
+                                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="token.gw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                                </div>
+                                                            </ng-container>
+                                                        </div>
                                                     </div>
-                                                </ng-container>
+                                                </div>
+
+                                                <div *ngIf="token.authorizations.length > 0" class="col">
+                                                    <label [htmlFor]="'applications'" class="form-label">Applications</label>
+                                                    <div class="list-group" [id]="'applications'" [attr.aria-describedby]="'applicationsDescription'">
+                                                        <a *ngFor="let authorization of token.authorizations" [routerLink]="['', 'account', 'application']" [fragment]="authorization.clientId" class="list-group-item">
+                                                            {{authorization.displayName}}
+                                                        </a>
+                                                    </div>
+                                                    <div [id]="'applicationsDescription'" class="form-text">Applications this API-Token is linked to</div>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>

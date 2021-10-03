@@ -33,6 +33,15 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     @Query("SELECT * FROM client_authorizations WHERE account_id = :account_id")
     List<ClientAuthorizationEntity> findAllByAccountId(@Param("account_id") long accountId);
 
+    @Query("""
+    SELECT auth.*
+    FROM client_authorizations auth
+    INNER JOIN client_authorization_tokens auth_tk
+    ON auth.account_id = auth_tk.account_id AND auth.client_registration_id = auth_tk.client_registration_id
+    WHERE auth.account_id = :account_id AND auth_tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::VARCHAR[])
+    """)
+    List<ClientAuthorizationEntity> findAllByAccountIdAndLinkedTokens(@Param("account_id") long accountId, @Param("gw2_account_ids") Set<String> gw2AccountIds);
+
     @Query("SELECT auth.* FROM client_authorizations auth INNER JOIN client_registrations reg ON auth.client_registration_id = reg.id WHERE auth.account_id = :account_id AND reg.client_id = :client_id")
     Optional<ClientAuthorizationEntity> findByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") String clientId);
 

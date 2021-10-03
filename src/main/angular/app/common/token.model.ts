@@ -1,5 +1,10 @@
 import {Gw2ApiPermission} from './common.model';
 
+export interface TokenAuthorization {
+    displayName: string;
+    clientId: string;
+}
+
 export interface Token {
     gw2AccountId: string;
     creationTime: Date;
@@ -7,4 +12,5 @@ export interface Token {
     displayName: string;
     gw2ApiPermissions: Gw2ApiPermission[];
     isVerified: boolean;
+    authorizations: TokenAuthorization[];
 }

@@ -34,7 +34,16 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Override
     public List<ClientAuthorization> getClientAuthorizations(long accountId) {
-        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountId(accountId).stream()
+        return getClientAuthorizationsInternal(accountId, this.clientAuthorizationRepository.findAllByAccountId(accountId));
+    }
+
+    @Override
+    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds) {
+        return getClientAuthorizationsInternal(accountId, this.clientAuthorizationRepository.findAllByAccountIdAndLinkedTokens(accountId, gw2AccountIds));
+    }
+
+    private List<ClientAuthorization> getClientAuthorizationsInternal(long accountId, List<ClientAuthorizationEntity> clientAuthorizationEntities) {
+        clientAuthorizationEntities = clientAuthorizationEntities.stream()
                 .filter(ClientAuthorizationServiceImpl::isAuthorized)
                 .collect(Collectors.toList());
 

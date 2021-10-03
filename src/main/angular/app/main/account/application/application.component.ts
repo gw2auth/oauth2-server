@@ -6,7 +6,8 @@ import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {ToastService} from '../../../toast/toast.service';
-import {ClientRegistrationPublic} from "../client/client-registration.model";
+import {ClientRegistrationPublic} from '../client/client-registration.model';
+import {ActivatedRoute} from '@angular/router';
 
 
 class InternalClientAuthorization {
@@ -42,12 +43,19 @@ export class ApplicationComponent implements OnInit {
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
   clientAuthorizations: InternalClientAuthorization[] = [];
 
-  constructor(private readonly clientAuthorizationService: ClientAuthorizationService, private readonly modalService: NgbModal, private readonly toastService: ToastService) { }
+  fragment: string | null = null;
+
+  constructor(private readonly clientAuthorizationService: ClientAuthorizationService,
+              private readonly modalService: NgbModal,
+              private readonly toastService: ToastService,
+              private readonly route: ActivatedRoute) { }
 
   ngOnInit(): void {
     this.clientAuthorizationService.getClientAuthorizations().subscribe((clientAuthorizations) => {
       this.clientAuthorizations = clientAuthorizations.map((v) => new InternalClientAuthorization(v));
     });
+
+    this.route.fragment.subscribe((fragment) => this.fragment = fragment);
   }
 
   isCurrentlyActive(date: Date): boolean {
