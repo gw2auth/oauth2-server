@@ -7,7 +7,7 @@
             <ng-container *ngSwitchDefault>
                 <div class="col">
                     <app-summary-element [title]="summary!.accounts + ' registered Accounts'">
-                        <p class="mb-1"><strong>{{summary!.accounts}}</strong> have been registered at GW2Auth.</p>
+                        <p class="mb-1"><strong>{{summary!.accounts}}</strong> accounts have been registered at GW2Auth.</p>
                         <p class="mb-0">Click the Login button at the top to register a new account or login to your existing GW2Auth-Account.</p>
                     </app-summary-element>
                 </div>
@@ -18,7 +18,7 @@
                     </app-summary-element>
                 </div>
                 <div class="col">
-                    <app-summary-element [title]="summary!.clientAuthorizations + ' application authorizations'">
+                    <app-summary-element [title]="summary!.clientAuthorizations + ' authorized Applications'">
                         <p class="mb-1"><strong>{{summary!.clientAuthorizations}}</strong> external applications have been authorized using GW2Auth.</p>
                         <p class="mb-0">External applications receive GW2-API-Subtokens to access the GW2-API on a users behalf.</p>
                     </app-summary-element>
