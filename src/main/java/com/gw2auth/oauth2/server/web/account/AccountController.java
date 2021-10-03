@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.web.account;
 
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.summary.SummaryService;
 import com.gw2auth.oauth2.server.service.user.AbstractUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
@@ -23,10 +24,17 @@ public class AccountController extends AbstractRestController {
 
     private final AccountService accountService;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final SummaryService summaryService;
 
-    public AccountController(AccountService accountService, ClientRegistrationRepository clientRegistrationRepository) {
+    public AccountController(AccountService accountService, ClientRegistrationRepository clientRegistrationRepository, SummaryService summaryService) {
         this.accountService = accountService;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.summaryService = summaryService;
+    }
+
+    @GetMapping(value = "/api/account/summary", produces = MediaType.APPLICATION_JSON_VALUE)
+    public AccountSummaryResponse getAccountSummary(@AuthenticationPrincipal Gw2AuthUser user) {
+        return AccountSummaryResponse.create(this.summaryService.getAccountSummary(user.getAccountId()));
     }
 
     @GetMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)

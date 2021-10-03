@@ -66,7 +66,7 @@ public class SecurityConfiguration {
                 .antMatcher("/api/**")
                 .authorizeRequests((auth) -> {
                     auth
-                            .antMatchers("/api/authinfo").permitAll()
+                            .antMatchers("/api/authinfo", "/api/application/summary").permitAll()
                             .anyRequest().authenticated();
                 })
                 .csrf(csrfCustomizer);

@@ -44,6 +44,10 @@ import {Oauth2ClientService} from './main/account/client/oauth2-client.service';
 import {BrowserStorageService} from './common/browser-storage.service';
 import {ColorSchemeService} from './common/color-scheme.service';
 import {NgcCookieConsentConfig, NgcCookieConsentModule} from 'ngx-cookieconsent';
+import { OverviewComponent } from './main/account/overview/overview.component';
+import {AccountSummaryService} from './main/account/overview/account-summary.service';
+import {SummaryElementComponent} from './general/summary-element.component';
+import {ApplicationSummaryService} from "./main/home/application-summary.service";
 
 
 const cookieConfig: NgcCookieConsentConfig = {
@@ -106,7 +110,9 @@ const cookieConfig: NgcCookieConsentConfig = {
     ButtonLoadableComponent,
     LegalComponent,
     ClientDebugComponent,
-    ClientDebugResponseComponent
+    ClientDebugResponseComponent,
+    OverviewComponent,
+    SummaryElementComponent
   ],
   imports: [
     BrowserModule,
@@ -129,7 +135,9 @@ const cookieConfig: NgcCookieConsentConfig = {
     AccountService,
     Oauth2ClientService,
     BrowserStorageService,
-    ColorSchemeService
+    ColorSchemeService,
+    AccountSummaryService,
+    ApplicationSummaryService
   ],
   bootstrap: [AppComponent]
 })

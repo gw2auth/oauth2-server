@@ -17,6 +17,7 @@ import {SettingsComponent} from './main/account/settings/settings.component';
 import {LegalComponent} from './main/legal/legal.component';
 import {ClientDebugComponent} from './main/account/client/client-debug.component';
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
+import {OverviewComponent} from './main/account/overview/overview.component';
 
 const routes: Routes = [
   {
@@ -32,6 +33,7 @@ const routes: Routes = [
         canActivate: [AuthGuard],
         data: { title: 'Account' },
         children: [
+          { path: '', component: OverviewComponent },
           { path: 'token', component: TokenComponent, data: { title: 'API-Tokens' } },
           { path: 'application', component: ApplicationComponent, data: { title: 'Applications' } },
           { path: 'client', component: ClientComponent, data: { title: 'Clients' } },

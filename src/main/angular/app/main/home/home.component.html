@@ -1,1 +1,41 @@
-<h1>Welcome at GW2Auth!</h1>
+<div class="py-4 container">
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
+        <ng-container [ngSwitch]="summary">
+            <div *ngSwitchCase="null" class="col">
+                Loading ...
+            </div>
+            <ng-container *ngSwitchDefault>
+                <div class="col">
+                    <app-summary-element [title]="summary!.accounts + ' registered Accounts'">
+                        <p class="mb-1"><strong>{{summary!.accounts}}</strong> have been registered at GW2Auth.</p>
+                        <p class="mb-0">Click the Login button at the top to register a new account or login to your existing GW2Auth-Account.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.apiTokens + ' API-Tokens added'">
+                        <p class="mb-1"><strong>{{summary!.apiTokens}}</strong> API-Tokens have been added to GW2Auth.</p>
+                        <p class="mb-0">API-Tokens are used to grant external applications access to the GW2-API.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.clientAuthorizations + ' application authorizations'">
+                        <p class="mb-1"><strong>{{summary!.clientAuthorizations}}</strong> external applications have been authorized using GW2Auth.</p>
+                        <p class="mb-0">External applications receive GW2-API-Subtokens to access the GW2-API on a users behalf.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.verifiedGw2Accounts + ' verified GW2-Accounts'">
+                        <p class="mb-1"><strong>{{summary!.verifiedGw2Accounts}}</strong> GW2-Accounts have been verified at GW2Auth.</p>
+                        <p class="mb-0">By verifying a GW2-Account we make sure that nobody but the GW2Auth-Account that has been verified can add API-Tokens for the verified GW2-Account.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.clientRegistrations + ' Clients'">
+                        <p class="mb-1"><strong>{{summary!.clientRegistrations}}</strong> Developer-Clients have been registered at GW2Auth.</p>
+                        <p class="mb-0">Clients are used by developers to integrate GW2Auth into their application.</p>
+                    </app-summary-element>
+                </div>
+            </ng-container>
+        </ng-container>
+    </div>
+</div>

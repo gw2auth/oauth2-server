@@ -1,0 +1,41 @@
+<div class="container">
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
+        <ng-container [ngSwitch]="summary">
+            <div *ngSwitchCase="null" class="col">
+                Loading ...
+            </div>
+            <ng-container *ngSwitchDefault>
+                <div class="col">
+                    <app-summary-element [title]="summary!.apiTokens + ' API-Tokens'">
+                        <p class="mb-1">You have <strong>{{summary!.apiTokens}}</strong> linked to your account.</p>
+                        <p class="mb-0">API-Tokens are used to grant external applications access to the GW2-API.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.clientAuthorizations + ' Applications'">
+                        <p class="mb-1">You authorized <strong>{{summary!.clientAuthorizations}}</strong> external applications using GW2Auth.</p>
+                        <p class="mb-0">External applications receive GW2-API-Subtokens to access the GW2-API on your behalf.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.verifiedGw2Accounts + ' verified GW2-Accounts'">
+                        <p class="mb-1">You verified <strong>{{summary!.verifiedGw2Accounts}}</strong> of your GW2-Accounts at GW2Auth.</p>
+                        <p class="mb-0">By verifying your GW2-Account we make sure that nobody else adds an API-Token of one of your GW2-Accounts to their GW2Auth-Account.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.accountFederations + ' Login Providers'">
+                        <p class="mb-1">You added <strong>{{summary!.accountFederations}}</strong> login Providers to your GW2Auth-Account.</p>
+                        <p class="mb-0">Adding login providers grants you access to your GW2Auth-Account through multiple providers.</p>
+                    </app-summary-element>
+                </div>
+                <div class="col">
+                    <app-summary-element [title]="summary!.clientRegistrations + ' Clients'">
+                        <p class="mb-1">You registered <strong>{{summary!.clientRegistrations}}</strong> Developer-Clients at GW2Auth.</p>
+                        <p class="mb-0">Clients are used by developers to integrate GW2Auth into their application.</p>
+                    </app-summary-element>
+                </div>
+            </ng-container>
+        </ng-container>
+    </div>
+</div>
