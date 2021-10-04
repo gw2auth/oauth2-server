@@ -30,17 +30,20 @@ export class AuthService {
       return this.isAuthenticatedSubject.asObservable();
   }
 
-  logout(): void {
+  logout(navigateTo: string | null = '/'): void {
       this.http.post('/logout', null, {observe: 'response'})
           .pipe(
               // 2xx codes -> logout success, 403 -> was already logged out
-              map((resp: HttpResponse<any>) => (resp.status >= 200 && resp.status < 300) || resp.status == 403),
-              catchError((err) => of(err.status == 403))
+              map((resp: HttpResponse<any>) => resp.status >= 200 && resp.status < 300),
+              catchError((err) => of(err.status == 401 || err.status == 403))
           )
           .subscribe((resp) => {
               if (resp) {
                   this.isAuthenticatedSubject.next(false);
-                  this.router.navigateByUrl('/');
+
+                  if (navigateTo != null) {
+                      this.router.navigateByUrl(navigateTo);
+                  }
               }
           });
   }
