@@ -147,6 +147,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
             tokens.put(authorizedTokenGw2AccountId, new ClientAuthorization.Token("", Instant.now()));
         }
 
+        this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
         updateTokens(accountId, clientRegistrationId, tokens);
     }
 
