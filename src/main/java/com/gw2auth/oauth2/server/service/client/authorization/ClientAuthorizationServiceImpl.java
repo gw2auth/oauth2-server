@@ -114,8 +114,8 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public LoggingContext log(long accountId, long clientRegistrationId) {
-        return new LoggingContextImpl(accountId, clientRegistrationId);
+    public LoggingContext log(long accountId, long clientRegistrationId, LogType logType) {
+        return new LoggingContextImpl(accountId, clientRegistrationId, logType);
     }
 
     // region OAuth2AuthorizationConsentService
@@ -125,30 +125,34 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
         final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
 
-        ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
-                .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
-                .withAuthorizedScopes(authorizationConsent.getScopes());
+        try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
+            ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
+                    .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
+                    .withAuthorizedScopes(authorizationConsent.getScopes());
 
-        clientAuthorizationEntity = this.clientAuthorizationRepository.save(clientAuthorizationEntity);
+            clientAuthorizationEntity = this.clientAuthorizationRepository.save(clientAuthorizationEntity);
+            log.log("Updated consented oauth2-scopes to [%s]", String.join(", ", clientAuthorizationEntity.authorizedScopes()));
 
-        final Set<String> authorizedTokenGw2AccountIds = CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getAdditionalParameters()
-                .map(Map.Entry::getKey)
-                .filter((v) -> v.startsWith("token:"))
-                .map((v) -> v.replaceFirst("token:", ""))
-                .collect(Collectors.toSet());
+            final Set<String> authorizedTokenGw2AccountIds = CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getAdditionalParameters()
+                    .map(Map.Entry::getKey)
+                    .filter((v) -> v.startsWith("token:"))
+                    .map((v) -> v.replaceFirst("token:", ""))
+                    .collect(Collectors.toSet());
 
-        if (authorizedTokenGw2AccountIds.isEmpty()) {
-            //throw new OAuth2AuthorizationCodeRequestAuthenticationException();
-            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+            if (authorizedTokenGw2AccountIds.isEmpty()) {
+                //throw new OAuth2AuthorizationCodeRequestAuthenticationException();
+                throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+            }
+
+            final Map<String, ClientAuthorization.Token> tokens = new HashMap<>(authorizedTokenGw2AccountIds.size());
+            for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
+                tokens.put(authorizedTokenGw2AccountId, new ClientAuthorization.Token("", Instant.now()));
+            }
+
+            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
+            updateTokens(accountId, clientRegistrationId, tokens);
+            log.log("Updated consented API-Tokens: %d API-Tokens are now consented", tokens.size());
         }
-
-        final Map<String, ClientAuthorization.Token> tokens = new HashMap<>(authorizedTokenGw2AccountIds.size());
-        for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-            tokens.put(authorizedTokenGw2AccountId, new ClientAuthorization.Token("", Instant.now()));
-        }
-
-        this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
-        updateTokens(accountId, clientRegistrationId, tokens);
     }
 
     @Override
@@ -188,13 +192,15 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
         private final long accountId;
         private final long clientRegistrationId;
+        private final LogType logType;
         private final Instant timestamp;
         private final List<String> messages;
         private final AtomicBoolean isValid;
 
-        private LoggingContextImpl(long accountId, long clientRegistrationId) {
+        private LoggingContextImpl(long accountId, long clientRegistrationId, LogType logType) {
             this.accountId = accountId;
             this.clientRegistrationId = clientRegistrationId;
+            this.logType = logType;
             this.timestamp = Instant.now();
             this.messages = new LinkedList<>();
             this.isValid = new AtomicBoolean(true);
@@ -203,7 +209,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         @Override
         public void log(String message) {
             // not truly thread-safe
-            // this is a optimistic variant. I'm in control of all users of these methods
+            // this is an optimistic variant. I'm in control of all users of these methods
             if (this.isValid.get()) {
                 this.messages.add(message);
             }
@@ -213,7 +219,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         public void close() {
             if (this.isValid.compareAndSet(true, false)) {
                 ClientAuthorizationServiceImpl.this.clientAuthorizationLogRepository.deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(this.accountId, this.clientRegistrationId, MAX_LOG_COUNT - 1);
-                ClientAuthorizationServiceImpl.this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, this.accountId, this.clientRegistrationId, this.timestamp, this.messages));
+                ClientAuthorizationServiceImpl.this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, this.accountId, this.clientRegistrationId, this.timestamp, this.logType.name(), this.messages));
                 this.messages.clear();
             }
         }

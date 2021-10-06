@@ -75,7 +75,10 @@
                                                     <label [htmlFor]="'logs'" class="form-label">Logs</label>
                                                     <div class="list-group mb-1" [id]="'logs'">
                                                         <div *ngFor="let log of clientAuthorization.logs" class="list-group-item">
-                                                            <p class="mb-1">{{log.timestamp.toLocaleString()}}</p>
+                                                            <div class="d-flex w-100 justify-content-between">
+                                                                <p class="mb-0">{{clientAuthorizationLogTypeToString(log.type)}}</p>
+                                                                <small>{{log.timestamp.toLocaleString()}}</small>
+                                                            </div>
                                                             <ul class="list-group list-group-flush list-group-numbered">
                                                                 <li *ngFor="let message of log.messages" class="list-group-item">{{message}}</li>
                                                             </ul>

@@ -22,7 +22,13 @@ public interface ClientAuthorizationService {
 
     void updateTokens(long accountId, long clientRegistrationId, Map<String, ClientAuthorization.Token> tokens);
 
-    LoggingContext log(long accountId, long clientRegistrationId);
+    LoggingContext log(long accountId, long clientRegistrationId, LogType logType);
+
+    enum LogType {
+
+        CONSENT,
+        ACCESS_TOKEN
+    }
 
     interface LoggingContext extends Closeable {
 

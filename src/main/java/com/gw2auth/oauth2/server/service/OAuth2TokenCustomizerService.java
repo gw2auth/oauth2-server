@@ -64,9 +64,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private void customize(JwtEncodingContext ctx, long accountId, long clientRegistrationId) {
         final ClientAuthorization clientAuthorization = this.clientAuthorizationService.getClientAuthorization(accountId, clientRegistrationId).orElseThrow(() -> new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED)));
 
-        try (ClientAuthorizationService.LoggingContext logging = this.clientAuthorizationService.log(accountId, clientRegistrationId)) {
-            logging.log("Application requested new Access-Token");
-
+        try (ClientAuthorizationService.LoggingContext logging = this.clientAuthorizationService.log(accountId, clientRegistrationId, ClientAuthorizationService.LogType.ACCESS_TOKEN)) {
             final Set<Gw2ApiPermission> authorizedGw2ApiPermissions = clientAuthorization.authorizedScopes()
                     .stream()
                     .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
@@ -112,7 +110,6 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
 
             customize(ctx, clientAuthorization.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
-            logging.log("Access-Token creation finished");
         }
     }
 

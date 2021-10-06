@@ -10,10 +10,10 @@ public record ClientAuthorizationLogsResponse(@JsonProperty("page") int page,
                                               @JsonProperty("nextPage") int nextPage,
                                               @JsonProperty("logs") List<Log> logs) {
 
-    public record Log(@JsonProperty("timestamp") Instant timestamp, @JsonProperty("messages") List<String> messages) {
+    public record Log(@JsonProperty("timestamp") Instant timestamp, @JsonProperty("type") String type, @JsonProperty("messages") List<String> messages) {
 
         public static Log create(ClientAuthorizationLogEntity entity) {
-            return new Log(entity.timestamp(), entity.messages());
+            return new Log(entity.timestamp(), entity.type(), entity.messages());
         }
     }
 }

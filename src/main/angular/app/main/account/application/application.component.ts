@@ -1,6 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import {ClientAuthorizationService} from './client-authorization.service';
-import {ClientAuthorization, ClientAuthorizationLog, Token} from './client-authorization.model';
+import {
+  ClientAuthorization,
+  ClientAuthorizationLog, ClientAuthorizationLogType,
+  clientAuthorizationLogTypeToString,
+  Token
+} from './client-authorization.model';
 import {faTrashAlt, faAngleDoubleDown, faAngleDoubleUp} from '@fortawesome/free-solid-svg-icons';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
@@ -60,6 +65,10 @@ export class ApplicationComponent implements OnInit {
 
   isCurrentlyActive(date: Date): boolean {
     return date.getTime() > Date.now();
+  }
+
+  clientAuthorizationLogTypeToString(clientAuthorizationLogType: ClientAuthorizationLogType): string {
+    return clientAuthorizationLogTypeToString(clientAuthorizationLogType);
   }
 
   openDeleteClientAuthorizationModal(clientAuthorization: ClientAuthorization): void {

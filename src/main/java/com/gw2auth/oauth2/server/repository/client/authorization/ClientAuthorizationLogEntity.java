@@ -12,6 +12,7 @@ public record ClientAuthorizationLogEntity(@Id @Column("id") Long id,
                                            @Column("account_id") long accountId,
                                            @Column("client_registration_id") long clientRegistrationId,
                                            @Column("timestamp") Instant timestamp,
+                                           @Column("type") String type,
                                            @Column("messages") List<String> messages) {
 
 }

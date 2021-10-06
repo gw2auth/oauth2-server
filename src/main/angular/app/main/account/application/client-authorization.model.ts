@@ -14,8 +14,21 @@ export interface ClientAuthorization {
     tokens: Token[];
 }
 
+export enum ClientAuthorizationLogType {
+    CONSENT = 'CONSENT',
+    ACCESS_TOKEN = 'ACCESS_TOKEN'
+}
+
+export function clientAuthorizationLogTypeToString(clientAuthorizationLogType: ClientAuthorizationLogType): string {
+    switch (clientAuthorizationLogType) {
+        case ClientAuthorizationLogType.CONSENT: return 'Consent';
+        case ClientAuthorizationLogType.ACCESS_TOKEN: return 'Access-Token request';
+    }
+}
+
 export interface ClientAuthorizationLog {
     timestamp: Date;
+    type: ClientAuthorizationLogType;
     messages: string[];
 }
 
