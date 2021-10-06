@@ -131,7 +131,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
                 .tokenSettings(
                         TokenSettings.builder()
                                 .accessTokenTimeToLive(Duration.ofMinutes(30L))
-                                .refreshTokenTimeToLive(Duration.ofDays(30L))
+                                .refreshTokenTimeToLive(Duration.ofDays(180L))
                                 .reuseRefreshTokens(false)
                                 .build()
                 );
