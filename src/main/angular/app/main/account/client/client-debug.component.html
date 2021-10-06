@@ -11,15 +11,14 @@
                 <div class="col">
                     <label [htmlFor]="'selectedGw2ApiPermissions'" class="form-label">Request permissions</label>
 
-                    <div class="list-group" [id]="'selectedGw2ApiPermissions'">
-                        <button *ngFor="let gw2ApiPermission of gw2ApiPermissions"
-                                type="button"
-                                class="list-group-item list-group-item-action"
-                                [ngClass]="selectedGw2ApiPermissions.has(gw2ApiPermission) ? 'active' : ''"
-                                (click)="onGw2ApiPermissionClick(gw2ApiPermission)">
-
-                            <fa-icon *ngIf="selectedGw2ApiPermissions.has(gw2ApiPermission)" [icon]="faCheck"></fa-icon> {{gw2ApiPermissionDisplayName(gw2ApiPermission)}}
-                        </button>
+                    <div class="container-fluid bg-accent p-3 rounded-2" [id]="'selectedGw2ApiPermissions'">
+                        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
+                            <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                <div class="col">
+                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="selectedGw2ApiPermissions.has(gw2ApiPermission)" role="button" (click)="onGw2ApiPermissionClick(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                </div>
+                            </ng-container>
+                        </div>
                     </div>
                 </div>
                 <div class="col">
@@ -27,7 +26,7 @@
                     <label class="form-check-label" [htmlFor]="'forceConsent'">Force consent</label>
                 </div>
                 <div class="col">
-                    <a role="button" class="btn btn-primary w-100" [href]="getTestAuthorizeUri(clientRegistration!)">Debug</a>
+                    <a role="button" class="btn btn-primary" [href]="getTestAuthorizeUri(clientRegistration!)">Debug</a>
                 </div>
             </ng-container>
         </ng-container>
