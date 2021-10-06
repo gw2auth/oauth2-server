@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implements AuthenticationProvider {
 
     private static final ThreadLocal<Map<String, Object>> ADDITIONAL_PARAMETERS = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> IS_CONSENT_CONTEXT = new ThreadLocal<>();
 
     private final OAuth2AuthorizationCodeRequestAuthenticationProvider delegate;
 
@@ -34,12 +35,15 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         final OAuth2AuthorizationCodeRequestAuthenticationToken authorizationCodeRequestAuthentication = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
         final Map<String, Object> additionalParameters = authorizationCodeRequestAuthentication.getAdditionalParameters();
+        final boolean isConsentContext = authorizationCodeRequestAuthentication.isConsent();
 
         ADDITIONAL_PARAMETERS.set(additionalParameters);
+        IS_CONSENT_CONTEXT.set(isConsentContext);
         try {
             return this.delegate.authenticate(authorizationCodeRequestAuthentication);
         } finally {
             ADDITIONAL_PARAMETERS.remove();
+            IS_CONSENT_CONTEXT.remove();
         }
     }
 
@@ -55,6 +59,15 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
         }
 
         return additionalParameters.entrySet().stream();
+    }
+
+    public static boolean isInConsentContext() {
+        final Boolean value = IS_CONSENT_CONTEXT.get();
+        if (value == null) {
+            throw new IllegalStateException();
+        }
+
+        return value;
     }
 
     public static CustomOAuth2AuthorizationCodeRequestAuthenticationProvider create(HttpSecurity http) {
