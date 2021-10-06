@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -170,6 +171,16 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Override
     public OAuth2AuthorizationConsent findById(String _registeredClientId, String principalName) {
+        final boolean calledFromAuthorizationConsent = StackWalker.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE), 20)
+                .walk((stackFrameStream) -> stackFrameStream.limit(20L).anyMatch((stackFrame) -> {
+                    return stackFrame.getDeclaringClass() == OAuth2AuthorizationCodeRequestAuthenticationProvider.class
+                            && stackFrame.getMethodName().equals("authenticateAuthorizationConsent");
+                }));
+
+        if (calledFromAuthorizationConsent) {
+            return null;
+        }
+
         final long accountId = Long.parseLong(principalName);
         final long registeredClientId = Long.parseLong(_registeredClientId);
 
