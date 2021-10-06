@@ -1,18 +1,14 @@
 package com.gw2auth.oauth2.server.web.oauth2.consent;
 
-import com.gw2auth.oauth2.server.adapt.OAuth2AuthorizationServiceImpl;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
-import com.gw2auth.oauth2.server.util.Utils;
-import com.gw2auth.oauth2.server.web.AbstractRestController;
-import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.gw2auth.oauth2.server.util.Utils;
+import com.gw2auth.oauth2.server.web.AbstractRestController;
+import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,23 +32,14 @@ import java.util.stream.Collectors;
 @RestController
 public class OAuth2ConsentController extends AbstractRestController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OAuth2ConsentController.class);
-
     private final ClientRegistrationService clientRegistrationService;
     private final ApiTokenService apiTokenService;
-    private final ClientAuthorizationService clientAuthorizationService;
-    private final OAuth2AuthorizationServiceImpl oAuth2AuthorizationService;
 
     @Autowired
-    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService,
-                                   ApiTokenService apiTokenService,
-                                   ClientAuthorizationService clientAuthorizationService,
-                                   OAuth2AuthorizationServiceImpl oAuth2AuthorizationService) {
+    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, ApiTokenService apiTokenService) {
 
         this.clientRegistrationService = clientRegistrationService;
         this.apiTokenService = apiTokenService;
-        this.clientAuthorizationService = clientAuthorizationService;
-        this.oAuth2AuthorizationService = oAuth2AuthorizationService;
     }
 
     @GetMapping(value = "/api/oauth2/consent", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -111,17 +98,6 @@ public class OAuth2ConsentController extends AbstractRestController {
                                             @RequestParam(OAuth2ParameterNames.STATE) String state) {
 
         final ClientRegistration clientRegistration = this.clientRegistrationService.getClientRegistration(clientId).orElseThrow();
-
-        try {
-            final long accountId = user.getAccountId();
-            final long clientRegistrationId = clientRegistration.id();
-
-            this.clientAuthorizationService.deleteClientAuthorization(accountId, clientRegistrationId);
-            this.oAuth2AuthorizationService.removeByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
-        } catch (Exception e) {
-            LOG.warn("unexpected exception during consent-deny removal of authorization", e);
-        }
-
         final URI redirectUri = UriComponentsBuilder.fromHttpUrl(clientRegistration.redirectUri())
                 .replaceQueryParam(OAuth2ParameterNames.STATE, state)
                 .replaceQueryParam(OAuth2ParameterNames.ERROR, OAuth2ErrorCodes.ACCESS_DENIED)
