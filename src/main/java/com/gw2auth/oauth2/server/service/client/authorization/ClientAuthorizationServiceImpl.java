@@ -156,14 +156,21 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                 throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
             }
 
-            final Map<String, ClientAuthorization.Token> tokens = new HashMap<>(authorizedTokenGw2AccountIds.size());
+            final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
+            final Set<String> existingTokenGw2AccountIds = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).stream()
+                    .map(ClientAuthorizationTokenEntity::gw2AccountId)
+                    .collect(Collectors.toSet());
+
             for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-                tokens.put(authorizedTokenGw2AccountId, new ClientAuthorization.Token("", Instant.now()));
+                if (!existingTokenGw2AccountIds.contains(authorizedTokenGw2AccountId)) {
+                    tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, authorizedTokenGw2AccountId, "", Instant.now()));
+                }
             }
 
-            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
-            updateTokens(accountId, clientRegistrationId, tokens);
-            log.log("Updated consented API-Tokens: %d API-Tokens are now consented", tokens.size());
+            this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
+            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationIdExceptForGw2AccountIds(accountId, clientRegistrationId, authorizedTokenGw2AccountIds);
+
+            log.log("Updated consented API-Tokens: %d API-Tokens are now consented", authorizedTokenGw2AccountIds.size());
         }
     }
 
