@@ -145,6 +145,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
                 .map(Gw2ApiPermission::oauth2)
                 .forEach(builder::scope);
 
+        builder.scope(FORCE_CONSENT_SCOPE);
+
         return builder.build();
     }
 

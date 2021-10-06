@@ -18,6 +18,7 @@ export class ClientDebugComponent implements OnInit {
 
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
   selectedGw2ApiPermissions = new Set<Gw2ApiPermission>();
+  forceConsent = true;
 
   constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly activatedRoute: ActivatedRoute) { }
 
@@ -49,6 +50,10 @@ export class ClientDebugComponent implements OnInit {
     const scopes = [];
     for (let gw2ApiPermission of this.selectedGw2ApiPermissions) {
       scopes.push('gw2:' + gw2ApiPermission);
+    }
+
+    if (this.forceConsent) {
+      scopes.push('force_consent');
     }
 
     const query = new URLSearchParams();

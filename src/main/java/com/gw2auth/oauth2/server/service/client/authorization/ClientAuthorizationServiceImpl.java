@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.service.client.authorization;
 
 import com.gw2auth.oauth2.server.adapt.CustomOAuth2AuthorizationCodeRequestAuthenticationProvider;
 import com.gw2auth.oauth2.server.repository.client.authorization.*;
+import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -126,9 +127,13 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
 
         try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
+            final Set<String> authorizedScopes = authorizationConsent.getScopes().stream()
+                    .filter((scope) -> !scope.equals(ClientRegistrationService.FORCE_CONSENT_SCOPE))// never save the force_consent scope
+                    .collect(Collectors.toSet());
+
             ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                     .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
-                    .withAuthorizedScopes(authorizationConsent.getScopes());
+                    .withAuthorizedScopes(authorizedScopes);
 
             clientAuthorizationEntity = this.clientAuthorizationRepository.save(clientAuthorizationEntity);
             log.log("Updated consented oauth2-scopes to [%s]", String.join(", ", clientAuthorizationEntity.authorizedScopes()));

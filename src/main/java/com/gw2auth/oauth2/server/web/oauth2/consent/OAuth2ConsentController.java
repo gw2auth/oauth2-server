@@ -85,7 +85,9 @@ public class OAuth2ConsentController extends AbstractRestController {
         submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId);
         submitFormParameters.set(OAuth2ParameterNames.STATE, state);
 
-        Utils.split(scopes, " ").forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));
+        Utils.split(scopes, " ")
+                .filter((scope) -> !scope.equals(ClientRegistrationService.FORCE_CONSENT_SCOPE))// this scope should never be consented
+                .forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));
 
         final String cancelUri = UriComponentsBuilder.fromPath("/api/oauth2/consent-deny")
                 .replaceQueryParam(OAuth2ParameterNames.CLIENT_ID, clientId)
