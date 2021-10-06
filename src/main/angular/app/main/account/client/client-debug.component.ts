@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {ClientRegistrationPrivate} from './client-registration.model';
 import {ClientRegistrationService} from './client-registration.service';
-import {Gw2ApiPermission, gw2ApiPermissionDisplayName} from '../../../common/common.model';
+import {Gw2ApiPermission} from '../../../common/common.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
 
 
@@ -34,10 +34,6 @@ export class ClientDebugComponent implements OnInit {
     });
   }
 
-  gw2ApiPermissionDisplayName(gw2ApiPermission: Gw2ApiPermission): string {
-    return gw2ApiPermissionDisplayName(gw2ApiPermission);
-  }
-
   onGw2ApiPermissionClick(gw2ApiPermission: Gw2ApiPermission): void {
     if (this.selectedGw2ApiPermissions.has(gw2ApiPermission)) {
       this.selectedGw2ApiPermissions.delete(gw2ApiPermission);
@@ -52,16 +48,16 @@ export class ClientDebugComponent implements OnInit {
       scopes.push('gw2:' + gw2ApiPermission);
     }
 
-    if (this.forceConsent) {
-      scopes.push('force_consent');
-    }
-
     const query = new URLSearchParams();
     query.set('response_type', 'code');
     query.set('client_id', clientRegistration.clientId);
     query.set('scope', scopes.join(' '));
     query.set('redirect_uri', clientRegistration.redirectUri);
     query.set('state', clientRegistration.clientId);
+
+    if (this.forceConsent) {
+      query.set('consent', 'force');
+    }
 
     return '/oauth2/authorize?' + query.toString();
   }

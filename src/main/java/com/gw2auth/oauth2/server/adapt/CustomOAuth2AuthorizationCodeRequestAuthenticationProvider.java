@@ -63,11 +63,7 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
 
     public static boolean isInConsentContext() {
         final Boolean value = IS_CONSENT_CONTEXT.get();
-        if (value == null) {
-            throw new IllegalStateException();
-        }
-
-        return value;
+        return value != null && value;
     }
 
     public static CustomOAuth2AuthorizationCodeRequestAuthenticationProvider create(HttpSecurity http) {

@@ -7,8 +7,6 @@ import java.util.Set;
 
 public interface ClientRegistrationService {
 
-    String FORCE_CONSENT_SCOPE = "force_consent";
-
     List<ClientRegistration> getClientRegistrations(long accountId);
 
     Optional<ClientRegistration> getClientRegistration(long accountId, String clientId);

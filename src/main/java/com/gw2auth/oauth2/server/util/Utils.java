@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.util;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,6 +41,10 @@ public class Utils {
 
     public static Stream<String> split(String s, String delimiter) {
         return StreamSupport.stream(new StringSplitSpliterator(s, delimiter), false);
+    }
+
+    public static Stream<String[]> parseQuery(String query) {
+        return split(query, "&").map((rawPair) -> split(rawPair, "=").map((part) -> URLDecoder.decode(part, StandardCharsets.UTF_8)).toArray(String[]::new));
     }
 
     public static String lpad(Object v, char pad, int length) {

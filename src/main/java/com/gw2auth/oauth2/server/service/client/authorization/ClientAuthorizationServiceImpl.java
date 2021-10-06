@@ -1,8 +1,6 @@
 package com.gw2auth.oauth2.server.service.client.authorization;
 
-import com.gw2auth.oauth2.server.adapt.CustomOAuth2AuthorizationCodeRequestAuthenticationProvider;
 import com.gw2auth.oauth2.server.repository.client.authorization.*;
-import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -25,12 +23,25 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     private final ClientAuthorizationRepository clientAuthorizationRepository;
     private final ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
     private final ClientAuthorizationLogRepository clientAuthorizationLogRepository;
+    private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
 
-    @Autowired
-    public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository, ClientAuthorizationTokenRepository clientAuthorizationTokenRepository, ClientAuthorizationLogRepository clientAuthorizationLogRepository) {
+    public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
+                                          ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
+                                          ClientAuthorizationLogRepository clientAuthorizationLogRepository,
+                                          AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
+
         this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.clientAuthorizationTokenRepository = clientAuthorizationTokenRepository;
         this.clientAuthorizationLogRepository = clientAuthorizationLogRepository;
+        this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
+    }
+
+    @Autowired
+    public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
+                                          ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
+                                          ClientAuthorizationLogRepository clientAuthorizationLogRepository) {
+
+        this(clientAuthorizationRepository, clientAuthorizationTokenRepository, clientAuthorizationLogRepository, AuthorizationCodeParamAccessor.DEFAULT);
     }
 
     @Override
@@ -127,18 +138,14 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
 
         try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
-            final Set<String> authorizedScopes = authorizationConsent.getScopes().stream()
-                    .filter((scope) -> !scope.equals(ClientRegistrationService.FORCE_CONSENT_SCOPE))// never save the force_consent scope
-                    .collect(Collectors.toSet());
-
             ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                     .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
-                    .withAuthorizedScopes(authorizedScopes);
+                    .withAuthorizedScopes(authorizationConsent.getScopes());
 
             clientAuthorizationEntity = this.clientAuthorizationRepository.save(clientAuthorizationEntity);
             log.log("Updated consented oauth2-scopes to [%s]", String.join(", ", clientAuthorizationEntity.authorizedScopes()));
 
-            final Set<String> authorizedTokenGw2AccountIds = CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getAdditionalParameters()
+            final Set<String> authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
                     .map(Map.Entry::getKey)
                     .filter((v) -> v.startsWith("token:"))
                     .map((v) -> v.replaceFirst("token:", ""))
@@ -170,7 +177,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Override
     public OAuth2AuthorizationConsent findById(String _registeredClientId, String principalName) {
-        if (CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.isInConsentContext()) {
+        if (this.authorizationCodeParamAccessor.isInConsentContext() || isForceConsentRequest()) {
             return null;
         }
 
@@ -188,6 +195,13 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                 .orElse(null);
     }
     // endregion
+
+    private boolean isForceConsentRequest() {
+        return this.authorizationCodeParamAccessor.getAdditionalParameters()
+                .filter((v) -> v.getKey().equals(CONSENT_QUERY_PARAM))
+                .map(Map.Entry::getValue)
+                .anyMatch(FORCE_CONSENT_QUERY_VALUE::equals);
+    }
 
     private ClientAuthorizationEntity createAuthorizedClientEntity(long accountId, long registeredClientId) {
         return new ClientAuthorizationEntity(accountId, registeredClientId, UUID.randomUUID(), Set.of());

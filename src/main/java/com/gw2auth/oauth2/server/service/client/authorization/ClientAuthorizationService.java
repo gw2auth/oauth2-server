@@ -8,6 +8,9 @@ import java.util.Set;
 
 public interface ClientAuthorizationService {
 
+    String CONSENT_QUERY_PARAM = "consent";
+    String FORCE_CONSENT_QUERY_VALUE = "force";
+
     List<ClientAuthorization> getClientAuthorizations(long accountId);
 
     List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds);
