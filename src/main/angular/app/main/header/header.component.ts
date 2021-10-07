@@ -49,6 +49,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+  onLoginClick(event: Event): void {
+    event.preventDefault();
+    this.authService.login();
+  }
+
   onLogoutClick(): void {
     this.authService.logout();
   }

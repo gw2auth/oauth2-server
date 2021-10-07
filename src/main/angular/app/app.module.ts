@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import {InjectionToken, NgModule} from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -49,6 +49,11 @@ import {AccountSummaryService} from './main/account/overview/account-summary.ser
 import {SummaryElementComponent} from './general/summary-element.component';
 import {ApplicationSummaryService} from "./main/home/application-summary.service";
 
+
+export const WINDOW = new InjectionToken<Window>('Window', {
+  providedIn: 'root',
+  factory: () => window
+});
 
 const cookieConfig: NgcCookieConsentConfig = {
   cookie: {

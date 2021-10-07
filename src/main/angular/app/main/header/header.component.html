@@ -29,7 +29,7 @@
             </ul>
 
             <div class="form-inline" [ngSwitch]="isAuthenticated">
-                <a *ngSwitchCase="false" class="btn btn-primary" role="button" [routerLink]="['/login']">Login</a>
+                <a *ngSwitchCase="false" class="btn btn-primary" role="button" (click)="onLoginClick($event)">Login</a>
                 <a *ngSwitchCase="true" class="btn btn-danger" role="button" (click)="onLogoutClick()">Logout</a>
             </div>
         </div>

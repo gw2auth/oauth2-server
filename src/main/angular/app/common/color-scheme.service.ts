@@ -1,18 +1,14 @@
-import {Inject, Injectable, InjectionToken} from '@angular/core';
+import {Inject, Injectable} from '@angular/core';
 import {BrowserStorageService} from './browser-storage.service';
 import {ColorScheme} from './color-scheme.model';
 import {ConsentLevel} from './browser-storage.model';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
+import {WINDOW} from '../app.module';
 
 
 const STORAGE_CONSENT_LEVEL = ConsentLevel.FUNCTIONALITY;
 const STORAGE_KEY = 'PREFERRED_COLOR_SCHEME';
-
-export const WINDOW = new InjectionToken<Window>('Window', {
-    providedIn: 'root',
-    factory: () => window
-});
 
 
 @Injectable({
