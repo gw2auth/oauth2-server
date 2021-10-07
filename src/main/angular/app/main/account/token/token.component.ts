@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import {TokenService} from '../../../common/token.service';
 import { faAngleDoubleDown, faAngleDoubleUp, faEdit, faTrashAlt, faCheck, faBan, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import {catchError} from 'rxjs/operators';
@@ -9,7 +9,9 @@ import {Token} from '../../../common/token.model';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {EditTokenComponent} from './edit-token.component';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
-import {ActivatedRoute} from "@angular/router";
+import {ActivatedRoute} from '@angular/router';
+import {WINDOW} from '../../../app.module';
+import {MessageEventData, Type} from '../../../common/window.model';
 
 
 @Component({
@@ -35,7 +37,11 @@ export class TokenComponent implements OnInit {
   addTokenLoading = false;
   addTokenValue = '';
 
-  constructor(private readonly tokenService: TokenService, private readonly toastService: ToastService, private readonly modalService: NgbModal, private readonly route: ActivatedRoute) {}
+  constructor(private readonly tokenService: TokenService,
+              private readonly toastService: ToastService,
+              private readonly modalService: NgbModal,
+              private readonly route: ActivatedRoute,
+              @Inject(WINDOW) private readonly window: Window) {}
 
   ngOnInit(): void {
     this.tokenService.getTokens().subscribe((tokens) => this.tokens = tokens);
@@ -75,7 +81,7 @@ export class TokenComponent implements OnInit {
             }
 
             this.toastService.show('API-Token updated', 'The API-Token has been updated successfully');
-            this.sendNotificationToParent('UPDATE', updatedToken);
+            this.sendNotificationToOpener(Type.UPDATE_TOKEN, updatedToken);
         })
         .catch((e) => {
             if (e) {
@@ -108,7 +114,7 @@ export class TokenComponent implements OnInit {
                   this.toastService.show('API-Token deleted', 'The API-Token has been deleted successfully');
                   this.tokens = this.tokens.filter((v: Token) => v.gw2AccountId != gw2AccountId);
 
-                  this.sendNotificationToParent('DELETE', token);
+                  this.sendNotificationToOpener(Type.DELETE_TOKEN, token);
               } else {
                   this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed: ' + apiError.message);
               }
@@ -135,14 +141,14 @@ export class TokenComponent implements OnInit {
                   this.addTokenValue = '';
                   this.tokens.push(token);
 
-                  this.sendNotificationToParent('ADD', token);
+                  this.sendNotificationToOpener(Type.ADD_TOKEN, token);
               }
           });
   }
 
-  sendNotificationToParent(type: string, token: Token): void {
-      if (window.opener != null) {
-          window.parent.postMessage({type: type, token: token}, location.origin);
+  sendNotificationToOpener(type: Type.ADD_TOKEN | Type.UPDATE_TOKEN | Type.DELETE_TOKEN, token: Token): void {
+      if (this.window.opener != null) {
+          this.window.opener.postMessage(new MessageEventData<Token>(type, token), this.window.location.origin);
       }
   }
 }

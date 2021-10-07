@@ -1,10 +1,12 @@
-import {Component, NgZone, OnInit} from '@angular/core';
+import {Component, Inject, NgZone, OnInit} from '@angular/core';
 import {MinimalToken, OAuth2ConsentInformation, OAuth2ConsentService} from './oauth2-consent.service';
 import {ActivatedRoute, Router} from '@angular/router';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
 import {faCheck, faSync} from '@fortawesome/free-solid-svg-icons';
 import {Gw2ApiService} from '../common/gw2-api.service';
+import {WINDOW} from '../app.module';
+import {MessageEventData, Type} from '../common/window.model';
 
 
 @Component({
@@ -23,6 +25,7 @@ export class OAuth2ConsentComponent implements OnInit {
   constructor(private readonly oauth2ConsentService: OAuth2ConsentService,
               private readonly gw2ApiService: Gw2ApiService,
               private readonly route: ActivatedRoute,
+              @Inject(WINDOW) private readonly window: Window,
               private readonly router: Router,
               private readonly zone: NgZone) {
 
@@ -73,12 +76,14 @@ export class OAuth2ConsentComponent implements OnInit {
     event.preventDefault();
 
     const url = this.router.serializeUrl(this.router.createUrlTree(['', 'account', 'token']));
-    const windowRef = window.open(url, '_blank');
+    const windowRef = this.window.open(url, '_blank');
 
     if (windowRef != null) {
-      windowRef.addEventListener('message', (event) => {
-        if (event.isTrusted && event.origin == location.origin) {
-          this.zone.run(() => this.loadOAuth2ConsentInformation());
+      this.window.addEventListener('message', (event: MessageEvent<MessageEventData<any>>) => {
+        if (event.isTrusted && event.origin == this.window.location.origin) {
+          if (event.data.type == Type.ADD_TOKEN || event.data.type == Type.UPDATE_TOKEN || event.data.type == Type.DELETE_TOKEN) {
+            this.zone.run(() => this.loadOAuth2ConsentInformation());
+          }
         }
       }, false);
     }

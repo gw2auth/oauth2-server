@@ -1,5 +1,6 @@
 export enum Type {
     ADD_TOKEN,
+    UPDATE_TOKEN,
     DELETE_TOKEN,
     AUTHENTICATION
 }
