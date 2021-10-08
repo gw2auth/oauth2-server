@@ -49,7 +49,7 @@ public class Utils {
 
     public static String lpad(Object v, char pad, int length) {
         final String s = v.toString();
-        final int missing = s.length() - length;
+        final int missing = length - s.length();
         if (missing < 1) {
             return s;
         }

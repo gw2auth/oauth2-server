@@ -5,6 +5,7 @@ import com.gw2auth.oauth2.server.service.summary.SummaryService;
 import com.gw2auth.oauth2.server.service.user.AbstractUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class AccountController extends AbstractRestController {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final SummaryService summaryService;
 
+    @Autowired
     public AccountController(AccountService accountService, ClientRegistrationRepository clientRegistrationRepository, SummaryService summaryService) {
         this.accountService = accountService;
         this.clientRegistrationRepository = clientRegistrationRepository;

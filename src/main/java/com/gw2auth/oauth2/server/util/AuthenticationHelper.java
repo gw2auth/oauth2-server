@@ -15,8 +15,4 @@ public class AuthenticationHelper {
                 .map(Gw2AuthUser.class::cast);
 
     }
-//
-//    public static GW2AuthUser getUserRequired() {
-//        return getUser().orElseThrow(UnauthorizedException::new);
-//    }
 }

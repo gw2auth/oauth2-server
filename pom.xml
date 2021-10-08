@@ -22,6 +22,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <start-class>com.gw2auth.oauth2.server.Application</start-class>
+
+        <node.version>v14.17.6</node.version>
     </properties>
 
     <dependencies>
@@ -83,6 +85,27 @@
             <version>1.69</version>
         </dependency>
         <!-- endregion -->
+
+        <!-- region Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.opentable.components</groupId>
+            <artifactId>otj-pg-embedded</artifactId>
+            <version>0.13.4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- endregion -->
     </dependencies>
 
     <build>
@@ -106,7 +129,7 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.12.0</version>
                 <configuration>
-                    <nodeVersion>v14.17.6</nodeVersion>
+                    <nodeVersion>${node.version}</nodeVersion>
                 </configuration>
                 <executions>
                     <execution>

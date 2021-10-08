@@ -1,0 +1,6 @@
+com.gw2auth:
+  url: "http://localhost:9000"
+  oauth2:
+    keypair:
+      id: "generate"
+      path: "generate"
