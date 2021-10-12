@@ -1,5 +1,8 @@
 com.gw2auth:
   url: "http://localhost:9000"
+  login:
+    user-service:
+      use-dummy: true
   oauth2:
     keypair:
       id: "generate"
