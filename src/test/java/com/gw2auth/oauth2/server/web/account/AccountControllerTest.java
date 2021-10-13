@@ -6,6 +6,14 @@ import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.WithGw2AuthLogin;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
+import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
+import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
+import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
+import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
+import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
+import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -15,7 +23,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -41,6 +50,18 @@ class AccountControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private ApiTokenRepository apiTokenRepository;
+
+    @Autowired
+    private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
+
+    @Autowired
+    private ClientRegistrationRepository clientRegistrationRepository;
+
+    @Autowired
+    private ClientAuthorizationRepository clientAuthorizationRepository;
+
+    @Autowired
     private AccountFederationRepository accountFederationRepository;
 
     @Test
@@ -51,13 +72,46 @@ class AccountControllerTest {
 
     @WithGw2AuthLogin
     public void getAccountSummary(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+
+        final int apiTokens = 3;
+        final int verifiedGw2Accounts = 5;
+        final int clientRegistrations = 12;
+        final int clientAuthorizations = 10;// this must be less than clientRegistrations! (only to keep the testcase simple)
+        final int accountFederations = 2;
+
+        for (int i = 0; i < apiTokens; i++) {
+            this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), "", Set.of(), "Name"));
+        }
+
+        for (int i = 0; i < verifiedGw2Accounts; i++) {
+            this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(UUID.randomUUID().toString(), accountId));
+        }
+
+        final Queue<ClientRegistrationEntity> clientRegistrationEntities = new LinkedList<>();
+
+        for (int i = 0; i < clientRegistrations; i++) {
+            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/")));
+        }
+
+        for (int i = 0; i < clientAuthorizations; i++) {
+            this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
+        }
+
+        // add one client authorization without scopes (that should not be counted)
+        this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
+
+        for (int i = 0; i < accountFederations; i++) {
+            this.accountFederationRepository.save(new AccountFederationEntity(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId));
+        }
+
         this.mockMvc.perform(get("/api/account/summary").session(session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.apiTokens").value("0"))
-                .andExpect(jsonPath("$.verifiedGw2Accounts").value("0"))
-                .andExpect(jsonPath("$.clientRegistrations").value("0"))
-                .andExpect(jsonPath("$.clientAuthorizations").value("0"))
-                .andExpect(jsonPath("$.accountFederations").value("1"));
+                .andExpect(jsonPath("$.apiTokens").value(Integer.toString(apiTokens)))
+                .andExpect(jsonPath("$.verifiedGw2Accounts").value(Integer.toString(verifiedGw2Accounts)))
+                .andExpect(jsonPath("$.clientRegistrations").value(Integer.toString(clientRegistrations)))
+                .andExpect(jsonPath("$.clientAuthorizations").value(Integer.toString(clientAuthorizations)))
+                .andExpect(jsonPath("$.accountFederations").value(Integer.toString(accountFederations + 1)));// one more because WithGw2AuthLogin adds one
     }
 
     @Test
