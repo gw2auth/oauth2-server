@@ -1,9 +1,9 @@
 package com.gw2auth.oauth2.server.service;
 
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiServiceException;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -34,12 +35,18 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private final ApiTokenService apiTokenService;
     private final ClientAuthorizationService clientAuthorizationService;
     private final Gw2ApiService gw2APIService;
+    private volatile Clock clock;
 
     @Autowired
     public OAuth2TokenCustomizerService(ApiTokenService apiTokenService, ClientAuthorizationService clientAuthorizationService, Gw2ApiService gw2APIService) {
         this.apiTokenService = apiTokenService;
         this.clientAuthorizationService = clientAuthorizationService;
         this.gw2APIService = gw2APIService;
+        this.clock = Clock.systemDefaultZone();
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -89,7 +96,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
             // check if all authorized tokens are still valid for at least the configured amount of time
             // if so, dont request new subtokens from the gw2 api but just respond with the existing ones
-            if (minExpirationTime.isAfter(Instant.now().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME))) {
+            if (minExpirationTime.isAfter(this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME))) {
                 ctx.getClaims().expiresAt(minExpirationTime);
 
                 logging.log("All existing Subtokens are still valid; Adding existing Subtokens to Access-Token");
