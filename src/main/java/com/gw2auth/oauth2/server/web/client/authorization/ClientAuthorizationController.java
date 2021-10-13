@@ -41,7 +41,7 @@ public class ClientAuthorizationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/authorization", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ClientAuthorizationResponse> getClientRegistrations(@AuthenticationPrincipal Gw2AuthUser user) {
+    public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUser user) {
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId());
 
         // get all client registration ids for batch lookup
