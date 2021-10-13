@@ -43,8 +43,17 @@ public class Utils {
         return StreamSupport.stream(new StringSplitSpliterator(s, delimiter), false);
     }
 
-    public static Stream<String[]> parseQuery(String query) {
-        return split(query, "&").map((rawPair) -> split(rawPair, "=").map((part) -> URLDecoder.decode(part, StandardCharsets.UTF_8)).toArray(String[]::new));
+    public static Stream<QueryParam> parseQuery(String query) {
+        return split(query, "&")
+                .map((rawPair) -> split(rawPair, "=").limit(2L).map((part) -> URLDecoder.decode(part, StandardCharsets.UTF_8)).toArray(String[]::new))
+                .filter((pair) -> pair.length >= 1)
+                .map((pair) -> {
+                    if (pair.length >= 2) {
+                        return new QueryParam.QueryParamWithValue(pair[0], pair[1]);
+                    } else {
+                        return new QueryParam.QueryParamWithoutValue(pair[0]);
+                    }
+                });
     }
 
     public static String lpad(Object v, char pad, int length) {

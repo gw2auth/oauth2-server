@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server;
 
 import com.gw2auth.oauth2.server.configuration.OAuth2ClientConfiguration;
+import com.gw2auth.oauth2.server.util.QueryParam;
 import com.gw2auth.oauth2.server.util.Utils;
 import org.hamcrest.core.IsNot;
 import org.hamcrest.core.StringEndsWith;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -52,8 +54,9 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 final MvcResult result = this.mockMvc.perform(get("/oauth2/authorization/" + gw2AuthLogin.issuer()).session(session)).andReturn();
                 final String location = Objects.requireNonNull(result.getResponse().getHeader("Location"));
                 final String state = Utils.parseQuery(new URL(location).getQuery())
-                        .filter((pair) -> pair[0].equals("state"))
-                        .map((pair) -> pair[1])
+                        .filter(QueryParam::hasValue)
+                        .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
+                        .map(QueryParam::value)
                         .findFirst()
                         .orElseThrow();
 

@@ -8,7 +8,6 @@ import org.hamcrest.collection.IsIterableContainingInAnyOrder;
 import org.hamcrest.collection.IsMapContaining;
 import org.hamcrest.core.IsAnything;
 import org.hamcrest.core.IsEqual;
-import org.springframework.data.relational.core.sql.In;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -33,11 +32,11 @@ public final class Matchers {
                     .path(uri.getPath())
                     .fragment(uri.getFragment());
 
-            Utils.parseQuery(uri.getRawQuery()).forEach((pair) -> {
-                if (pair.length >= 2) {
-                    builder.queryParam(pair[0], pair[1]);
+            Utils.parseQuery(uri.getRawQuery()).forEach((queryParam) -> {
+                if (queryParam.hasValue()) {
+                    builder.queryParam(queryParam.name(), queryParam.value());
                 } else {
-                    builder.queryParam(pair[0]);
+                    builder.queryParam(queryParam.name());
                 }
             });
 

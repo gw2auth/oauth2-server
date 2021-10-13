@@ -48,36 +48,44 @@ class UtilsTest {
     }
 
     @Test
-    public void parseQueryOneParam() {
-        final List<String[]> result = Utils.parseQuery("key=value").collect(Collectors.toList());
+    public void parseQueryNoValue() {
+        final List<QueryParam> result = Utils.parseQuery("key").collect(Collectors.toList());
 
         assertEquals(1, result.size());
-        assertArrayEquals(new String[]{"key", "value"}, result.get(0));
+        assertEquals(new QueryParam.QueryParamWithoutValue("key"), result.get(0));
+    }
+
+    @Test
+    public void parseQueryOneParam() {
+        final List<QueryParam> result = Utils.parseQuery("key=value").collect(Collectors.toList());
+
+        assertEquals(1, result.size());
+        assertEquals(new QueryParam.QueryParamWithValue("key", "value"), result.get(0));
     }
 
     @Test
     public void parseQueryOneParamSpecialChars() {
-        final List<String[]> result = Utils.parseQuery("hello%20world=world%20hello").collect(Collectors.toList());
+        final List<QueryParam> result = Utils.parseQuery("hello%20world=world%20hello").collect(Collectors.toList());
 
         assertEquals(1, result.size());
-        assertArrayEquals(new String[]{"hello world", "world hello"}, result.get(0));
+        assertEquals(new QueryParam.QueryParamWithValue("hello world", "world hello"), result.get(0));
     }
 
     @Test
     public void parseQuerySameNameTwice() {
-        final List<String[]> result = Utils.parseQuery("hello=world1&hello=world2").collect(Collectors.toList());
+        final List<QueryParam> result = Utils.parseQuery("hello=world1&hello=world2").collect(Collectors.toList());
 
         assertEquals(2, result.size());
-        assertArrayEquals(new String[]{"hello", "world1"}, result.get(0));
-        assertArrayEquals(new String[]{"hello", "world2"}, result.get(1));
+        assertEquals(new QueryParam.QueryParamWithValue("hello", "world1"), result.get(0));
+        assertEquals(new QueryParam.QueryParamWithValue("hello", "world2"), result.get(1));
     }
 
     @Test
     public void parseComplexQuery() {
-        final List<String[]> result = Utils.parseQuery("sdd.%2C%2Fs%28%265dsad%3D%7D%3D%22sd%5C%5Cds=_-%26%3D%24%3Faaalele%7C%7Ba%7D").collect(Collectors.toList());
+        final List<QueryParam> result = Utils.parseQuery("sdd.%2C%2Fs%28%265dsad%3D%7D%3D%22sd%5C%5Cds=_-%26%3D%24%3Faaalele%7C%7Ba%7D").collect(Collectors.toList());
 
         assertEquals(1, result.size());
-        assertArrayEquals(new String[]{"sdd.,/s(&5dsad=}=\"sd\\\\ds", "_-&=$?aaalele|{a}"}, result.get(0));
+        assertEquals(new QueryParam.QueryParamWithValue("sdd.,/s(&5dsad=}=\"sd\\\\ds", "_-&=$?aaalele|{a}"), result.get(0));
     }
 
     @Test

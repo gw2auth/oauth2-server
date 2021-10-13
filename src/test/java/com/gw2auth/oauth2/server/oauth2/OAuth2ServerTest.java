@@ -17,6 +17,7 @@ import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.gw2auth.oauth2.server.util.QueryParam;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.nimbusds.jose.shaded.json.JSONArray;
 import com.nimbusds.jwt.JWT;
@@ -442,8 +443,9 @@ public class OAuth2ServerTest {
 
     private ResultActions performRetrieveTokenByCode(ClientRegistrationCreation clientRegistrationCreation, URI redirectedURI, Map<String, String> subtokenByGw2ApiToken) throws Exception {
         final String codeParam = Utils.parseQuery(redirectedURI.getRawQuery())
-                .filter((pair) -> pair[0].equals(OAuth2ParameterNames.CODE))
-                .map((pair) -> pair[1])
+                .filter(QueryParam::hasValue)
+                .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.CODE))
+                .map(QueryParam::value)
                 .findFirst()
                 .orElse(null);
 
@@ -490,8 +492,8 @@ public class OAuth2ServerTest {
     private ResultActions performSubmitConsent(MockHttpSession session, ClientRegistration clientRegistration, URI redirectedURI) throws Exception {
         // read request information from redirected uri
         final Map<String, String> params = Utils.parseQuery(redirectedURI.getRawQuery())
-                .filter((pair) -> pair.length == 2)
-                .collect(Collectors.toMap((pair) -> pair[0], (pair) -> pair[1]));
+                .filter(QueryParam::hasValue)
+                .collect(Collectors.toMap(QueryParam::name, QueryParam::value));
 
         assertTrue(params.containsKey(OAuth2ParameterNames.CLIENT_ID));
         assertTrue(params.containsKey(OAuth2ParameterNames.STATE));
