@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.util;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public interface QueryParam {
@@ -13,6 +15,16 @@ public interface QueryParam {
             return Optional.of(value());
         } else {
             return Optional.empty();
+        }
+    }
+
+    static QueryParam parse(String rawPair) {
+        final String[] pair = Utils.split(rawPair, "=").limit(2L).map((part) -> URLDecoder.decode(part, StandardCharsets.UTF_8)).toArray(String[]::new);
+
+        if (pair.length >= 2) {
+            return new QueryParamWithValue(pair[0], pair[1]);
+        } else {
+            return new QueryParamWithoutValue(pair[0]);
         }
     }
 
@@ -34,38 +46,6 @@ public interface QueryParam {
         @Override
         public boolean hasValue() {
             return false;
-        }
-    }
-
-    class Builder {
-
-        private String name;
-        private String value;
-
-        public Builder() {
-
-        }
-
-        public Builder name(String name) {
-            this.name = name;
-            return this;
-        }
-
-        public Builder value(String value) {
-            this.value = value;
-            return this;
-        }
-
-        public QueryParam build() {
-            if (this.name == null) {
-                throw new IllegalStateException("name must be set");
-            }
-
-            if (this.value == null) {
-                return new QueryParamWithoutValue(this.name);
-            } else {
-                return new QueryParamWithValue(this.name, this.value);
-            }
         }
     }
 }
