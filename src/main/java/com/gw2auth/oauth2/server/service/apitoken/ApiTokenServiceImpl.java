@@ -2,18 +2,15 @@ package com.gw2auth.oauth2.server.service.apitoken;
 
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2TokenInfo;
+import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.relational.core.mapping.event.AfterSaveCallback;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -129,23 +126,6 @@ public class ApiTokenServiceImpl implements ApiTokenService {
             throw new ApiTokenServiceException(ApiTokenServiceException.API_TOKEN_NOT_FOUND, HttpStatus.NOT_FOUND);
         } else if (deletedCount != 1) {
             LOG.warn("deleted ApiToken for specific accountId and gw2AccountId, deleted more than 1: {}", deletedCount);
-        }
-    }
-
-    @Component
-    public static class UnverifiedApiTokenDeleter implements AfterSaveCallback<Gw2AccountVerificationEntity> {
-
-        private ApiTokenRepository apiTokenRepository;
-
-        @Autowired
-        public void setGw2ApiTokenRepository(ApiTokenRepository apiTokenRepository) {
-            this.apiTokenRepository = apiTokenRepository;
-        }
-
-        @Override
-        public Gw2AccountVerificationEntity onAfterSave(Gw2AccountVerificationEntity aggregate) {
-            this.apiTokenRepository.deleteAllByGw2AccountIdExceptForAccountId(aggregate.gw2AccountId(), aggregate.accountId());
-            return aggregate;
         }
     }
 }

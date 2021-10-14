@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.verification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,16 +33,20 @@ public class VerificationServiceImpl implements VerificationService {
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
+    private final ApiTokenRepository apiTokenRepository;
     private final Gw2ApiService gw2ApiService;
     private final ObjectMapper objectMapper;
     private final Map<Long, VerificationChallenge<?>> challengesById;
+    private volatile Clock clock;
 
     @Autowired
-    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges, Gw2AccountVerificationRepository gw2AccountVerificationRepository, Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository, Gw2ApiService gw2ApiService, ObjectMapper objectMapper) {
+    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges, Gw2AccountVerificationRepository gw2AccountVerificationRepository, Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository, ApiTokenRepository apiTokenRepository, Gw2ApiService gw2ApiService, ObjectMapper objectMapper) {
         this.gw2AccountVerificationRepository = gw2AccountVerificationRepository;
         this.gw2AccountVerificationChallengeRepository = gw2AccountVerificationChallengeRepository;
+        this.apiTokenRepository = apiTokenRepository;
         this.gw2ApiService = gw2ApiService;
         this.objectMapper = objectMapper;
+        this.clock = Clock.systemDefaultZone();
 
         final Map<Long, VerificationChallenge<?>> challengesById = new HashMap<>(verificationChallenges.size());
 
@@ -51,6 +57,10 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         this.challengesById = Map.copyOf(challengesById);
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = clock;
     }
 
     @Override
@@ -137,14 +147,15 @@ public class VerificationServiceImpl implements VerificationService {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        final Instant startTime = Instant.now();
+        final Instant startTime = this.clock.instant();
         final Instant timeout = startTime.plus(challenge.getTimeout());
         final Gw2SubToken gw2SubToken = this.gw2ApiService.createSubToken(gw2ApiToken, challenge.getRequiredGw2ApiPermissions(), timeout);
-        final String gw2AccountId = this.gw2ApiService.getAccount(gw2ApiToken).id();
 
         if (!gw2SubToken.permissions().containsAll(challenge.getRequiredGw2ApiPermissions())) {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.INSUFFICIENT_PERMISSIONS, HttpStatus.BAD_REQUEST);
         }
+
+        final String gw2AccountId = this.gw2ApiService.getAccount(gw2SubToken.value()).id();
 
         entity = new Gw2AccountVerificationChallengeEntity(
                 entity.accountId(),
@@ -152,7 +163,7 @@ public class VerificationServiceImpl implements VerificationService {
                 entity.challengeId(),
                 entity.stateClass(),
                 entity.state(),
-                gw2ApiToken,
+                gw2SubToken.value(),
                 startTime,
                 timeout
         );
@@ -191,7 +202,8 @@ public class VerificationServiceImpl implements VerificationService {
         final boolean isVerified = verify(challenge, state, entity.gw2ApiToken());
 
         if (isVerified) {
-            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID);
+            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
+            this.apiTokenRepository.deleteAllByGw2AccountIdExceptForAccountId(gw2AccountId, accountId);
             this.gw2AccountVerificationRepository.save(
                     this.gw2AccountVerificationRepository.findById(gw2AccountId)
                             .map((e) -> e.withAccountId(accountId))
@@ -204,7 +216,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Scheduled(fixedRate = 1000L * 60L)
     public void tryVerify() {
-        final Instant now = Instant.now();
+        final Instant now = this.clock.instant();
         final List<Gw2AccountVerificationChallengeEntity> entities = this.gw2AccountVerificationChallengeRepository.findAllPending();
 
         if (!entities.isEmpty()) {
