@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -153,7 +154,7 @@ class ClientAuthorizationControllerTest {
             }
 
             // registration
-            assertEquals(clientRegistration.creationTime().toString(), clientRegistrationNode.get("creationTime").textValue());
+            assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
             assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
             assertEquals(clientRegistration.redirectUri(), clientRegistrationNode.get("redirectUri").textValue());
 
@@ -188,7 +189,7 @@ class ClientAuthorizationControllerTest {
                 final ClientAuthorizationTokenEntity authorizationToken = authorizationTokens.remove(gw2AccountId);
 
                 assertEquals(apiToken.displayName(), tokenNode.get("displayName").textValue());
-                assertEquals(authorizationToken.expirationTime().toString(), tokenNode.get("expirationTime").textValue());
+                assertInstantEquals(authorizationToken.expirationTime(), tokenNode.get("expirationTime").textValue());
             }
 
             assertTrue(apiTokens.isEmpty());
@@ -265,7 +266,7 @@ class ClientAuthorizationControllerTest {
 
                 final JsonNode logNode = logsNode.get(i);
 
-                assertEquals(expectedLog.timestamp().toString(), logNode.get("timestamp").textValue());
+                assertInstantEquals(expectedLog.timestamp(), logNode.get("timestamp").textValue());
                 assertEquals(expectedLog.type(), logNode.get("type").textValue());
 
                 final JsonNode messagesNode = logNode.get("messages");

@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
+import static com.gw2auth.oauth2.server.Matchers.asInstant;
+import static com.gw2auth.oauth2.server.Matchers.instant;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -145,7 +148,7 @@ class ClientRegistrationControllerTest {
 
         this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.clientId()).session(session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.creationTime").value(clientRegistration.creationTime().toString()))
+                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
                 .andExpect(jsonPath("$.displayName").value(clientRegistration.displayName()))
                 .andExpect(jsonPath("$.redirectUri").value(clientRegistration.redirectUri()))
                 .andExpect(jsonPath("$.authorizationGrantTypes").isArray())
@@ -249,7 +252,7 @@ class ClientRegistrationControllerTest {
     }
 
     private void assertClientRegistrationEquals(ClientRegistrationEntity clientRegistration, JsonNode clientRegistrationNode) {
-        assertEquals(clientRegistration.creationTime().toString(), clientRegistrationNode.get("creationTime").textValue());
+        assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
         assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
         assertEquals(clientRegistration.redirectUri(), clientRegistrationNode.get("redirectUri").textValue());
 

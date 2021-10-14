@@ -44,6 +44,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.containingAll;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -183,11 +184,11 @@ class ApiTokenControllerTest {
         preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiToken, "Gw2AccountName.1234");
 
         this.mockMvc.perform(
-                        post("/api/token")
-                                .session(session)
-                                .with(csrf())
-                                .content(gw2ApiToken)
-                )
+                post("/api/token")
+                        .session(session)
+                        .with(csrf())
+                        .content(gw2ApiToken)
+        )
                 .andExpect(status().isBadRequest());
     }
 
@@ -240,11 +241,11 @@ class ApiTokenControllerTest {
         preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiToken, "Gw2AccountName.1234");
 
         this.mockMvc.perform(
-                        post("/api/token")
-                                .session(session)
-                                .with(csrf())
-                                .content(gw2ApiToken)
-                )
+                post("/api/token")
+                        .session(session)
+                        .with(csrf())
+                        .content(gw2ApiToken)
+        )
                 .andExpect(status().isNotAcceptable());
 
         assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId).isEmpty());
@@ -264,11 +265,11 @@ class ApiTokenControllerTest {
         preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiToken, "Gw2AccountName.1234");
 
         this.mockMvc.perform(
-                        post("/api/token")
-                                .session(session)
-                                .with(csrf())
-                                .content(gw2ApiToken)
-                )
+                post("/api/token")
+                        .session(session)
+                        .with(csrf())
+                        .content(gw2ApiToken)
+        )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId))
                 .andExpect(jsonPath("$.creationTime").isString())
@@ -293,11 +294,11 @@ class ApiTokenControllerTest {
         preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiToken, "Gw2AccountName.1234");
 
         this.mockMvc.perform(
-                        post("/api/token")
-                                .session(session)
-                                .with(csrf())
-                                .content(gw2ApiToken)
-                )
+                post("/api/token")
+                        .session(session)
+                        .with(csrf())
+                        .content(gw2ApiToken)
+        )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId))
                 .andExpect(jsonPath("$.creationTime").isString())
@@ -578,7 +579,7 @@ class ApiTokenControllerTest {
     private void assertExpectedApiToken(ExpectedApiToken expectedApiToken, String expectedDisplayName, String expectedGw2ApiToken, Set<String> expectedGw2ApiPermissions, JsonNode apiTokenNode) {
         assertNotNull(expectedApiToken);
         assertEquals(expectedApiToken.apiToken().gw2AccountId(), apiTokenNode.get("gw2AccountId").textValue());
-        assertEquals(expectedApiToken.apiToken().creationTime().toString(), apiTokenNode.get("creationTime").textValue());
+        assertInstantEquals(expectedApiToken.apiToken().creationTime(), apiTokenNode.get("creationTime").textValue());
         assertEquals(expectedGw2ApiToken, apiTokenNode.get("gw2ApiToken").textValue());
         assertEquals(expectedDisplayName, apiTokenNode.get("displayName").textValue());
         assertEquals(expectedApiToken.isVerified(), apiTokenNode.get("isVerified").booleanValue());

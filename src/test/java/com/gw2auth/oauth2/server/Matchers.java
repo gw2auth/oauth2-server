@@ -15,6 +15,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,8 +54,16 @@ public final class Matchers {
         return instantWithinRange(expected.minus(tolerance), expected.plus(tolerance));
     }
 
+    public static Matcher<? super Instant> instant(Instant expected) {
+        return instantWithPrecision(expected, ChronoUnit.MILLIS);
+    }
+
+    public static Matcher<? super Instant> instantWithPrecision(Instant expected, TemporalUnit precision) {
+        return new MappingMatcher<>("Instant with precision " + precision, (v) -> v.truncatedTo(precision), new IsEqual<>(expected.truncatedTo(precision)));
+    }
+
     public static Matcher<? super Instant> instantWithinRange(Instant low, Instant high) {
-        return new TypeSafeMatcher<Instant>() {
+        return new TypeSafeMatcher<>() {
             @Override
             protected boolean matchesSafely(Instant item) {
                 return item.isAfter(low) && item.isBefore(high);
