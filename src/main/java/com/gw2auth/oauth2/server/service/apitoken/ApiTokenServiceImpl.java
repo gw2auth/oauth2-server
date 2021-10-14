@@ -8,6 +8,8 @@ import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2TokenInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.relational.core.mapping.event.AfterSaveCallback;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ApiTokenServiceImpl implements ApiTokenService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ApiTokenServiceImpl.class);
 
     private final ApiTokenRepository apiTokenRepository;
     private final Gw2ApiService gw2ApiService;
@@ -77,11 +81,6 @@ public class ApiTokenServiceImpl implements ApiTokenService {
                 throw new ApiTokenServiceException(ApiTokenServiceException.GW2_ACCOUNT_ID_MISMATCH, HttpStatus.BAD_REQUEST);
             }
 
-            final Optional<ApiTokenEntity> optionalGw2ApiTokenEntity = this.apiTokenRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId);
-            if (optionalGw2ApiTokenEntity.isEmpty()) {
-                throw new ApiTokenServiceException(ApiTokenServiceException.API_TOKEN_NOT_FOUND, HttpStatus.NOT_FOUND);
-            }
-
             apiTokenEntity = apiTokenEntity
                     .withGw2ApiToken(gw2ApiToken)
                     .withGw2ApiPermissions(gw2TokenInfo.permissions().stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()));
@@ -124,7 +123,13 @@ public class ApiTokenServiceImpl implements ApiTokenService {
 
     @Override
     public void deleteApiToken(long accountId, String gw2AccountId) {
-        this.apiTokenRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
+        final int deletedCount = this.apiTokenRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
+
+        if (deletedCount < 1) {
+            throw new ApiTokenServiceException(ApiTokenServiceException.API_TOKEN_NOT_FOUND, HttpStatus.NOT_FOUND);
+        } else if (deletedCount != 1) {
+            LOG.warn("deleted ApiToken for specific accountId and gw2AccountId, deleted more than 1: {}", deletedCount);
+        }
     }
 
     @Component
