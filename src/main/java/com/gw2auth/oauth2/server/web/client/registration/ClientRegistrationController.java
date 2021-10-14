@@ -32,8 +32,8 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/registration/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Optional<ClientRegistrationPrivateResponse> getClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
-        return this.clientRegistrationService.getClientRegistration(user.getAccountId(), clientId).map(ClientRegistrationPrivateResponse::create);
+    public ResponseEntity<Object> getClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+        return fromOptional(this.clientRegistrationService.getClientRegistration(user.getAccountId(), clientId).map(ClientRegistrationPrivateResponse::create));
     }
 
     @PostMapping(value = "/api/client/registration", produces = MediaType.APPLICATION_JSON_VALUE)

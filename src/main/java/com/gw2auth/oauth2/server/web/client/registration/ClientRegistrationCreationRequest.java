@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
 
-public record ClientRegistrationCreationRequest(@JsonProperty("displayName") String displayName,
-                                                @JsonProperty("authorizationGrantTypes") Set<String> authorizationGrantTypes,
-                                                @JsonProperty("redirectUri") String redirectUri) {
+public record ClientRegistrationCreationRequest(@JsonProperty(value = "displayName", required = true) String displayName,
+                                                @JsonProperty(value = "authorizationGrantTypes", required = true) Set<String> authorizationGrantTypes,
+                                                @JsonProperty(value = "redirectUri", required = true) String redirectUri) {
 }
