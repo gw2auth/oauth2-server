@@ -4,8 +4,10 @@ import com.gw2auth.oauth2.server.Gw2AuthLoginExtension;
 import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.WithGw2AuthLogin;
+import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
+import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
@@ -15,6 +17,8 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import org.hamcrest.core.IsNot;
+import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +31,11 @@ import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -48,6 +52,9 @@ class AccountControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @Autowired
     private ApiTokenRepository apiTokenRepository;
@@ -177,5 +184,72 @@ class AccountControllerTest {
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
         assertEquals(1, result.size());
         assertEquals(new AccountFederationEntity("issuer", "idAtIssuer", accountId), result.get(0));
+    }
+
+    @Test
+    public void deleteAccountUnauthenticated() throws Exception {
+        this.mockMvc.perform(delete("/api/account").with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @WithGw2AuthLogin
+    public void deleteAccount(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+
+        this.mockMvc.perform(delete("/api/account").session(session).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("true"));
+
+        // session should be invalidated
+        assertTrue(AuthenticationHelper.getUser(session).isEmpty());
+
+        // account should be removed (checking for account is enough, since every other table has a foreign key on that)
+        assertTrue(this.accountRepository.findById(accountId).isEmpty());
+    }
+
+    @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
+    public void addAccountFederationUnknownProvider(MockHttpSession session) throws Exception {
+        this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).session(session))
+                .andExpect(status().isNotFound());
+    }
+
+    @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
+    public void addAccountFederation(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        this.gw2AuthLoginExtension.login(loginURL, "dummyIssuer", "B").andExpectAll(this.gw2AuthLoginExtension.expectSuccess());
+
+        final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
+        assertEquals(2, result.size());
+        assertTrue(result.containsAll(List.of(
+                new AccountFederationEntity("dummyIssuer", "A", accountId),
+                new AccountFederationEntity("dummyIssuer", "B", accountId)
+        )));
+    }
+
+    @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
+    public void addAccountFederationAlreadyLinkedToOtherAccount(MockHttpSession session) throws Exception {
+        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        this.accountFederationRepository.save(new AccountFederationEntity("dummyIssuer", "B", otherUserAccountId));
+
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        this.gw2AuthLoginExtension.login(loginURL, "dummyIssuer", "B")
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", new StringEndsWith("?error")));
+
+        // only the initial federation should be present
+        final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
+        assertEquals(1, result.size());
     }
 }

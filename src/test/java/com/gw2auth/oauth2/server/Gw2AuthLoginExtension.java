@@ -14,9 +14,13 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -32,6 +36,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
 
     private final MockMvc mockMvc;
     private final OAuth2ClientConfiguration.TestClientRegistrationRepository testClientRegistrationRepository;
+    private ExtensionContext context;
 
     @Autowired
     public Gw2AuthLoginExtension(MockMvc mockMvc, OAuth2ClientConfiguration.TestClientRegistrationRepository testClientRegistrationRepository) {
@@ -41,39 +46,23 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
+        this.context = context;
+
         final Method method = context.getTestMethod().orElse(null);
 
         if (method != null) {
             final WithGw2AuthLogin gw2AuthLogin = method.getDeclaredAnnotation(WithGw2AuthLogin.class);
 
             if (gw2AuthLogin != null) {
-                final MockHttpSession session = context.getStore(NAMESPACE).getOrComputeIfAbsent("session", (k) -> new MockHttpSession(), MockHttpSession.class);
-
-                this.testClientRegistrationRepository.prepareRegistrationId(gw2AuthLogin.issuer());
-
-                final MvcResult result = this.mockMvc.perform(get("/oauth2/authorization/" + gw2AuthLogin.issuer()).session(session)).andReturn();
-                final String location = Objects.requireNonNull(result.getResponse().getHeader("Location"));
-                final String state = Utils.parseQuery(new URL(location).getQuery())
-                        .filter(QueryParam::hasValue)
-                        .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
-                        .map(QueryParam::value)
-                        .findFirst()
-                        .orElseThrow();
-
-                this.mockMvc.perform(
-                        get("/login/oauth2/code/" + gw2AuthLogin.issuer())
-                                .session(session)
-                                .queryParam("code", gw2AuthLogin.idAtIssuer())
-                                .queryParam("state", state)
-                )
-                        .andExpect(status().is3xxRedirection())
-                        .andExpect(header().string("Location", new IsNot<>(new StringEndsWith("?error"))));
+                loginInternal(context, gw2AuthLogin.issuer(), gw2AuthLogin.idAtIssuer()).andExpectAll(expectSuccess());
             }
         }
     }
 
     @Override
     public void afterEach(ExtensionContext context) throws Exception {
+        this.context = null;
+
         final Method method = context.getTestMethod().orElse(null);
 
         if (method != null) {
@@ -88,5 +77,46 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 context.getStore(NAMESPACE).remove("session", MockHttpSession.class);
             }
         }
+    }
+
+    public ResultMatcher[] expectSuccess() {
+        return new ResultMatcher[]{
+                status().is3xxRedirection(),
+                header().string("Location", new IsNot<>(new StringEndsWith("?error")))
+        };
+    }
+
+    public ResultActions login(String issuer, String idAtIssuer) throws Exception {
+        return loginInternal(this.context, issuer, idAtIssuer);
+    }
+
+    public ResultActions login(String loginUrl, String issuer, String idAtIssuer) throws Exception {
+        return loginInternal(this.context, loginUrl, issuer, idAtIssuer);
+    }
+
+    private ResultActions loginInternal(ExtensionContext context, String issuer, String idAtIssuer) throws Exception {
+        return loginInternal(context, "/oauth2/authorization/" + URLEncoder.encode(issuer, StandardCharsets.UTF_8), issuer, idAtIssuer);
+    }
+
+    private ResultActions loginInternal(ExtensionContext context, String loginURL, String issuer, String idAtIssuer) throws Exception {
+        final MockHttpSession session = context.getStore(NAMESPACE).getOrComputeIfAbsent("session", (k) -> new MockHttpSession(), MockHttpSession.class);
+
+        this.testClientRegistrationRepository.prepareRegistrationId(issuer);
+
+        final MvcResult result = this.mockMvc.perform(get(loginURL).session(session)).andReturn();
+        final String location = Objects.requireNonNull(result.getResponse().getHeader("Location"));
+        final String state = Utils.parseQuery(new URL(location).getQuery())
+                .filter(QueryParam::hasValue)
+                .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
+                .map(QueryParam::value)
+                .findFirst()
+                .orElseThrow();
+
+        return this.mockMvc.perform(
+                get("/login/oauth2/code/{issuer}", issuer)
+                        .session(session)
+                        .queryParam("code", idAtIssuer)
+                        .queryParam("state", state)
+        );
     }
 }
