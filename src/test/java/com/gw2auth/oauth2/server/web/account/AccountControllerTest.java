@@ -17,7 +17,6 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
-import org.hamcrest.core.IsNot;
 import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;

@@ -41,7 +41,7 @@ public class AccountController extends AbstractRestController {
     @GetMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountFederationsResponse getAccountFederations(@AuthenticationPrincipal Gw2AuthUser user) {
         return new AccountFederationsResponse(
-                AccountFederationResponse.create(user.getAccountFederation()),
+                new AccountFederationResponse(user.getAccountFederation().v1(), user.getAccountFederation().v2()),
                 this.accountService.getAccountFederations(user.getAccountId()).stream()
                         .map(AccountFederationResponse::create)
                         .collect(Collectors.toList())
@@ -75,7 +75,7 @@ public class AccountController extends AbstractRestController {
 
     @DeleteMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> deleteAccountFederation(@AuthenticationPrincipal Gw2AuthUser user, @RequestParam("issuer") String issuer, @RequestParam("idAtIssuer") String idAtIssuer) {
-        if (user.getAccountFederation().issuer().equals(issuer) && user.getAccountFederation().idAtIssuer().equals(idAtIssuer)) {
+        if (user.getAccountFederation().v1().equals(issuer) && user.getAccountFederation().v2().equals(idAtIssuer)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
