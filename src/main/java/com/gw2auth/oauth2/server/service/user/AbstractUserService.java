@@ -1,9 +1,9 @@
 package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.service.account.Account;
-import com.gw2auth.oauth2.server.service.account.AccountFederation;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.gw2auth.oauth2.server.util.Pair;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -65,6 +65,6 @@ public abstract class AbstractUserService {
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
-        return new Gw2AuthUser(user, account.id(), new AccountFederation(issuer, idAtIssuer));
+        return new Gw2AuthUser(user, account.id(), new Pair<>(issuer, idAtIssuer));
     }
 }

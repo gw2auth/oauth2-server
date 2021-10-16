@@ -1,3 +1,7 @@
+com.gw2auth:
+  hazelcast:
+    instance-name: ${HAZELCAST_INSTANCE_NAME}
+
 spring:
   security:
     oauth2:
@@ -36,6 +40,8 @@ spring:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
     username: ${SERVER_POSTGRES_USER}
     password: ${SERVER_POSTGRES_PASSWORD}
+  session:
+    store-type: hazelcast
 
 management:
   endpoints:

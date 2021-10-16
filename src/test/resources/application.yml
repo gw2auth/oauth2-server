@@ -7,3 +7,7 @@ com.gw2auth:
     keypair:
       id: "generate"
       path: "generate"
+
+spring:
+  session:
+    store-type: none
