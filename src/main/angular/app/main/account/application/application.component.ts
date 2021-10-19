@@ -20,6 +20,7 @@ class InternalClientAuthorization {
   clientRegistration: ClientRegistrationPublic;
   accountSub: string;
   authorizedGw2ApiPermissions: Gw2ApiPermission[];
+  authorizedVerifiedInformation: boolean;
   tokens: Token[];
   logs: ClientAuthorizationLog[];
   nextLogPage: number;
@@ -28,6 +29,7 @@ class InternalClientAuthorization {
     this.clientRegistration = clientAuthorization.clientRegistration;
     this.accountSub = clientAuthorization.accountSub;
     this.authorizedGw2ApiPermissions = clientAuthorization.authorizedGw2ApiPermissions;
+    this.authorizedVerifiedInformation = clientAuthorization.authorizedVerifiedInformation;
     this.tokens = clientAuthorization.tokens;
     this.logs = [];
     this.nextLogPage = 0;
@@ -71,7 +73,7 @@ export class ApplicationComponent implements OnInit {
     return clientAuthorizationLogTypeToString(clientAuthorizationLogType);
   }
 
-  openDeleteClientAuthorizationModal(clientAuthorization: ClientAuthorization): void {
+  openDeleteClientAuthorizationModal(clientAuthorization: InternalClientAuthorization): void {
     const modalRef = this.modalService.open(DeleteModalComponent);
     modalRef.componentInstance.entityType = 'Application';
     modalRef.componentInstance.entityName = clientAuthorization.clientRegistration.displayName;

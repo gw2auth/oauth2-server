@@ -11,6 +11,7 @@ import java.util.Set;
 
 public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") ClientRegistrationPublicResponse clientRegistration,
                                         @JsonProperty("requestedGw2ApiPermissions") Set<Gw2ApiPermission> requestedGw2ApiPermissions,
+                                        @JsonProperty("requestedVerifiedInformation") boolean requestedVerifiedInformation,
                                         @JsonProperty("submitFormUri") String submitFormUri,
                                         @JsonProperty("submitFormParameters") MultiValueMap<String, String> submitFormParameters,
                                         @JsonProperty("cancelUri") String cancelUri,

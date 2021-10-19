@@ -11,6 +11,7 @@ export interface ClientAuthorization {
     clientRegistration: ClientRegistrationPublic;
     accountSub: string;
     authorizedGw2ApiPermissions: Gw2ApiPermission[];
+    authorizedVerifiedInformation: boolean;
     tokens: Token[];
 }
 

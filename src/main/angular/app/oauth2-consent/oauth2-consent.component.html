@@ -24,6 +24,9 @@
                                                 </ng-container>
                                             </div>
                                         </div>
+                                        <div *ngIf="info.requestedVerifiedInformation" class="mt-3">
+                                            <small>The application further requested to read the account verification status of all GW2-Accounts you choose to authorize</small>
+                                        </div>
                                     </div>
                                     <div class="border border-accent-inner rounded-2 p-3 mb-3">
                                         <ng-container [ngSwitch]="info.apiTokensWithSufficientPermissions.length">

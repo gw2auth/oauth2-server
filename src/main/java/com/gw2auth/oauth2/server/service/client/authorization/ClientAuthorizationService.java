@@ -10,6 +10,7 @@ public interface ClientAuthorizationService {
 
     String CONSENT_QUERY_PARAM = "consent";
     String FORCE_CONSENT_QUERY_VALUE = "force";
+    String GW2AUTH_VERIFIED_SCOPE = "gw2auth:verified";
 
     List<ClientAuthorization> getClientAuthorizations(long accountId);
 

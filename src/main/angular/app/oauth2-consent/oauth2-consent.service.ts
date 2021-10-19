@@ -26,6 +26,7 @@ export interface MinimalToken {
 export interface OAuth2ConsentInformation {
     clientRegistration: ClientRegistrationPublic;
     requestedGw2ApiPermissions: Gw2ApiPermission[];
+    requestedVerifiedInformation: boolean;
     submitFormUri: string;
     submitFormParameters: Map<string, string[]>;
     cancelUri: string;

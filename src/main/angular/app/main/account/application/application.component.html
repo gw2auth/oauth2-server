@@ -54,6 +54,11 @@
                                                     </div>
                                                 </div>
                                                 <div class="col">
+                                                    <label [htmlFor]="'authorizedVerifiedInformation'" class="form-label">Read account verification</label>
+                                                    <input type="text" class="form-control" [id]="'authorizedVerifiedInformation'" [value]="clientAuthorization.authorizedVerifiedInformation ? 'Yes' : 'No'" [attr.aria-describedby]="'authorizedVerifiedInformationDescription'" disabled />
+                                                    <div [id]="'authorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API-Tokens</div>
+                                                </div>
+                                                <div class="col">
                                                     <label [htmlFor]="'tokens'" class="form-label">API-Tokens</label>
                                                     <div class="list-group" [id]="'tokens'" [attr.aria-describedby]="'tokensDescription'">
                                                         <a *ngFor="let token of clientAuthorization.tokens" [routerLink]="['', 'account', 'token']" [fragment]="token.gw2AccountId" class="list-group-item">

@@ -9,10 +9,13 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
+import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
+import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.OAuth2TokenCustomizerService;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
@@ -99,6 +102,9 @@ public class OAuth2ServerTest {
 
     @Autowired
     private ApiTokenRepository apiTokenRepository;
+
+    @Autowired
+    private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
 
     @Autowired
     private OAuth2TokenCustomizerService oAuth2TokenCustomizerService;
@@ -235,7 +241,7 @@ public class OAuth2ServerTest {
         final String dummySubtokenA = createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
         final String dummySubtokenB = createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
 
-        result = performRetrieveTokenByCode(
+        result = performRetrieveTokenByCodeAndExpectValid(
                 clientRegistrationCreation,
                 URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
                 Map.of("TokenA", dummySubtokenA, "TokenB", dummySubtokenB)
@@ -297,7 +303,7 @@ public class OAuth2ServerTest {
         final String[] dummySubtokenA = new String[]{createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
         final String[] dummySubtokenB = new String[]{createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
 
-        result = performRetrieveTokenByCode(
+        result = performRetrieveTokenByCodeAndExpectValid(
                 clientRegistrationCreation,
                 URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
                 Map.of("TokenA", dummySubtokenA[0], "TokenB", dummySubtokenB[0])
@@ -380,7 +386,7 @@ public class OAuth2ServerTest {
         final String[] dummySubtokenA = new String[]{createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
         final String[] dummySubtokenB = new String[]{createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
 
-        result = performRetrieveTokenByCode(
+        result = performRetrieveTokenByCodeAndExpectValid(
                 clientRegistrationCreation,
                 URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
                 Map.of("TokenA", dummySubtokenA[0], "TokenB", dummySubtokenB[0])
@@ -457,7 +463,7 @@ public class OAuth2ServerTest {
         final String[] dummySubtokenA = new String[]{createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
         final String[] dummySubtokenB = new String[]{createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
 
-        result = performRetrieveTokenByCode(
+        result = performRetrieveTokenByCodeAndExpectValid(
                 clientRegistrationCreation,
                 URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
                 Map.of("TokenA", dummySubtokenA[0], "TokenB", dummySubtokenB[0])
@@ -498,6 +504,77 @@ public class OAuth2ServerTest {
                 .andReturn();
     }
 
+    @WithGw2AuthLogin
+    public void consentSubmitWithGw2AuthVerifiedScope(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE)).andReturn();
+
+        // submit the consent
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl()))).andReturn();
+
+        // verify the authorization has been saved
+        final ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
+        assertNotNull(clientAuthorizationEntity);
+        assertEquals(clientAuthorizationEntity.authorizedScopes(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE));
+
+        List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(2, clientAuthorizationTokenEntities.size());
+
+        // save account verification for one account
+        this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity("GW2AccIdFirst", accountId));
+
+        // set testing clock to token customizer
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String[] dummySubtokenA = new String[]{createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
+        final String[] dummySubtokenB = new String[]{createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L))};
+
+        result = performRetrieveTokenByCode(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of("TokenA", dummySubtokenA[0], "TokenB", dummySubtokenB[0])
+        )
+                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE))
+                .andReturn();
+
+        // verify the authorized tokens have been updated
+        clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(2, clientAuthorizationTokenEntities.size());
+
+        Set<String> savedSubtokens = clientAuthorizationTokenEntities.stream()
+                .map(ClientAuthorizationTokenEntity::gw2ApiSubtoken)
+                .collect(Collectors.toSet());
+
+        assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
+        assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0], "verified", true)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0], "verified", false))
+        ));
+
+        // remove the verification for the first account and save one for the second
+        this.gw2AccountVerificationRepository.deleteById("GW2AccIdFirst");
+        this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity("GW2AccIdSecond", accountId));
+
+        // retrieve a new access token using the refresh token
+        final String refreshToken = tokenResponse.get("refresh_token").textValue();
+        result = performRetrieveTokensByRefreshToken(clientRegistrationCreation, refreshToken)
+                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE))
+                .andReturn();
+
+        tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0], "verified", false)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0], "verified", true))
+        ));
+    }
+
     private ResultActions performRetrieveTokensByRefreshTokenAndExpectValid(ClientRegistrationCreation clientRegistrationCreation, String refreshToken) throws Exception {
         return performRetrieveTokensByRefreshToken(clientRegistrationCreation, refreshToken)
                 .andExpectAll(expectValidTokenResponse());
@@ -511,6 +588,11 @@ public class OAuth2ServerTest {
                                 .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                 );
+    }
+
+    private ResultActions performRetrieveTokenByCodeAndExpectValid(ClientRegistrationCreation clientRegistrationCreation, URI redirectedURI, Map<String, String> subtokenByGw2ApiToken) throws Exception {
+        return performRetrieveTokenByCode(clientRegistrationCreation, redirectedURI, subtokenByGw2ApiToken)
+                .andExpectAll(expectValidTokenResponse());
     }
 
     private ResultActions performRetrieveTokenByCode(ClientRegistrationCreation clientRegistrationCreation, URI redirectedURI, Map<String, String> subtokenByGw2ApiToken) throws Exception {
@@ -535,8 +617,7 @@ public class OAuth2ServerTest {
                                 .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                                 .queryParam(OAuth2ParameterNames.REDIRECT_URI, clientRegistrationCreation.clientRegistration().redirectUri())
-                )
-                .andExpectAll(expectValidTokenResponse());
+                );
     }
 
     private void prepareGw2RestServerForCreateSubToken(Map<String, String> subtokenByGw2ApiToken) {
@@ -645,15 +726,19 @@ public class OAuth2ServerTest {
         return tokenResponse;
     }
 
-    private ResultMatcher[] expectValidTokenResponse() {
+    private ResultMatcher[] expectValidTokenResponse(String... expectedScopes) {
         return new ResultMatcher[]{
                 status().isOk(),
                 jsonPath("$.refresh_token").isString(),
                 jsonPath("$.access_token").isString(),
                 jsonPath("$.token_type").value("Bearer"),
-                jsonPath("$.scope").value(Gw2ApiPermission.ACCOUNT.oauth2()),
+                jsonPath("$.scope", split(" ", containingAll(expectedScopes))),
                 jsonPath("$.expires_in").isNumber()
         };
+    }
+
+    private ResultMatcher[] expectValidTokenResponse() {
+        return expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2());
     }
 
     private ResultActions performAuthorizeWithNewClient(MockHttpSession session) throws Exception {

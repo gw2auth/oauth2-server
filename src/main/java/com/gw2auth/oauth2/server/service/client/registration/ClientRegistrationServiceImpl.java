@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.service.client.registration;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -144,6 +145,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
         Gw2ApiPermission.stream()
                 .map(Gw2ApiPermission::oauth2)
                 .forEach(builder::scope);
+
+        builder.scope(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE);
 
         return builder.build();
     }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 
 import java.time.Instant;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 public record ClientAuthorizationResponse(@JsonProperty("clientRegistration") ClientRegistrationPublicResponse clientRegistration,
                                           @JsonProperty("accountSub") String accountSub,
                                           @JsonProperty("authorizedGw2ApiPermissions") Set<Gw2ApiPermission> authorizedGw2ApiPermissions,
+                                          @JsonProperty("authorizedVerifiedInformation") boolean authorizedVerifiedInformation,
                                           @JsonProperty("tokens") List<Token> tokens) {
 
     public static ClientAuthorizationResponse create(ClientAuthorization clientAuthorization, ClientRegistration clientRegistration, List<Token> tokens) {
@@ -21,7 +23,13 @@ public record ClientAuthorizationResponse(@JsonProperty("clientRegistration") Cl
                 .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
                 .collect(Collectors.toSet());
 
-        return new ClientAuthorizationResponse(ClientRegistrationPublicResponse.create(clientRegistration), clientAuthorization.accountSub().toString(), authorizedGw2ApiPermissions, tokens);
+        return new ClientAuthorizationResponse(
+                ClientRegistrationPublicResponse.create(clientRegistration),
+                clientAuthorization.accountSub().toString(),
+                authorizedGw2ApiPermissions,
+                clientAuthorization.authorizedScopes().contains(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE),
+                tokens
+        );
     }
 
     public record Token(@JsonProperty("gw2AccountId") String gw2AccountId, @JsonProperty("displayName") String displayName, @JsonProperty("expirationTime") Instant expirationTime) {

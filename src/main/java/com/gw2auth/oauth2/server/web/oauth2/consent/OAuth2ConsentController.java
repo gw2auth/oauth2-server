@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.web.oauth2.consent;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
@@ -49,9 +50,11 @@ public class OAuth2ConsentController extends AbstractRestController {
                                                               @RequestParam(OAuth2ParameterNames.SCOPE) String scopes) {
 
         final ClientRegistration clientRegistration = this.clientRegistrationService.getClientRegistration(clientId).orElseThrow();
-        final Set<Gw2ApiPermission> requestedGw2ApiPermissions = Utils.split(scopes, " ")
+        final Set<String> requestedScopes = Utils.split(scopes, " ").collect(Collectors.toSet());
+        final Set<Gw2ApiPermission> requestedGw2ApiPermissions = requestedScopes.stream()
                 .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
                 .collect(Collectors.toSet());
+        final boolean requestedVerifiedInformation = requestedScopes.contains(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE);
 
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
 
@@ -72,7 +75,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId);
         submitFormParameters.set(OAuth2ParameterNames.STATE, state);
 
-        Utils.split(scopes, " ").forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));
+        requestedScopes.forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));
 
         final String cancelUri = UriComponentsBuilder.fromPath("/api/oauth2/consent-deny")
                 .replaceQueryParam(OAuth2ParameterNames.CLIENT_ID, clientId)
@@ -82,6 +85,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         return new OAuth2ConsentInfoResponse(
                 ClientRegistrationPublicResponse.create(clientRegistration),
                 requestedGw2ApiPermissions,
+                requestedVerifiedInformation,
                 "/oauth2/authorize",
                 submitFormParameters,
                 cancelUri,
@@ -91,8 +95,7 @@ public class OAuth2ConsentController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/oauth2/consent-deny")
-    public ResponseEntity<Void> consentDeny(@AuthenticationPrincipal Gw2AuthUser user,
-                                            @RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
+    public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
                                             @RequestParam(OAuth2ParameterNames.STATE) String state) {
 
         final ClientRegistration clientRegistration = this.clientRegistrationService.getClientRegistration(clientId).orElseThrow();

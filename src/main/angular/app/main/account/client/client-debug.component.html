@@ -22,6 +22,10 @@
                     </div>
                 </div>
                 <div class="col">
+                    <input class="form-check-input" type="checkbox" value="" [id]="'requestVerifiedInformation'" [name]="'requestVerifiedInformation'" [(ngModel)]="requestVerifiedInformation">
+                    <label class="form-check-label" [htmlFor]="'requestVerifiedInformation'">Request verified info</label>
+                </div>
+                <div class="col">
                     <input class="form-check-input" type="checkbox" value="" [id]="'forceConsent'" [name]="'forceConsent'" [(ngModel)]="forceConsent">
                     <label class="form-check-label" [htmlFor]="'forceConsent'">Force consent</label>
                 </div>
