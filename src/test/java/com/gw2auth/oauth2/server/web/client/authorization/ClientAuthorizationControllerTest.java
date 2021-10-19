@@ -12,6 +12,7 @@ import com.gw2auth.oauth2.server.repository.client.authorization.*;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -84,7 +85,7 @@ class ClientAuthorizationControllerTest {
         final ApiTokenEntity apiTokenB = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameB"));
         final ApiTokenEntity apiTokenC = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameC"));
 
-        final ClientAuthorizationEntity clientAuthorizationA = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationA.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2())));
+        final ClientAuthorizationEntity clientAuthorizationA = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationA.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE)));
         final ClientAuthorizationEntity clientAuthorizationC = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationC.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2())));
 
         // tokens for authorization A
@@ -175,6 +176,12 @@ class ClientAuthorizationControllerTest {
                 }
             }
 
+            if (element.get("authorizedVerifiedInformation").booleanValue()) {
+                if (!expectedScopes.remove(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE)) {
+                    fail("got unexpected scope in authorization");
+                }
+            }
+
             assertTrue(expectedScopes.isEmpty());
 
             // tokens
@@ -195,6 +202,9 @@ class ClientAuthorizationControllerTest {
             assertTrue(apiTokens.isEmpty());
             assertTrue(authorizationTokens.isEmpty());
         }
+
+        assertTrue(foundAuthorizationA);
+        assertTrue(foundAuthorizationC);
     }
 
     @Test
