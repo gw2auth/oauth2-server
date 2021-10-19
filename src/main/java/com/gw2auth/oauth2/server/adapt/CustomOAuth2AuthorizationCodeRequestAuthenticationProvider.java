@@ -8,42 +8,45 @@ import org.springframework.security.config.annotation.web.HttpSecurityBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
-import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.server.authorization.*;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implements AuthenticationProvider {
 
-    private static final ThreadLocal<Map<String, Object>> ADDITIONAL_PARAMETERS = new ThreadLocal<>();
-    private static final ThreadLocal<Boolean> IS_CONSENT_CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<CustomOAuth2AuthorizationCodeRequestAuthenticationProvider> CONTEXT_SELF = new ThreadLocal<>();
+    private static final ThreadLocal<OAuth2AuthorizationCodeRequestAuthenticationToken> CONTEXT_TOKEN = new ThreadLocal<>();
 
     private final OAuth2AuthorizationCodeRequestAuthenticationProvider delegate;
+    private final OAuth2AuthorizationService oAuth2AuthorizationService;
 
     public CustomOAuth2AuthorizationCodeRequestAuthenticationProvider(RegisteredClientRepository registeredClientRepository, OAuth2AuthorizationService authorizationService, OAuth2AuthorizationConsentService authorizationConsentService) {
         this.delegate = new OAuth2AuthorizationCodeRequestAuthenticationProvider(registeredClientRepository, authorizationService, authorizationConsentService);
+        this.oAuth2AuthorizationService = authorizationService;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         final OAuth2AuthorizationCodeRequestAuthenticationToken authorizationCodeRequestAuthentication = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
-        final Map<String, Object> additionalParameters = authorizationCodeRequestAuthentication.getAdditionalParameters();
-        final boolean isConsentContext = authorizationCodeRequestAuthentication.isConsent();
 
-        ADDITIONAL_PARAMETERS.set(additionalParameters);
-        IS_CONSENT_CONTEXT.set(isConsentContext);
+        CONTEXT_SELF.set(this);
+        CONTEXT_TOKEN.set(authorizationCodeRequestAuthentication);
         try {
             return this.delegate.authenticate(authorizationCodeRequestAuthentication);
         } finally {
-            ADDITIONAL_PARAMETERS.remove();
-            IS_CONSENT_CONTEXT.remove();
+            CONTEXT_SELF.remove();
+            CONTEXT_TOKEN.remove();
         }
     }
 
@@ -53,17 +56,46 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
     }
 
     public static Stream<Map.Entry<String, Object>> getAdditionalParameters() {
-        final Map<String, Object> additionalParameters = ADDITIONAL_PARAMETERS.get();
-        if (additionalParameters == null) {
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        if (contextToken == null) {
             throw new IllegalStateException();
         }
 
-        return additionalParameters.entrySet().stream();
+        return contextToken.getAdditionalParameters().entrySet().stream();
     }
 
     public static boolean isInConsentContext() {
-        final Boolean value = IS_CONSENT_CONTEXT.get();
-        return value != null && value;
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        return contextToken != null && contextToken.isConsent();
+    }
+
+    public static Set<String> getRequestedScopes() {
+        final CustomOAuth2AuthorizationCodeRequestAuthenticationProvider self = CONTEXT_SELF.get();
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        if (self == null || contextToken == null) {
+            throw new IllegalStateException();
+        }
+
+        final OAuth2Authorization authorization = self.oAuth2AuthorizationService.findByToken(contextToken.getState(), new OAuth2TokenType(OAuth2ParameterNames.STATE));
+        if (authorization == null) {
+            throw new IllegalStateException();
+        }
+
+        final OAuth2AuthorizationRequest authorizationRequest = authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
+        if (authorizationRequest == null) {
+            throw new IllegalStateException();
+        }
+
+        return authorizationRequest.getScopes();
+    }
+
+    public static OAuth2AuthorizationCodeRequestAuthenticationException error(OAuth2Error error) {
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        if (contextToken == null) {
+            throw new IllegalStateException();
+        }
+
+        return new OAuth2AuthorizationCodeRequestAuthenticationException(error, contextToken);
     }
 
     public static CustomOAuth2AuthorizationCodeRequestAuthenticationProvider create(HttpSecurity http) {

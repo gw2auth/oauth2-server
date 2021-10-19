@@ -2,7 +2,6 @@ package com.gw2auth.oauth2.server.service.client.authorization;
 
 import com.gw2auth.oauth2.server.repository.client.authorization.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
@@ -134,6 +133,10 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     @Override
     @Transactional
     public void save(OAuth2AuthorizationConsent authorizationConsent) {
+        if (!authorizationConsent.getScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes())) {
+            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+        }
+
         final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
         final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
 
@@ -152,8 +155,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                     .collect(Collectors.toSet());
 
             if (authorizedTokenGw2AccountIds.isEmpty()) {
-                //throw new OAuth2AuthorizationCodeRequestAuthenticationException();
-                throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+                throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
             }
 
             final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());

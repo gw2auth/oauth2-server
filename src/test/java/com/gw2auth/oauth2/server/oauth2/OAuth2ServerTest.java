@@ -505,6 +505,81 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
+    public void consentSubmitWithLessScopesThanRequested(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2())).andReturn();
+
+        // read request information from redirected uri
+        final Map<String, String> params = Utils.parseQuery(URI.create(result.getResponse().getRedirectedUrl()).getRawQuery())
+                .filter(QueryParam::hasValue)
+                .collect(Collectors.toMap(QueryParam::name, QueryParam::value));
+
+        assertTrue(params.containsKey(OAuth2ParameterNames.CLIENT_ID));
+        assertTrue(params.containsKey(OAuth2ParameterNames.STATE));
+        assertTrue(params.containsKey(OAuth2ParameterNames.SCOPE));
+
+        // insert a dummy api token
+        this.apiTokenRepository.save(new ApiTokenEntity(accountId, "GW2AccIdFirst", Instant.now(), "TokenA", Set.of(Gw2ApiPermission.ACCOUNT.gw2(), Gw2ApiPermission.TRADINGPOST.gw2()), "First"));
+
+        // lookup the consent info (containing the submit uri and parameters that should be submitted)
+        result = this.mockMvc.perform(
+                get("/api/oauth2/consent")
+                        .session(session)
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, params.get(OAuth2ParameterNames.CLIENT_ID))
+                        .queryParam(OAuth2ParameterNames.STATE, params.get(OAuth2ParameterNames.STATE))
+                        .queryParam(OAuth2ParameterNames.SCOPE, params.get(OAuth2ParameterNames.SCOPE))
+        ).andReturn();
+
+        // read the consent info and build the submit request
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonNode consentInfo = mapper.readTree(result.getResponse().getContentAsString());
+        final String submitUri = consentInfo.get("submitFormUri").textValue();
+
+        MockHttpServletRequestBuilder builder = post(submitUri)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .session(session)
+                .with(csrf());
+
+        for (Map.Entry<String, JsonNode> entry : (Iterable<? extends Map.Entry<String, JsonNode>>) () -> consentInfo.get("submitFormParameters").fields()) {
+            final String name = entry.getKey();
+            final JsonNode values = entry.getValue();
+
+            for (int i = 0; i < values.size(); i++) {
+                final String value = values.get(i).textValue();
+
+                // exclude the tradingpost scope
+                if (!name.equals(OAuth2ParameterNames.SCOPE) || !value.equals(Gw2ApiPermission.TRADINGPOST.oauth2())) {
+                    builder = builder.param(name, value);
+                }
+            }
+        }
+
+        final JsonNode apiTokensWithSufficientPermissions = consentInfo.get("apiTokensWithSufficientPermissions");
+
+        assertEquals(1, apiTokensWithSufficientPermissions.size());
+        assertEquals(0, consentInfo.get("apiTokensWithInsufficientPermissions").size());
+
+        for (int i = 0; i < apiTokensWithSufficientPermissions.size(); i++) {
+            builder = builder.param("token:" + apiTokensWithSufficientPermissions.get(i).get("gw2AccountId").textValue(), "");
+        }
+
+        // submit the consent
+        this.mockMvc.perform(builder)
+                .andExpect(status().isBadRequest());
+
+        // authorization should not be saved
+        final ClientAuthorizationEntity clientAuthorization = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
+
+        // null is ok too
+        if (clientAuthorization != null) {
+            assertTrue(clientAuthorization.authorizedScopes().isEmpty());
+        }
+    }
+
+    @WithGw2AuthLogin
     public void consentSubmitWithGw2AuthVerifiedScope(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
