@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 @Repository
 public interface ClientAuthorizationTokenRepository extends BaseRepository<ClientAuthorizationTokenEntity> {
@@ -43,8 +42,4 @@ public interface ClientAuthorizationTokenRepository extends BaseRepository<Clien
     @Modifying
     @Query("DELETE FROM client_authorization_tokens WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
     int deleteAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
-
-    @Modifying
-    @Query("DELETE FROM client_authorization_tokens WHERE account_id = :account_id AND client_registration_id = :client_registration_id AND NOT (gw2_account_id = ANY(ARRAY[ :gw2AccountIds ]::VARCHAR[]))")
-    int deleteAllByAccountIdAndClientRegistrationIdExceptForGw2AccountIds(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId, Set<String> gw2AccountIds);
 }

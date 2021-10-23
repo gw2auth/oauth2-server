@@ -159,18 +159,13 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
             }
 
             final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
-            final Set<String> existingTokenGw2AccountIds = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).stream()
-                    .map(ClientAuthorizationTokenEntity::gw2AccountId)
-                    .collect(Collectors.toSet());
 
             for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-                if (!existingTokenGw2AccountIds.contains(authorizedTokenGw2AccountId)) {
-                    tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, authorizedTokenGw2AccountId, "", Instant.now()));
-                }
+                tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, authorizedTokenGw2AccountId, "", Instant.now()));
             }
 
+            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
             this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
-            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationIdExceptForGw2AccountIds(accountId, clientRegistrationId, authorizedTokenGw2AccountIds);
 
             log.log("Updated consented API-Tokens: %d API-Tokens are now consented", authorizedTokenGw2AccountIds.size());
         }
