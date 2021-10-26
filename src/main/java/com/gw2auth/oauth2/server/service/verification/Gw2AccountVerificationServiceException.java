@@ -10,8 +10,8 @@ public class Gw2AccountVerificationServiceException extends Gw2AuthServiceExcept
     public static final String INTERNAL_SERVER_ERROR = "Internal server error";
     public static final String CHALLENGE_ALREADY_STARTED = "The selected challenge has already been started";
     public static final String CHALLENGE_START_NOT_YET_POSSIBLE = "You can not start a new challenge yet";
-    public static final String CHALLENGE_FOR_THIS_GW2_ACCOUNT_ALREADY_STARTED = "You already started challenge for this Gw2-Account";
-    public static final String GW2_ACCOUNT_ALREADY_VERIFIED = "This Gw2-Account is already verified for your GW2Auth-Account";
+    public static final String CHALLENGE_FOR_THIS_GW2_ACCOUNT_ALREADY_STARTED = "You already started challenge for this GW2-Account";
+    public static final String GW2_ACCOUNT_ALREADY_VERIFIED = "This GW2-Account is already verified for your GW2Auth-Account";
 
     public Gw2AccountVerificationServiceException(String message) {
         super(message);
