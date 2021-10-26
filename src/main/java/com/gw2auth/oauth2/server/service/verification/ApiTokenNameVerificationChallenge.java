@@ -40,7 +40,7 @@ public class ApiTokenNameVerificationChallenge implements VerificationChallenge<
     }
 
     @Override
-    public Map<String, Object> buildMessage(String state, Locale locale) {
+    public Map<String, Object> buildMessage(String state) {
         return Map.of("apiTokenName", state);
     }
 

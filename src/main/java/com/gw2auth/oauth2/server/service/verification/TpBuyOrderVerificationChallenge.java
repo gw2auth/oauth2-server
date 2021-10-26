@@ -46,7 +46,7 @@ public class TpBuyOrderVerificationChallenge implements VerificationChallenge<Tp
     }
 
     @Override
-    public Map<String, Object> buildMessage(State state, Locale locale) {
+    public Map<String, Object> buildMessage(State state) {
         return Map.of(
                 "gw2ItemId", state.itemId(),
                 "buyOrderCoins", state.price()

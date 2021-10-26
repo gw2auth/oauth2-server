@@ -12,7 +12,7 @@ public interface VerificationChallenge<S> {
     long getId();
     Set<Gw2ApiPermission> getRequiredGw2ApiPermissions();
     Duration getTimeout();
-    Map<String, Object> buildMessage(S state, Locale locale);
+    Map<String, Object> buildMessage(S state);
 
     S start();
     boolean verify(S state, String gw2ApiToken);

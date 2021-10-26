@@ -1,13 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import {VerificationService} from './verification.service';
 import {TokenService} from '../../../common/token.service';
-import {VerificationChallenge, VerificationChallengePending, VerificationChallengeStart, ApiTokenNameMessage, TpBuyOrderMessage} from './verification.model';
+import {
+  VerificationChallenge,
+  VerificationChallengePending,
+  VerificationChallengeStart,
+  ApiTokenNameMessage,
+  TpBuyOrderMessage,
+  VerificationChallengeSubmit
+} from './verification.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
-import {Gw2ApiPermission} from '../../../common/common.model';
+import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {Token} from '../../../common/token.model';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
 import {Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
+import {ToastService} from '../../../toast/toast.service';
 
 
 @Component({
@@ -34,7 +42,10 @@ export class VerificationComponent implements OnInit {
   verificationSubmitInProgress = false;
   verificationNewApiToken = '';
 
-  constructor(private readonly verificationService: VerificationService, private readonly tokenService: TokenService, private readonly gw2ApiService: Gw2ApiService) { }
+  constructor(private readonly verificationService: VerificationService,
+              private readonly tokenService: TokenService,
+              private readonly gw2ApiService: Gw2ApiService,
+              private readonly toastService: ToastService) { }
 
   ngOnInit(): void {
     this.verificationService.getBootstrap().subscribe((bootstrap) => {
@@ -52,6 +63,18 @@ export class VerificationComponent implements OnInit {
       case 2: return 'TP Buy-Order';
       default: return 'Unknown';
     }
+  }
+
+  canStartChallengeState(challenge: VerificationChallenge): number {
+    if (this.startedChallenge != null) {
+      if (this.startedChallenge.challengeId == challenge.id) {
+        return 1;
+      } else if (this.startedChallenge.allowNewChallengeTime.getTime() > Date.now()) {
+        return 2;
+      }
+    }
+
+    return 0;
   }
 
   asApiTokenMessage(message: Map<string, any>): string {
@@ -90,10 +113,17 @@ export class VerificationComponent implements OnInit {
   onStartChallengeClick(challenge: VerificationChallenge): void {
     this.startChallengeInProgress = true;
 
-    this.verificationService.startChallenge(challenge.id).subscribe((verificationChallengeStart) => {
-      this.startedChallenge = verificationChallengeStart;
-      this.startChallengeInProgress = false;
-    });
+    this.verificationService.startChallenge(challenge.id)
+        .subscribe((response) => {
+          if ((<VerificationChallengeStart> response).challengeId) {
+            this.startedChallenge = <VerificationChallengeStart> response;
+          } else {
+            const apiError = <ApiError> response;
+            this.toastService.show('Failed to start challenge', apiError.message);
+          }
+
+          this.startChallengeInProgress = false;
+        });
   }
 
   onTokenSelectClick(token: Token): void {
@@ -111,14 +141,22 @@ export class VerificationComponent implements OnInit {
   onSubmitChallengeClick(challenge: VerificationChallengeStart): void {
     this.verificationSubmitInProgress = true;
 
-    this.verificationService.submitChallenge(this.selectedGw2ApiToken!).subscribe((verificationChallengeSubmit) => {
-      this.startedChallenge = null;
+    this.verificationService.submitChallenge(this.selectedGw2ApiToken!)
+        .subscribe((response) => {
+          if ((<ApiError> response).message) {
+            const apiError = <ApiError> response;
+            this.toastService.show('Failed to submit challenge', apiError.message);
+          } else {
+            const verificationChallengeSubmit = <VerificationChallengeSubmit> response;
 
-      if (!verificationChallengeSubmit.isSuccess) {
-        this.pendingChallenges.push(verificationChallengeSubmit.pending!);
-      }
+            this.startedChallenge = null;
 
-      this.verificationSubmitInProgress = false;
+            if (!verificationChallengeSubmit.isSuccess) {
+              this.pendingChallenges.push(verificationChallengeSubmit.pending!);
+            }
+          }
+
+          this.verificationSubmitInProgress = false;
     });
   }
 

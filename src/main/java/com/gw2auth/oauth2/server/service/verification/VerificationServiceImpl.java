@@ -11,7 +11,6 @@ import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +30,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     private static final Logger LOG = LoggerFactory.getLogger(VerificationServiceImpl.class);
     private static final String STARTED_CHALLENGE_GW2_ACCOUNT_ID = "";
+    private static final Duration TIME_BETWEEN_UNFINISHED_STARTS = Duration.ofMinutes(30L);
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
@@ -85,8 +86,6 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public Optional<VerificationChallengeStart> getStartedChallenge(long accountId) {
-        final Locale userLocale = LocaleContextHolder.getLocale();
-
         return this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID)
                 .flatMap((entity) -> {
                     final VerificationChallenge<?> verificationChallenge = this.challengesById.get(entity.challengeId());
@@ -96,8 +95,8 @@ public class VerificationServiceImpl implements VerificationService {
                     }
 
                     return deserialize(entity.stateClass(), entity.state())
-                            .map((state) -> buildMessage(verificationChallenge, state, userLocale))
-                            .map((msg) -> new VerificationChallengeStart(entity.challengeId(), msg));
+                            .map((state) -> buildMessage(verificationChallenge, state))
+                            .map((msg) -> new VerificationChallengeStart(entity.challengeId(), msg, entity.timeoutAt()));
                 });
     }
 
@@ -111,10 +110,24 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Override
+    @Transactional
     public VerificationChallengeStart startChallenge(long accountId, long challengeId) {
         final VerificationChallenge<?> verificationChallenge = this.challengesById.get(challengeId);
         if (verificationChallenge == null) {
             throw new Gw2AccountVerificationServiceException("", HttpStatus.BAD_REQUEST);
+        }
+
+        final Optional<Gw2AccountVerificationChallengeEntity> optional = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID);
+        final Instant currentTime = this.clock.instant();
+
+        if (optional.isPresent()) {
+            final Gw2AccountVerificationChallengeEntity currentStartedChallenge = optional.get();
+
+            if (currentStartedChallenge.challengeId() == challengeId) {
+                throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_ALREADY_STARTED, HttpStatus.BAD_REQUEST);
+            } else if (currentTime.isBefore(currentStartedChallenge.timeoutAt())) {
+                throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_START_NOT_YET_POSSIBLE, HttpStatus.BAD_REQUEST);
+            }
         }
 
         final Object state = verificationChallenge.start();
@@ -126,12 +139,12 @@ public class VerificationServiceImpl implements VerificationService {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        final Locale userLocale = LocaleContextHolder.getLocale();
         final Gw2AccountVerificationChallengeEntity entity = this.gw2AccountVerificationChallengeRepository.save(
-                new Gw2AccountVerificationChallengeEntity(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID, challengeId, state.getClass().getName(), stateJson, null, null, null)
+                // the timeoutAt in the case of started challenge is not an actual timeout, but the time when a new challenge may be started
+                new Gw2AccountVerificationChallengeEntity(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID, challengeId, state.getClass().getName(), stateJson, null, currentTime, currentTime.plus(TIME_BETWEEN_UNFINISHED_STARTS))
         );
 
-        return new VerificationChallengeStart(entity.challengeId(), buildMessage(verificationChallenge, state, userLocale));
+        return new VerificationChallengeStart(entity.challengeId(), buildMessage(verificationChallenge, state), entity.timeoutAt());
     }
 
     @Override
@@ -156,6 +169,14 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         final String gw2AccountId = this.gw2ApiService.getAccount(gw2SubToken.value()).id();
+
+        if (this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isPresent()) {
+            // allow only one active challenge per gw2 account
+            throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_FOR_THIS_GW2_ACCOUNT_ALREADY_STARTED, HttpStatus.BAD_REQUEST);
+        } else if (this.gw2AccountVerificationRepository.findById(gw2AccountId).map(Gw2AccountVerificationEntity::accountId).orElse(-1L) == accountId) {
+            // if this gw2 account is already verified for this same gw2auth account, dont proceed
+            throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.GW2_ACCOUNT_ALREADY_VERIFIED, HttpStatus.BAD_REQUEST);
+        }
 
         entity = new Gw2AccountVerificationChallengeEntity(
                 entity.accountId(),
@@ -248,7 +269,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
     }
 
-    private static <S> Map<String, Object> buildMessage(VerificationChallenge<S> verificationChallenge, Object state, Locale locale) {
-        return verificationChallenge.buildMessage((S) state, locale);
+    private static <S> Map<String, Object> buildMessage(VerificationChallenge<S> verificationChallenge, Object state) {
+        return verificationChallenge.buildMessage((S) state);
     }
 }
