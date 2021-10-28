@@ -9,11 +9,14 @@ import static org.junit.jupiter.api.Assertions.*;
 public final class Assertions {
 
     public static void assertInstantEquals(Instant expected, String actualAsISOStr) {
-        assertInstantEquals(expected, actualAsISOStr, ChronoUnit.MILLIS);
+        assertInstantEquals(expected, Instant.parse(actualAsISOStr));
     }
 
-    public static void assertInstantEquals(Instant expected, String actualAsISOStr, TemporalUnit precision) {
-        final Instant actual = Instant.parse(actualAsISOStr).truncatedTo(precision);
-        assertEquals(expected.truncatedTo(precision), actual);
+    public static void assertInstantEquals(Instant expected, Instant actual) {
+        assertInstantEquals(expected, actual, ChronoUnit.MILLIS);
+    }
+
+    public static void assertInstantEquals(Instant expected, Instant actual, TemporalUnit precision) {
+        assertEquals(expected.truncatedTo(precision), actual.truncatedTo(precision));
     }
 }

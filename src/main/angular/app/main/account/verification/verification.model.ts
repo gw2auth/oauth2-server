@@ -17,7 +17,7 @@ export interface VerificationChallenge {
 export interface VerificationChallengeStart {
     challengeId: number;
     message: Map<string, any>;
-    allowNewChallengeTime: Date;
+    nextAllowedStartTime: Date;
 }
 
 export interface VerificationChallengePending {

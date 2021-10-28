@@ -108,11 +108,14 @@ class VerificationControllerTest {
 
         // 1 started challenge
         final String expectedApiTokenName = "ApiTokenName";
-        final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, "", 1L, expectedApiTokenName.getClass().getName(), mapper.writeValueAsString(expectedApiTokenName), null, Instant.now(), Instant.now()));
+        final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, "", 1L, expectedApiTokenName, null, Instant.now(), Instant.now()));
 
         // 2 pending challenges
-        final Gw2AccountVerificationChallengeEntity pendingChallengeA = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName.getClass().getName(), mapper.writeValueAsString(expectedApiTokenName + "A"), UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
-        final Gw2AccountVerificationChallengeEntity pendingChallengeB = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName.getClass().getName(), mapper.writeValueAsString(expectedApiTokenName + "B"), UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
+        final Gw2AccountVerificationChallengeEntity pendingChallengeA = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName + "A", UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
+        final Gw2AccountVerificationChallengeEntity pendingChallengeB = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName + "B", UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
+
+        // 1 verification failed challenge (this should not be part of the pending challenges)
+        this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), -1L, null, null, Instant.now(), Instant.now().plus(Duration.ofHours(2L))));
 
         final String responseJson = this.mockMvc.perform(get("/api/verification/bootstrap").session(session))
                 .andExpect(status().isOk())
@@ -135,7 +138,7 @@ class VerificationControllerTest {
         final JsonNode startedChallengeNode = responseNode.get("startedChallenge");
         assertEquals(startedChallenge.challengeId(), startedChallengeNode.get("challengeId").longValue());
         assertEquals(expectedApiTokenName, startedChallengeNode.get("message").get("apiTokenName").textValue());
-        assertInstantEquals(startedChallenge.timeoutAt(), startedChallengeNode.get("allowNewChallengeTime").textValue());
+        assertInstantEquals(startedChallenge.timeoutAt(), startedChallengeNode.get("nextAllowedStartTime").textValue());
 
         final JsonNode pendingChallengesNode = responseNode.get("pendingChallenges");
         assertTrue(pendingChallengesNode.isArray());
@@ -154,6 +157,8 @@ class VerificationControllerTest {
             assertEquals(challenge.challengeId(), pendingChallengeNode.get("challengeId").longValue());
             assertInstantEquals(challenge.startedAt(), pendingChallengeNode.get("startedAt").textValue());
         }
+
+        assertTrue(expectedPendingChallenges.isEmpty());
     }
 
     @Test
@@ -190,7 +195,7 @@ class VerificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
@@ -209,7 +214,7 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.challengeId").value("2"))
                 .andExpect(jsonPath("$.message.gw2ItemId").isNumber())
                 .andExpect(jsonPath("$.message.buyOrderCoins").isNumber())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
@@ -305,10 +310,13 @@ class VerificationControllerTest {
         prepareGw2RestServerForTokenInfoRequest(gw2ApiSubtoken, "Not the name that was requested", Set.of(Gw2ApiPermission.ACCOUNT));
 
         // simulate scheduled check
-        this.verificationService.tryVerify();
+        this.verificationService.tryVerifyAllPending();
 
-        // pending challenge should be removed
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isEmpty());
+        // pending challenge should be updated to verification failed entity
+        final Gw2AccountVerificationChallengeEntity verificationFailedEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null);
+        assertNotNull(verificationFailedEntity);
+        assertEquals(-1L, verificationFailedEntity.challengeId());
+        assertInstantEquals(testingClock.instant().plus(Duration.ofHours(2L)), verificationFailedEntity.timeoutAt());
     }
 
     @WithGw2AuthLogin
@@ -363,7 +371,7 @@ class VerificationControllerTest {
         prepareGw2RestServerForTokenInfoRequest(gw2ApiSubtoken, challengeStart.message().get("apiTokenName").toString(), Set.of(Gw2ApiPermission.ACCOUNT));
 
         // simulate scheduled check
-        this.verificationService.tryVerify();
+        this.verificationService.tryVerifyAllPending();
 
         // pending challenge should be removed
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isEmpty());
@@ -496,7 +504,7 @@ class VerificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null);
         assertNotNull(startedChallenge);
@@ -535,7 +543,7 @@ class VerificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null);
         assertNotNull(startedChallenge);
@@ -574,7 +582,7 @@ class VerificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null);
         assertNotNull(startedChallenge);
@@ -594,7 +602,7 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.challengeId").value("2"))
                 .andExpect(jsonPath("$.message.gw2ItemId").isNumber())
                 .andExpect(jsonPath("$.message.buyOrderCoins").isNumber())
-                .andExpect(jsonPath("$.allowNewChallengeTime").isString());
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         // started challenge should be modified
         final Gw2AccountVerificationChallengeEntity updatedStartedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null);

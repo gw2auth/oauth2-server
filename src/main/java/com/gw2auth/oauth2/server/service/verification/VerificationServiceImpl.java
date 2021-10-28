@@ -1,6 +1,5 @@
 package com.gw2auth.oauth2.server.service.verification;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeRepository;
@@ -31,22 +30,22 @@ public class VerificationServiceImpl implements VerificationService {
     private static final Logger LOG = LoggerFactory.getLogger(VerificationServiceImpl.class);
     private static final String STARTED_CHALLENGE_GW2_ACCOUNT_ID = "";
     private static final Duration TIME_BETWEEN_UNFINISHED_STARTS = Duration.ofMinutes(30L);
+    private static final long VERIFICATION_FAILED_CHALLENGE_ID = -1L;
+    private static final Duration VERIFICATION_FAILED_BLOCK_DURATION = Duration.ofHours(2L);
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
     private final ApiTokenRepository apiTokenRepository;
     private final Gw2ApiService gw2ApiService;
-    private final ObjectMapper objectMapper;
     private final Map<Long, VerificationChallenge<?>> challengesById;
     private volatile Clock clock;
 
     @Autowired
-    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges, Gw2AccountVerificationRepository gw2AccountVerificationRepository, Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository, ApiTokenRepository apiTokenRepository, Gw2ApiService gw2ApiService, ObjectMapper objectMapper) {
+    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges, Gw2AccountVerificationRepository gw2AccountVerificationRepository, Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository, ApiTokenRepository apiTokenRepository, Gw2ApiService gw2ApiService) {
         this.gw2AccountVerificationRepository = gw2AccountVerificationRepository;
         this.gw2AccountVerificationChallengeRepository = gw2AccountVerificationChallengeRepository;
         this.apiTokenRepository = apiTokenRepository;
         this.gw2ApiService = gw2ApiService;
-        this.objectMapper = objectMapper;
         this.clock = Clock.systemDefaultZone();
 
         final Map<Long, VerificationChallenge<?>> challengesById = new HashMap<>(verificationChallenges.size());
@@ -94,15 +93,21 @@ public class VerificationServiceImpl implements VerificationService {
                         return Optional.empty();
                     }
 
-                    return deserialize(entity.stateClass(), entity.state())
-                            .map((state) -> buildMessage(verificationChallenge, state))
-                            .map((msg) -> new VerificationChallengeStart(entity.challengeId(), msg, entity.timeoutAt()));
+                    final Map<String, Object> message;
+                    try {
+                        message = buildMessage(verificationChallenge, entity.state());
+                    } catch (IOException e) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.of(new VerificationChallengeStart(verificationChallenge.getId(), message, entity.timeoutAt()));
                 });
     }
 
     @Override
     public List<VerificationChallengePending> getPendingChallenges(long accountId) {
         return this.gw2AccountVerificationChallengeRepository.findAllByAccountId(accountId).stream()
+                .filter((e) -> e.challengeId() != VERIFICATION_FAILED_CHALLENGE_ID)
                 .filter((e) -> !e.gw2AccountId().equals(STARTED_CHALLENGE_GW2_ACCOUNT_ID))
                 .map((e) -> new VerificationChallengePending(e.challengeId(), e.gw2AccountId(), e.startedAt()))
                 .collect(Collectors.toList());
@@ -130,21 +135,25 @@ public class VerificationServiceImpl implements VerificationService {
             }
         }
 
-        final Object state = verificationChallenge.start();
+        return startChallenge(accountId, currentTime, verificationChallenge);
+    }
 
-        final String stateJson;
+    private <S> VerificationChallengeStart startChallenge(long accountId, Instant currentTime, VerificationChallenge<S> challenge) {
+        final S state = challenge.start();
+
+        final String rawState;
         try {
-            stateJson = this.objectMapper.writeValueAsString(state);
+            rawState = challenge.writeState(state);
         } catch (IOException e) {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         final Gw2AccountVerificationChallengeEntity entity = this.gw2AccountVerificationChallengeRepository.save(
                 // the timeoutAt in the case of started challenge is not an actual timeout, but the time when a new challenge may be started
-                new Gw2AccountVerificationChallengeEntity(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID, challengeId, state.getClass().getName(), stateJson, null, currentTime, currentTime.plus(TIME_BETWEEN_UNFINISHED_STARTS))
+                new Gw2AccountVerificationChallengeEntity(accountId, STARTED_CHALLENGE_GW2_ACCOUNT_ID, challenge.getId(), rawState, null, currentTime, currentTime.plus(TIME_BETWEEN_UNFINISHED_STARTS))
         );
 
-        return new VerificationChallengeStart(entity.challengeId(), buildMessage(verificationChallenge, state), entity.timeoutAt());
+        return new VerificationChallengeStart(entity.challengeId(), challenge.buildMessage(state), entity.timeoutAt());
     }
 
     @Override
@@ -169,10 +178,19 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         final String gw2AccountId = this.gw2ApiService.getAccount(gw2SubToken.value()).id();
+        final Gw2AccountVerificationChallengeEntity pendingChallengeEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null);
 
-        if (this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isPresent()) {
-            // allow only one active challenge per gw2 account
-            throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_FOR_THIS_GW2_ACCOUNT_ALREADY_STARTED, HttpStatus.BAD_REQUEST);
+        if (pendingChallengeEntity != null) {
+            if (pendingChallengeEntity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID) {
+                final Duration timeUntilAvailable = Duration.between(this.clock.instant(), pendingChallengeEntity.timeoutAt());
+                final long minutes = timeUntilAvailable.toMinutes();
+
+                // a verification for this gw2-account failed before
+                throw new Gw2AccountVerificationServiceException(String.format(Gw2AccountVerificationServiceException.CHALLENGE_FOR_THIS_ACCOUNT_BLOCKED, minutes), HttpStatus.BAD_REQUEST);
+            } else {
+                // allow only one active challenge per gw2 account
+                throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_FOR_THIS_GW2_ACCOUNT_ALREADY_STARTED, HttpStatus.BAD_REQUEST);
+            }
         } else if (this.gw2AccountVerificationRepository.findById(gw2AccountId).map(Gw2AccountVerificationEntity::accountId).orElse(-1L) == accountId) {
             // if this gw2 account is already verified for this same gw2auth account, dont proceed
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.GW2_ACCOUNT_ALREADY_VERIFIED, HttpStatus.BAD_REQUEST);
@@ -182,7 +200,6 @@ public class VerificationServiceImpl implements VerificationService {
                 entity.accountId(),
                 gw2AccountId,
                 entity.challengeId(),
-                entity.stateClass(),
                 entity.state(),
                 gw2SubToken.value(),
                 startTime,
@@ -213,14 +230,13 @@ public class VerificationServiceImpl implements VerificationService {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        final Optional<Object> optionalState = deserialize(entity.stateClass(), entity.state());
-        if (optionalState.isEmpty()) {
+        final boolean isVerified;
+        try {
+            isVerified = verify(challenge, entity.state(), entity.gw2ApiToken());
+        } catch (IOException e) {
             this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-
-        final Object state = optionalState.get();
-        final boolean isVerified = verify(challenge, state, entity.gw2ApiToken());
 
         if (isVerified) {
             this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
@@ -235,8 +251,12 @@ public class VerificationServiceImpl implements VerificationService {
         return isVerified;
     }
 
+    private <S> boolean verify(VerificationChallenge<S> challenge, String rawState, String gw2ApiToken) throws IOException {
+        return challenge.verify(challenge.readState(rawState), gw2ApiToken);
+    }
+
     @Scheduled(fixedRate = 1000L * 60L)
-    public void tryVerify() {
+    public void tryVerifyAllPending() {
         final Instant now = this.clock.instant();
         final List<Gw2AccountVerificationChallengeEntity> entities = this.gw2AccountVerificationChallengeRepository.findAllPending();
 
@@ -244,11 +264,28 @@ public class VerificationServiceImpl implements VerificationService {
             LOG.info("processing {} pending challenges", entities.size());
 
             for (Gw2AccountVerificationChallengeEntity entity : entities) {
+                final boolean isExpired = now.isAfter(entity.timeoutAt());
+                final boolean isVerificationFailedChallenge = entity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID;
+
                 try {
-                    if (entity.timeoutAt().isBefore(now)) {
-                        this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                    if (isExpired) {
+                        if (isVerificationFailedChallenge) {
+                            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                        } else {
+                            this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(
+                                    entity.accountId(),
+                                    entity.gw2AccountId(),
+                                    VERIFICATION_FAILED_CHALLENGE_ID,
+                                    null,
+                                    null,
+                                    now,
+                                    now.plus(VERIFICATION_FAILED_BLOCK_DURATION)
+                            ));
+                        }
                     } else {
-                        verify(entity);
+                        if (!isVerificationFailedChallenge) {
+                            verify(entity);
+                        }
                     }
                 } catch (Exception e) {
                     LOG.warn("unexpected exception during verification of challenge", e);
@@ -257,19 +294,7 @@ public class VerificationServiceImpl implements VerificationService {
         }
     }
 
-    private static <S> boolean verify(VerificationChallenge<S> verificationChallenge, Object state, String gw2ApiToken) {
-        return verificationChallenge.verify((S) state, gw2ApiToken);
-    }
-
-    private Optional<Object> deserialize(String stateClassName, String stateJson) {
-        try {
-            return Optional.of(this.objectMapper.readValue(stateJson, Class.forName(stateClassName)));
-        } catch (ClassNotFoundException | IOException e) {
-            return Optional.empty();
-        }
-    }
-
-    private static <S> Map<String, Object> buildMessage(VerificationChallenge<S> verificationChallenge, Object state) {
-        return verificationChallenge.buildMessage((S) state);
+    private <S> Map<String, Object> buildMessage(VerificationChallenge<S> challenge, String rawState) throws IOException {
+        return challenge.buildMessage(challenge.readState(rawState));
     }
 }

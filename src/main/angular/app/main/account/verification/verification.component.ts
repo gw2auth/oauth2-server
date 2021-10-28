@@ -69,7 +69,7 @@ export class VerificationComponent implements OnInit {
     if (this.startedChallenge != null) {
       if (this.startedChallenge.challengeId == challenge.id) {
         return 1;
-      } else if (this.startedChallenge.allowNewChallengeTime.getTime() > Date.now()) {
+      } else if (this.startedChallenge.nextAllowedStartTime.getTime() > Date.now()) {
         return 2;
       }
     }

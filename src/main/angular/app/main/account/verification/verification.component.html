@@ -119,7 +119,7 @@
                                 <app-button-loadable [class]="'btn-primary'" [loading]="startChallengeInProgress" [disabled]="canStartChallengeState(challenge) != 0" (click)="onStartChallengeClick(challenge)">
                                     <ng-container [ngSwitch]="canStartChallengeState(challenge)">
                                         <ng-container *ngSwitchCase="1">This challenge has already been started</ng-container>
-                                        <ng-container *ngSwitchCase="2">You can start a new challenge at {{startedChallenge!.allowNewChallengeTime.toLocaleString()}}</ng-container>
+                                        <ng-container *ngSwitchCase="2">You can start a new challenge at {{startedChallenge!.nextAllowedStartTime.toLocaleString()}}</ng-container>
                                         <ng-container *ngSwitchDefault>Start this challenge</ng-container>
                                     </ng-container>
                                 </app-button-loadable>

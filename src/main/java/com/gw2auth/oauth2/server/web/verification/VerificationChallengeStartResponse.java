@@ -8,9 +8,9 @@ import java.util.Map;
 
 public record VerificationChallengeStartResponse(@JsonProperty("challengeId") long challengeId,
                                                  @JsonProperty("message") Map<String, Object> message,
-                                                 @JsonProperty("allowNewChallengeTime") Instant allowNewChallengeTime) {
+                                                 @JsonProperty("nextAllowedStartTime") Instant nextAllowedStartTime) {
 
     public static VerificationChallengeStartResponse create(VerificationChallengeStart value) {
-        return new VerificationChallengeStartResponse(value.challengeId(), value.message(), value.allowNewChallengeTime());
+        return new VerificationChallengeStartResponse(value.challengeId(), value.message(), value.nextAllowedStartTime());
     }
 }

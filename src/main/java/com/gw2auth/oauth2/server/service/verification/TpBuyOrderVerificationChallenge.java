@@ -1,10 +1,12 @@
 package com.gw2auth.oauth2.server.service.verification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -25,9 +27,11 @@ public class TpBuyOrderVerificationChallenge implements VerificationChallenge<Tp
     );
 
     private final Gw2ApiService gw2ApiService;
+    private final ObjectMapper mapper;
 
-    public TpBuyOrderVerificationChallenge(Gw2ApiService gw2ApiService) {
+    public TpBuyOrderVerificationChallenge(Gw2ApiService gw2ApiService, ObjectMapper mapper) {
         this.gw2ApiService = gw2ApiService;
+        this.mapper = mapper;
     }
 
     @Override
@@ -43,6 +47,16 @@ public class TpBuyOrderVerificationChallenge implements VerificationChallenge<Tp
     @Override
     public Duration getTimeout() {
         return TIMEOUT;
+    }
+
+    @Override
+    public State readState(String rawState) throws IOException {
+        return this.mapper.readValue(rawState, State.class);
+    }
+
+    @Override
+    public String writeState(State state) throws IOException {
+        return this.mapper.writeValueAsString(state);
     }
 
     @Override

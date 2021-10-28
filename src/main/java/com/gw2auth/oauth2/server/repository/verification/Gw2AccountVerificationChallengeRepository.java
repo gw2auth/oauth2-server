@@ -15,17 +15,16 @@ public interface Gw2AccountVerificationChallengeRepository extends BaseRepositor
 
     @Override
     default Gw2AccountVerificationChallengeEntity save(Gw2AccountVerificationChallengeEntity entity) {
-        return save(entity.accountId(), entity.gw2AccountId(), entity.challengeId(), entity.stateClass(), entity.state(), entity.gw2ApiToken(), entity.startedAt(), entity.timeoutAt());
+        return save(entity.accountId(), entity.gw2AccountId(), entity.challengeId(), entity.state(), entity.gw2ApiToken(), entity.startedAt(), entity.timeoutAt());
     }
 
     @Query("""
     INSERT INTO gw2_account_verification_challenges
-    (account_id, gw2_account_id, challenge_id, state_class, state, gw2_api_token, started_at, timeout_at)
+    (account_id, gw2_account_id, challenge_id, state, gw2_api_token, started_at, timeout_at)
     VALUES
-    (:account_id, :gw2_account_id, :challenge_id, :state_class, :state, :gw2_api_token, :started_at, :timeout_at)
+    (:account_id, :gw2_account_id, :challenge_id, :state, :gw2_api_token, :started_at, :timeout_at)
     ON CONFLICT (account_id, gw2_account_id) DO UPDATE SET
     challenge_id = EXCLUDED.challenge_id,
-    state_class = EXCLUDED.state_class,
     state = EXCLUDED.state,
     gw2_api_token = EXCLUDED.gw2_api_token,
     started_at = EXCLUDED.started_at,
@@ -35,7 +34,6 @@ public interface Gw2AccountVerificationChallengeRepository extends BaseRepositor
     Gw2AccountVerificationChallengeEntity save(@Param("account_id") long accountId,
                                                @Param("gw2_account_id") String gw2AccountId,
                                                @Param("challenge_id") long challengeId,
-                                               @Param("state_class") String stateClass,
                                                @Param("state") String state,
                                                @Param("gw2_api_token") String gw2ApiToken,
                                                @Param("started_at") Instant startedAt,

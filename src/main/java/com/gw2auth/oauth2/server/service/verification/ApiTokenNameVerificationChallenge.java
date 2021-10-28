@@ -1,13 +1,17 @@
 package com.gw2auth.oauth2.server.service.verification;
 
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.util.Utils;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2TokenInfo;
+import com.gw2auth.oauth2.server.util.Utils;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Component
@@ -37,6 +41,16 @@ public class ApiTokenNameVerificationChallenge implements VerificationChallenge<
     @Override
     public Duration getTimeout() {
         return TIMEOUT;
+    }
+
+    @Override
+    public String readState(String rawState) {
+        return rawState;
+    }
+
+    @Override
+    public String writeState(String state) throws IOException {
+        return state;
     }
 
     @Override
