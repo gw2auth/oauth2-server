@@ -69,7 +69,10 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
         for (ClientAuthorizationEntity clientAuthorizationEntity : clientAuthorizationEntities) {
             final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = clientAuthorizationTokensByRegistrationId.getOrDefault(clientAuthorizationEntity.clientRegistrationId(), List.of());
-            clientAuthorizations.add(ClientAuthorization.fromEntity(clientAuthorizationEntity, clientAuthorizationTokenEntities));
+
+            if (!clientAuthorizationTokenEntities.isEmpty()) {
+                clientAuthorizations.add(ClientAuthorization.fromEntity(clientAuthorizationEntity, clientAuthorizationTokenEntities));
+            }
         }
 
         return clientAuthorizations;
@@ -79,7 +82,14 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     public Optional<ClientAuthorization> getClientAuthorization(long accountId, long clientRegistrationId) {
         return this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                 .filter(ClientAuthorizationServiceImpl::isAuthorized)
-                .map((clientAuthorizationEntity) -> ClientAuthorization.fromEntity(clientAuthorizationEntity, this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)));
+                .flatMap((entity) -> {
+                    final List<ClientAuthorizationTokenEntity> tokens = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId());
+                    if (tokens.isEmpty()) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.of(ClientAuthorization.fromEntity(entity, tokens));
+                });
     }
 
     @Override
@@ -190,9 +200,10 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
         return this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, registeredClientId)
                 .filter(ClientAuthorizationServiceImpl::isAuthorized)
-                .map((clientAuthorizationEntity) -> {
-                    final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(Long.toString(clientAuthorizationEntity.clientRegistrationId()), Long.toString(clientAuthorizationEntity.accountId()));
-                    clientAuthorizationEntity.authorizedScopes().forEach(builder::scope);
+                .filter((entity) -> !this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId()).isEmpty())
+                .map((entity) -> {
+                    final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(Long.toString(entity.clientRegistrationId()), Long.toString(entity.accountId()));
+                    entity.authorizedScopes().forEach(builder::scope);
 
                     return builder.build();
                 })

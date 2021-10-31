@@ -147,7 +147,7 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestWithExistingConsent(MockHttpSession session) throws Exception {
+    public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
@@ -157,6 +157,34 @@ public class OAuth2ServerTest {
                 UUID.randomUUID(),
                 Set.of(Gw2ApiPermission.ACCOUNT.oauth2())
         ));
+
+        performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", asUri(new AllOf<>(
+                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
+                        new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, new AllOf<>(
+                                hasQueryParam(OAuth2ParameterNames.SCOPE),
+                                hasQueryParam(OAuth2ParameterNames.CLIENT_ID),
+                                hasQueryParam(OAuth2ParameterNames.STATE)
+                        ))
+                ))));
+    }
+
+    @WithGw2AuthLogin
+    public void authorizationCodeRequestWithExistingConsent(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
+
+        final String gw2AccountId = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), "Token", Set.of(Gw2ApiPermission.ACCOUNT.gw2()), "Name")).gw2AccountId();
+
+        this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
+                accountId,
+                clientRegistration.id(),
+                UUID.randomUUID(),
+                Set.of(Gw2ApiPermission.ACCOUNT.oauth2())
+        ));
+
+        this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientRegistration.id(), gw2AccountId, "Subtoken", Instant.now()));
 
         performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()))
                 .andExpect(status().is3xxRedirection())
