@@ -8,11 +8,11 @@ import {
 } from './client-authorization.model';
 import {faTrashAlt, faAngleDoubleDown, faAngleDoubleUp} from '@fortawesome/free-solid-svg-icons';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
-import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {ToastService} from '../../../toast/toast.service';
 import {ClientRegistrationPublic} from '../client/client-registration.model';
 import {ActivatedRoute} from '@angular/router';
+import {DeleteApplicationModalComponent} from './delete-application-modal.component';
 
 
 class InternalClientAuthorization {
@@ -74,8 +74,7 @@ export class ApplicationComponent implements OnInit {
   }
 
   openDeleteClientAuthorizationModal(clientAuthorization: InternalClientAuthorization): void {
-    const modalRef = this.modalService.open(DeleteModalComponent);
-    modalRef.componentInstance.entityType = 'Application';
+    const modalRef = this.modalService.open(DeleteApplicationModalComponent);
     modalRef.componentInstance.entityName = clientAuthorization.clientRegistration.displayName;
 
     const clientId = clientAuthorization.clientRegistration.clientId;

@@ -8,10 +8,10 @@ import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {Token} from '../../../common/token.model';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {EditTokenComponent} from './edit-token.component';
-import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ActivatedRoute} from '@angular/router';
 import {WINDOW} from '../../../app.module';
 import {MessageEventData, Type} from '../../../common/window.model';
+import {DeleteTokenModalComponent} from './delete-token-modal.component';
 
 
 @Component({
@@ -95,9 +95,9 @@ export class TokenComponent implements OnInit {
   }
 
   openDeleteTokenModal(token: Token): void {
-    const modalRef = this.modalService.open(DeleteModalComponent);
-    modalRef.componentInstance.entityType = 'API-Token';
+    const modalRef = this.modalService.open(DeleteTokenModalComponent);
     modalRef.componentInstance.entityName = token.displayName;
+    modalRef.componentInstance.token = token;
 
     const gw2AccountId = token.gw2AccountId;
 

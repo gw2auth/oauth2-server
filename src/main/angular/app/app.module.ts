@@ -47,7 +47,10 @@ import {NgcCookieConsentConfig, NgcCookieConsentModule} from 'ngx-cookieconsent'
 import { OverviewComponent } from './main/account/overview/overview.component';
 import {AccountSummaryService} from './main/account/overview/account-summary.service';
 import {SummaryElementComponent} from './general/summary-element.component';
-import {ApplicationSummaryService} from "./main/home/application-summary.service";
+import {ApplicationSummaryService} from './main/home/application-summary.service';
+import {DeleteAbstractModalComponent} from './general/delete-abstract-modal.component';
+import {DeleteTokenModalComponent} from './main/account/token/delete-token-modal.component';
+import {DeleteApplicationModalComponent} from './main/account/application/delete-application-modal.component';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -102,6 +105,7 @@ const cookieConfig: NgcCookieConsentConfig = {
     ToastComponent,
     OAuth2ConsentComponent,
     EditTokenComponent,
+    DeleteAbstractModalComponent,
     DeleteModalComponent,
     Gw2ApiPermissionBadgeComponent,
     ClientComponent,
@@ -117,7 +121,9 @@ const cookieConfig: NgcCookieConsentConfig = {
     ClientDebugComponent,
     ClientDebugResponseComponent,
     OverviewComponent,
-    SummaryElementComponent
+    SummaryElementComponent,
+    DeleteTokenModalComponent,
+    DeleteApplicationModalComponent
   ],
   imports: [
     BrowserModule,
