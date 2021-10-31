@@ -1,4 +1,4 @@
-import {Component, Inject, OnInit} from '@angular/core';
+import {Component, Inject, OnDestroy, OnInit} from '@angular/core';
 import {TokenService} from '../../../common/token.service';
 import { faAngleDoubleDown, faAngleDoubleUp, faEdit, faTrashAlt, faCheck, faBan, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import {catchError} from 'rxjs/operators';
@@ -18,7 +18,7 @@ import {DeleteTokenModalComponent} from './delete-token-modal.component';
   selector: 'app-main-account-token',
   templateUrl: './token.component.html'
 })
-export class TokenComponent implements OnInit {
+export class TokenComponent implements OnInit, OnDestroy {
 
   faAngleDoubleDown = faAngleDoubleDown;
   faAngleDoubleUp = faAngleDoubleUp;
@@ -30,6 +30,7 @@ export class TokenComponent implements OnInit {
   faTimes = faTimes;
 
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
+  tokensState: -1 | 0 | 1 = -1;
   tokens: Token[] = [];
 
   fragment: string | null = null;
@@ -44,11 +45,23 @@ export class TokenComponent implements OnInit {
               @Inject(WINDOW) private readonly window: Window) {}
 
   ngOnInit(): void {
-    this.tokenService.getTokens().subscribe((tokens) => this.tokens = tokens);
+    this.tokenService.getTokens().subscribe((tokens) => {
+        this.tokens = tokens;
+
+        if (this.tokens.length > 0) {
+            this.tokensState = 1;
+        } else {
+            this.tokensState = 0;
+        }
+    });
     this.route.fragment.subscribe((fragment) => this.fragment = fragment);
   }
 
-  openEditTokenModal(token: Token): void {
+  ngOnDestroy() {
+    this.tokensState = -1;
+  }
+
+    openEditTokenModal(token: Token): void {
     const modalRef = this.modalService.open(EditTokenComponent);
     modalRef.componentInstance.setToken(token);
 

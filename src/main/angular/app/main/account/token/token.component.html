@@ -1,8 +1,9 @@
 <div class="container">
     <div class="row gy-5">
         <div class="col-12">
-            <ng-container [ngSwitch]="tokens.length">
+            <ng-container [ngSwitch]="tokensState">
                 <h3 *ngSwitchCase="0" class="mb-3">You haven't added any API-Tokens yet</h3>
+                <h3 *ngSwitchCase="-1" class="mb-3">Loading ...</h3>
                 <ng-container *ngSwitchDefault>
                     <h3 class="mb-3">Your API-Tokens</h3>
                     <div class="table-responsive">
