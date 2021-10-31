@@ -30,7 +30,7 @@ public class SecurityConfiguration {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().antMatchers("/**/*.css", "/**/*.js");
+        return (web) -> web.ignoring().antMatchers("/**/*.css", "/**/*.js", "/favicon.ico", "/robots.txt");
     }
 
     @Bean
@@ -39,7 +39,7 @@ public class SecurityConfiguration {
                                                                Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer,
                                                                Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer) throws Exception {
         http
-                .authorizeRequests((auth) -> auth.antMatchers("/", "/login", "/privacy-policy", "/legal", "/assets/**").permitAll().anyRequest().authenticated())
+                .authorizeRequests((auth) -> auth.antMatchers("/", "/login", "/privacy-policy", "/legal", "/faq", "/assets/**").permitAll().anyRequest().authenticated())
                 .csrf(csrfCustomizer)
                 .headers((headers) -> {
                     headers

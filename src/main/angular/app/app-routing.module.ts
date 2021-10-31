@@ -18,6 +18,7 @@ import {LegalComponent} from './main/legal/legal.component';
 import {ClientDebugComponent} from './main/account/client/client-debug.component';
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 import {OverviewComponent} from './main/account/overview/overview.component';
+import {FaqComponent} from './main/faq/faq.component';
 
 const routes: Routes = [
   {
@@ -27,6 +28,7 @@ const routes: Routes = [
       { path: '', component: HomeComponent},
       { path: 'privacy-policy', component: PrivacyPolicyComponent, data: { title: 'Privacy Policy' } },
       { path: 'legal', component: LegalComponent, data: { title: 'Legal' } },
+      { path: 'faq', component: FaqComponent, data: { title: 'FAQ' } },
       {
         path: 'account',
         component: AccountComponent,

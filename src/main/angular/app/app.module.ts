@@ -51,6 +51,7 @@ import {ApplicationSummaryService} from './main/home/application-summary.service
 import {DeleteAbstractModalComponent} from './general/delete-abstract-modal.component';
 import {DeleteTokenModalComponent} from './main/account/token/delete-token-modal.component';
 import {DeleteApplicationModalComponent} from './main/account/application/delete-application-modal.component';
+import { FaqComponent } from './main/faq/faq.component';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -123,7 +124,8 @@ const cookieConfig: NgcCookieConsentConfig = {
     OverviewComponent,
     SummaryElementComponent,
     DeleteTokenModalComponent,
-    DeleteApplicationModalComponent
+    DeleteApplicationModalComponent,
+    FaqComponent
   ],
   imports: [
     BrowserModule,
