@@ -465,6 +465,97 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
+    public void consentSubmitWithUnexpectedGW2APIException(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl()))).andReturn();
+
+        // verify the authorization has been saved
+        final ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
+        assertNotNull(clientAuthorizationEntity);
+        assertEquals(clientAuthorizationEntity.authorizedScopes(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+
+        List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(2, clientAuthorizationTokenEntities.size());
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // prepare the gw2 api for the next requests
+        final String dummySubtokenA = createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        this.gw2RestServer.reset();
+        this.gw2RestServer.expect(times(2), requestTo(new StringStartsWith("/v2/createsubtoken")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(MockRestRequestMatchers.header("Authorization", new StringStartsWith("Bearer ")))
+                .andExpect(queryParam("permissions", split(",", containingAll(Gw2ApiPermission.ACCOUNT.gw2()))))
+                .andExpect(queryParam("expire", asInstant(instantWithinTolerance(Instant.now().plus(Duration.ofMinutes(30L)), Duration.ofSeconds(5L)))))
+                .andRespond((request) -> {
+                    final String gw2ApiToken = request.getHeaders().getFirst("Authorization").replaceFirst("Bearer ", "");
+                    final String subtoken = switch (gw2ApiToken) {
+                        case "TokenA" -> dummySubtokenA;
+                        case "TokenB" -> throw new RuntimeException("unexpected exception");
+                        default -> null;
+                    };
+
+                    if (subtoken == null || subtoken.isEmpty()) {
+                        return new MockClientHttpResponse(new byte[0], HttpStatus.UNAUTHORIZED);
+                    }
+
+                    final MockClientHttpResponse response = new MockClientHttpResponse(new JSONObject(Map.of("subtoken", subtoken)).toString().getBytes(StandardCharsets.UTF_8), HttpStatus.OK);
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                    return response;
+                });
+
+        // retrieve the initial access and refresh token
+        final String codeParam = Utils.parseQuery(URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())).getRawQuery())
+                .filter(QueryParam::hasValue)
+                .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.CODE))
+                .map(QueryParam::value)
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(codeParam);
+
+        // retrieve an access token
+        // dont use the user session here!
+        result = this.mockMvc.perform(
+                post("/oauth2/token")
+                        .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
+                        .queryParam(OAuth2ParameterNames.CODE, codeParam)
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
+                        .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
+                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, clientRegistrationCreation.clientRegistration().redirectUri())
+        )
+                .andExpectAll(expectValidTokenResponse())
+                .andReturn();
+
+        // verify the authorized tokens have been updated
+        clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(2, clientAuthorizationTokenEntities.size());
+
+        final Set<String> savedSubtokens = clientAuthorizationTokenEntities.stream()
+                .map(ClientAuthorizationTokenEntity::gw2ApiSubtoken)
+                .collect(Collectors.toSet());
+
+        assertTrue(savedSubtokens.contains(dummySubtokenA));
+        assertTrue(savedSubtokens.contains(""));
+
+        // verify the access token
+        assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "error", "Failed to obtain new subtoken"))
+        ));
+    }
+
+    @WithGw2AuthLogin
     public void consentSubmitWithLaterRemovedRootApiTokens(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();

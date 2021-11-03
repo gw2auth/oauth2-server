@@ -3,6 +3,8 @@ package com.gw2auth.oauth2.server.service.gw2;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class Gw2ApiServiceImpl implements Gw2ApiService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
 
     private final RestTemplate restTemplate;
 
@@ -90,6 +94,9 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
             response = exchanger.exchange(this.restTemplate, url, HttpMethod.GET, new HttpEntity<>(buildRequestHeaders(token)));
         } catch (HttpClientErrorException e) {
             response = ResponseEntity.status(e.getStatusCode()).build();
+        } catch (Exception e) {
+            LOG.warn("unexpected exception during GW2-API-Request for url={}", url, e);
+            throw new Gw2ApiServiceException(Gw2ApiServiceException.UNEXPECTED_EXCEPTION, HttpStatus.BAD_GATEWAY);
         }
 
         if (response.getStatusCode().equals(HttpStatus.UNAUTHORIZED)) {
