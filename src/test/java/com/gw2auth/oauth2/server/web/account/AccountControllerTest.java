@@ -10,8 +10,8 @@ import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
+import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
+import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
@@ -65,7 +65,7 @@ class AccountControllerTest {
     private ClientRegistrationRepository clientRegistrationRepository;
 
     @Autowired
-    private ClientAuthorizationRepository clientAuthorizationRepository;
+    private ClientConsentRepository clientConsentRepository;
 
     @Autowired
     private AccountFederationRepository accountFederationRepository;
@@ -101,11 +101,11 @@ class AccountControllerTest {
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
+            this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
         }
 
         // add one client authorization without scopes (that should not be counted)
-        this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
+        this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
 
         for (int i = 0; i < accountFederations; i++) {
             this.accountFederationRepository.save(new AccountFederationEntity(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId));

@@ -1,41 +1,11 @@
 package com.gw2auth.oauth2.server.util;
 
-import java.sql.Array;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Spliterator;
 import java.util.function.Consumer;
-import java.util.stream.Collector;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class Utils {
-
-    public static <T, A, R> R collectSQLArray(Array array, ResultSetGetter<? extends T> extractor, Collector<T, A, R> collector) throws SQLException {
-        final A accumulator = collector.supplier().get();
-
-        try (ResultSet rs = array.getResultSet()) {
-            while (rs.next()) {
-                collector.accumulator().accept(accumulator, extractor.get(rs, 2));
-            }
-        }
-
-        return collector.finisher().apply(accumulator);
-    }
-
-    public static String upsertStatement(String[] columns, int offset) {
-        final StringBuilder sb = new StringBuilder();
-
-        for (int i = offset; i < columns.length; i++) {
-            if (i > offset) {
-                sb.append(',');
-            }
-
-            sb.append(columns[i]).append(" = EXCLUDED.").append(columns[i]);
-        }
-
-        return sb.toString();
-    }
 
     public static Stream<String> split(String s, String delimiter) {
         return StreamSupport.stream(new StringSplitSpliterator(s, delimiter), false);
@@ -60,12 +30,6 @@ public class Utils {
         }
 
         return sb.append(s).toString();
-    }
-
-    @FunctionalInterface
-    public interface ResultSetGetter<T> {
-
-        T get(ResultSet rs, int index) throws SQLException;
     }
 
     private static class StringSplitSpliterator implements Spliterator<String> {

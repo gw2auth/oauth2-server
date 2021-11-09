@@ -28,7 +28,7 @@ import {InputCopyableComponent} from './general/input-copyable.component';
 import { ClientCreateComponent } from './main/account/client/client-create.component';
 import {DeleteModalComponent} from "./general/delete-modal.component";
 import { ApplicationComponent } from './main/account/application/application.component';
-import {ClientAuthorizationService} from './main/account/application/client-authorization.service';
+import {ClientConsentService} from './main/account/application/client-consent.service';
 import {HTTP_INTERCEPTOR_PROVIDERS} from './http-inceptors';
 import {Gw2ApiService} from './common/gw2-api.service';
 import { VerificationComponent } from './main/account/verification/verification.component';
@@ -52,6 +52,9 @@ import {DeleteAbstractModalComponent} from './general/delete-abstract-modal.comp
 import {DeleteTokenModalComponent} from './main/account/token/delete-token-modal.component';
 import {DeleteApplicationModalComponent} from './main/account/application/delete-application-modal.component';
 import { FaqComponent } from './main/faq/faq.component';
+import {ClientAuthorizationService} from './main/account/application/client-authorization.service';
+import {DeleteAuthorizationModalComponent} from './main/account/application/delete-authorization-modal.component';
+import {AuthorizationModalComponent} from './main/account/application/authorization-modal.component';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -125,7 +128,9 @@ const cookieConfig: NgcCookieConsentConfig = {
     SummaryElementComponent,
     DeleteTokenModalComponent,
     DeleteApplicationModalComponent,
-    FaqComponent
+    FaqComponent,
+    DeleteAuthorizationModalComponent,
+    AuthorizationModalComponent
   ],
   imports: [
     BrowserModule,
@@ -142,6 +147,7 @@ const cookieConfig: NgcCookieConsentConfig = {
     ToastService,
     OAuth2ConsentService,
     ClientRegistrationService,
+    ClientConsentService,
     ClientAuthorizationService,
     Gw2ApiService,
     VerificationService,

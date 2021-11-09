@@ -19,7 +19,7 @@ export class ClientDebugComponent implements OnInit {
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
   selectedGw2ApiPermissions = new Set<Gw2ApiPermission>();
   requestVerifiedInformation = true;
-  forceConsent = true;
+  authorizationName = '';
 
   constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly activatedRoute: ActivatedRoute) { }
 
@@ -60,8 +60,8 @@ export class ClientDebugComponent implements OnInit {
     query.set('redirect_uri', clientRegistration.redirectUri);
     query.set('state', clientRegistration.clientId);
 
-    if (this.forceConsent) {
-      query.set('consent', 'force');
+    if (this.authorizationName.length > 0) {
+      query.set('name', this.authorizationName);
     }
 
     return '/oauth2/authorize?' + query.toString();

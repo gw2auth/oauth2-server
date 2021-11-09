@@ -6,8 +6,8 @@ import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
+import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
+import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
@@ -51,7 +51,7 @@ class ApplicationControllerTest {
     private ClientRegistrationRepository clientRegistrationRepository;
 
     @Autowired
-    private ClientAuthorizationRepository clientAuthorizationRepository;
+    private ClientConsentRepository clientConsentRepository;
 
     @Autowired
     private AccountRepository accountRepository;
@@ -85,11 +85,11 @@ class ApplicationControllerTest {
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
+            this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
         }
 
         // add one client authorization without scopes (that should not be counted)
-        this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
+        this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
 
         this.mockMvc.perform(get("/api/application/summary"))
                 .andExpect(status().isOk())

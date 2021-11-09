@@ -6,7 +6,6 @@ import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -14,32 +13,55 @@ import java.util.List;
 public interface ClientAuthorizationTokenRepository extends BaseRepository<ClientAuthorizationTokenEntity> {
 
     @Override
-    default ClientAuthorizationTokenEntity save(ClientAuthorizationTokenEntity clientAuthorizationTokenEntity) {
-        return save(clientAuthorizationTokenEntity.accountId(), clientAuthorizationTokenEntity.clientRegistrationId(), clientAuthorizationTokenEntity.gw2AccountId(), clientAuthorizationTokenEntity.gw2ApiSubtoken(), clientAuthorizationTokenEntity.expirationTime());
+    default ClientAuthorizationTokenEntity save(ClientAuthorizationTokenEntity entity) {
+        return save(entity.accountId(), entity.clientAuthorizationId(), entity.gw2AccountId());
     }
 
     @Query("""
     INSERT INTO client_authorization_tokens
-    (account_id, client_registration_id, gw2_account_id, gw2_api_subtoken, expiration_time)
+    (account_id, client_authorization_id, gw2_account_id)
     VALUES
-    (:account_id, :client_registration_id, :gw2_account_id, :gw2_api_subtoken, :expiration_time)
-    ON CONFLICT (account_id, client_registration_id, gw2_account_id) DO UPDATE SET
-    gw2_api_subtoken = EXCLUDED.gw2_api_subtoken,
-    expiration_time = EXCLUDED.expiration_time
+    (:account_id, :client_authorization_id, :gw2_account_id)
+    ON CONFLICT DO NOTHING
     RETURNING *
     """)
-    ClientAuthorizationTokenEntity save(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId, @Param("gw2_account_id") String gw2AccountId, @Param("gw2_api_subtoken") String gw2ApiSubtoken, @Param("expiration_time") Instant expirationTime);
+    ClientAuthorizationTokenEntity save(@Param("account_id") long accountId,
+                                        @Param("client_authorization_id") String clientAuthorizationId,
+                                        @Param("gw2_account_id") String gw2AccountId);
 
     @Query("SELECT * FROM client_authorization_tokens WHERE account_id = :account_id")
     List<ClientAuthorizationTokenEntity> findAllByAccountId(@Param("account_id") long accountId);
 
-    @Query("SELECT * FROM client_authorization_tokens WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
-    List<ClientAuthorizationTokenEntity> findAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
+    @Query("""
+    SELECT *
+    FROM client_authorization_tokens
+    WHERE account_id = :account_id AND client_authorization_id = :client_authorization_id
+    """)
+    List<ClientAuthorizationTokenEntity> findAllByAccountIdAndClientAuthorizationId(@Param("account_id") long accountId, @Param("client_authorization_id") String clientAuthorizationId);
 
-    @Query("SELECT * FROM client_authorization_tokens WHERE account_id = :account_id AND client_registration_id = ANY(ARRAY[ :client_registration_ids ]::BIGINT[])")
-    List<ClientAuthorizationTokenEntity> findAllByAccountIdAndClientRegistrationIds(@Param("account_id") long accountId, @Param("client_registration_ids") Collection<Long> clientRegistrationIds);
+    @Query("""
+    SELECT *
+    FROM client_authorization_tokens
+    WHERE account_id = :account_id AND client_authorization_id = ANY(ARRAY[ :client_authorization_ids ]::VARCHAR[])
+    """)
+    List<ClientAuthorizationTokenEntity> findAllByAccountIdAndClientAuthorizationIds(@Param("account_id") long accountId, @Param("client_authorization_ids") Collection<String> clientAuthorizationIds);
 
     @Modifying
-    @Query("DELETE FROM client_authorization_tokens WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
-    int deleteAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
+    @Query("DELETE FROM client_authorization_tokens WHERE account_id = :account_id AND client_authorization_id = :client_authorization_id")
+    void deleteAllByAccountIdAndClientAuthorizationId(@Param("account_id") long accountId, @Param("client_authorization_id") String clientAuthorizationId);
+
+    @Modifying
+    //@Query("DELETE FROM client_authorization_tokens WHERE account_id = :account_id AND client_authorization_id = :client_authorization_id")
+    @Query("""
+    DELETE FROM client_authorization_tokens auth_tk
+    WHERE auth_tk.account_id = :account_id
+    AND auth_tk.client_authorization_id = (
+        SELECT id
+        FROM client_authorizations auth
+        WHERE auth.account_id = auth_tk.account_id
+        AND auth.client_registration_id = :client_registration_id
+        LIMIT 1
+    )
+    """)
+    void deleteAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
 }

@@ -1,7 +1,7 @@
 <div class="container">
     <div class="row row-cols-1 gy-5">
         <div class="col">
-            <ng-container [ngSwitch]="clientAuthorizations.length">
+            <ng-container [ngSwitch]="clientConsents.length">
                 <h3 *ngSwitchCase="0">You haven't authorized any application yet</h3>
                 <ng-container *ngSwitchDefault>
                     <h3 class="mb-3">Your Applications</h3>
@@ -18,27 +18,27 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <ng-container *ngFor="let clientAuthorization of clientAuthorizations">
+                            <ng-container *ngFor="let clientConsent of clientConsents">
                                 <tr>
-                                    <td>{{clientAuthorization.clientRegistration.displayName}}</td>
+                                    <td>{{clientConsent.clientRegistration.displayName}}</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-accent-inner" (click)="detailsCollapse.toggle()">
                                                 <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
                                             </button>
-                                            <button type="button" class="btn btn-danger" (click)="openDeleteClientAuthorizationModal(clientAuthorization)">
+                                            <button type="button" class="btn btn-danger" (click)="openDeleteClientConsentModal(clientConsent)">
                                                 <fa-icon [icon]="faTrashAlt"></fa-icon>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
-                                <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="fragment != clientAuthorization.clientRegistration.clientId">
+                                <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="fragment != clientConsent.clientRegistration.clientId">
                                     <td colspan="2">
                                         <div class="container-fluid p-2">
                                             <div class="row row-cols-1 g-3">
                                                 <div class="col">
                                                     <label [htmlFor]="'accountSub'" class="form-label">User-ID</label>
-                                                    <app-input-copyable [inputId]="'accountSub'" [aria-describedby]="'accountSubDescription'" [inputValue]="clientAuthorization.accountSub"></app-input-copyable>
+                                                    <app-input-copyable [inputId]="'accountSub'" [aria-describedby]="'accountSubDescription'" [inputValue]="clientConsent.accountSub"></app-input-copyable>
                                                     <div [id]="'accountSubDescription'" class="form-text">Your unique User-ID at this application. If the application admin asks for your User-ID, send him this one</div>
                                                 </div>
                                                 <div class="col">
@@ -47,7 +47,7 @@
                                                         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-2">
                                                             <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
                                                                 <div class="col">
-                                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="clientAuthorization.authorizedGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="clientConsent.authorizedGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
                                                                 </div>
                                                             </ng-container>
                                                         </div>
@@ -55,33 +55,31 @@
                                                 </div>
                                                 <div class="col">
                                                     <label [htmlFor]="'authorizedVerifiedInformation'" class="form-label">Read account verification</label>
-                                                    <input type="text" class="form-control" [id]="'authorizedVerifiedInformation'" [value]="clientAuthorization.authorizedVerifiedInformation ? 'Yes' : 'No'" [attr.aria-describedby]="'authorizedVerifiedInformationDescription'" disabled />
+                                                    <input type="text" class="form-control" [id]="'authorizedVerifiedInformation'" [value]="clientConsent.authorizedVerifiedInformation ? 'Yes' : 'No'" [attr.aria-describedby]="'authorizedVerifiedInformationDescription'" disabled />
                                                     <div [id]="'authorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API-Tokens</div>
                                                 </div>
                                                 <div class="col">
-                                                    <label [htmlFor]="'tokens'" class="form-label">API-Tokens</label>
-                                                    <div class="list-group" [id]="'tokens'" [attr.aria-describedby]="'tokensDescription'">
-                                                        <a *ngFor="let token of clientAuthorization.tokens" [routerLink]="['', 'account', 'token']" [fragment]="token.gw2AccountId" class="list-group-item">
-                                                            <p class="mb-1">{{token.displayName}}</p>
-                                                            <ng-container [ngSwitch]="isCurrentlyActive(token.expirationTime)">
-                                                                <ng-container *ngSwitchCase="false">
-                                                                    <p class="mb-1"><small class="text-muted">Expired: The application has to acquire a new token at GW2Auth to be able to use it again. No action required by you</small></p>
-                                                                    <p class="mb-0"><small class="text-muted">Last active until {{token.expirationTime.toLocaleString()}}</small></p>
-                                                                </ng-container>
-                                                                <ng-container *ngSwitchDefault>
-                                                                    <small class="text-muted">Active until {{token.expirationTime.toLocaleString()}}</small>
-                                                                </ng-container>
-                                                            </ng-container>
-                                                        </a>
-                                                    </div>
-                                                    <div [id]="'tokensDescription'" class="form-text">The application receives subtokens which are created using the authorized API-Tokens. It will never receive your actual API-Token. Subtokens are short-lived API-Tokens with reduced permissions</div>
+                                                    <ng-container [ngSwitch]="clientConsent.clientAuthorizationsState">
+                                                        <ng-container *ngSwitchCase="1">
+                                                            <label [htmlFor]="'authorizations'" class="form-label">Authorizations</label>
+                                                            <div class="list-group" [id]="'authorizations'">
+                                                                <div *ngFor="let clientAuthorization of clientConsent.clientAuthorizations" role="button" class="list-group-item list-group-item-action" (click)="openClientAuthorizationModal(clientConsent, clientAuthorization)">
+                                                                    <div class="d-flex w-100 justify-content-between">
+                                                                        <p class="mb-0">{{clientAuthorization.displayName}}</p>
+                                                                        <small>{{clientAuthorization.creationTime.toLocaleString()}}</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </ng-container>
+                                                        <app-button-loadable *ngSwitchDefault [class]="['btn', 'btn-primary']" [loading]="clientConsent.clientAuthorizationsState == -1" (click)="onLoadClientAuthorizationsClick(clientConsent)">Load authorizations</app-button-loadable>
+                                                    </ng-container>
                                                 </div>
                                                 <div class="col">
                                                     <label [htmlFor]="'logs'" class="form-label">Logs</label>
                                                     <div class="list-group mb-1" [id]="'logs'">
-                                                        <div *ngFor="let log of clientAuthorization.logs" class="list-group-item">
+                                                        <div *ngFor="let log of clientConsent.logs" class="list-group-item">
                                                             <div class="d-flex w-100 justify-content-between">
-                                                                <p class="mb-0">{{clientAuthorizationLogTypeToString(log.type)}}</p>
+                                                                <p class="mb-0">{{clientConsentLogTypeToString(log.type)}}</p>
                                                                 <small>{{log.timestamp.toLocaleString()}}</small>
                                                             </div>
                                                             <ul class="list-group list-group-flush list-group-numbered">
@@ -89,7 +87,7 @@
                                                             </ul>
                                                         </div>
                                                     </div>
-                                                    <button type="button" class="btn btn-primary" [disabled]="clientAuthorization.nextLogPage == -1" (click)="onLoadNextLogPageClick(clientAuthorization)">Load more</button>
+                                                    <app-button-loadable [class]="['btn', 'btn-primary']" [disabled]="clientConsent.nextLogPage == -1" [loading]="clientConsent.nextLogPage == -2" (click)="onLoadNextLogPageClick(clientConsent)">Load more</app-button-loadable>
                                                 </div>
                                             </div>
                                         </div>

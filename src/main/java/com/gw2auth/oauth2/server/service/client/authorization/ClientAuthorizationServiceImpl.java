@@ -1,265 +1,361 @@
 package com.gw2auth.oauth2.server.service.client.authorization;
 
-import com.gw2auth.oauth2.server.repository.client.authorization.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.gw2auth.oauth2.server.adapt.Java9CollectionJackson2Module;
+import com.gw2auth.oauth2.server.adapt.LinkedHashSetJackson2Module;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
+import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
+import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserMixin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.jackson2.SecurityJackson2Modules;
+import org.springframework.security.oauth2.core.*;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2AuthorizationServerJackson2Module;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-public class ClientAuthorizationServiceImpl implements ClientAuthorizationService, OAuth2AuthorizationConsentService {
+@EnableScheduling
+public class ClientAuthorizationServiceImpl implements ClientAuthorizationService, OAuth2AuthorizationService {
 
-    private static final int MAX_LOG_COUNT = 50;
+    private static final Logger LOG = LoggerFactory.getLogger(ClientAuthorizationServiceImpl.class);
 
     private final ClientAuthorizationRepository clientAuthorizationRepository;
     private final ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
-    private final ClientAuthorizationLogRepository clientAuthorizationLogRepository;
+    private final ClientConsentService clientConsentService;
+    private final RegisteredClientRepository registeredClientRepository;
     private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
+    private final ObjectMapper objectMapper;
 
     public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
-                                          ClientAuthorizationLogRepository clientAuthorizationLogRepository,
+                                          ClientConsentService clientConsentService,
+                                          RegisteredClientRepository registeredClientRepository,
                                           AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
 
         this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.clientAuthorizationTokenRepository = clientAuthorizationTokenRepository;
-        this.clientAuthorizationLogRepository = clientAuthorizationLogRepository;
+        this.clientConsentService = clientConsentService;
+        this.registeredClientRepository = registeredClientRepository;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
+        this.objectMapper = new ObjectMapper();
+
+        final ClassLoader classLoader = ClientAuthorizationServiceImpl.class.getClassLoader();
+        final List<Module> securityModules = SecurityJackson2Modules.getModules(classLoader);
+        this.objectMapper.registerModules(securityModules);
+        this.objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
+        this.objectMapper.registerModule(new Java9CollectionJackson2Module());
+        this.objectMapper.registerModule(new LinkedHashSetJackson2Module());
+        this.objectMapper.addMixIn(Gw2AuthUser.class, Gw2AuthUserMixin.class);
     }
 
     @Autowired
     public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
-                                          ClientAuthorizationLogRepository clientAuthorizationLogRepository) {
+                                          ClientConsentService clientConsentService,
+                                          RegisteredClientRepository registeredClientRepository) {
 
-        this(clientAuthorizationRepository, clientAuthorizationTokenRepository, clientAuthorizationLogRepository, AuthorizationCodeParamAccessor.DEFAULT);
+        this(clientAuthorizationRepository, clientAuthorizationTokenRepository, clientConsentService, registeredClientRepository, AuthorizationCodeParamAccessor.DEFAULT);
     }
 
     @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId) {
-        return getClientAuthorizationsInternal(accountId, this.clientAuthorizationRepository.findAllByAccountId(accountId));
-    }
-
-    @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds) {
-        return getClientAuthorizationsInternal(accountId, this.clientAuthorizationRepository.findAllByAccountIdAndLinkedTokens(accountId, gw2AccountIds));
-    }
-
-    private List<ClientAuthorization> getClientAuthorizationsInternal(long accountId, List<ClientAuthorizationEntity> clientAuthorizationEntities) {
-        clientAuthorizationEntities = clientAuthorizationEntities.stream()
-                .filter(ClientAuthorizationServiceImpl::isAuthorized)
-                .collect(Collectors.toList());
-
-        final Set<Long> clientRegistrationIds = clientAuthorizationEntities.stream()
-                .map(ClientAuthorizationEntity::clientRegistrationId)
-                .collect(Collectors.toSet());
-
-        final Map<Long, List<ClientAuthorizationTokenEntity>> clientAuthorizationTokensByRegistrationId = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationIds(accountId, clientRegistrationIds).stream()
-                .collect(Collectors.groupingBy(ClientAuthorizationTokenEntity::clientRegistrationId));
-
-        final List<ClientAuthorization> clientAuthorizations = new ArrayList<>(clientAuthorizationEntities.size());
-
-        for (ClientAuthorizationEntity clientAuthorizationEntity : clientAuthorizationEntities) {
-            final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = clientAuthorizationTokensByRegistrationId.getOrDefault(clientAuthorizationEntity.clientRegistrationId(), List.of());
-
-            if (!clientAuthorizationTokenEntities.isEmpty()) {
-                clientAuthorizations.add(ClientAuthorization.fromEntity(clientAuthorizationEntity, clientAuthorizationTokenEntities));
-            }
-        }
-
-        return clientAuthorizations;
-    }
-
-    @Override
-    public Optional<ClientAuthorization> getClientAuthorization(long accountId, long clientRegistrationId) {
-        return this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
-                .filter(ClientAuthorizationServiceImpl::isAuthorized)
+    public Optional<ClientAuthorization> getClientAuthorization(long accountId, String id) {
+        return this.clientAuthorizationRepository.findByAccountIdAndId(accountId, id)
+                .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .flatMap((entity) -> {
-                    final List<ClientAuthorizationTokenEntity> tokens = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId());
-                    if (tokens.isEmpty()) {
-                        return Optional.empty();
-                    }
+                    final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(entity.accountId(), entity.id());
 
-                    return Optional.of(ClientAuthorization.fromEntity(entity, tokens));
+                    if (clientAuthorizationTokenEntities.isEmpty()) {
+                        return Optional.empty();
+                    } else {
+                        return Optional.of(ClientAuthorization.fromEntity(entity, clientAuthorizationTokenEntities));
+                    }
                 });
     }
 
     @Override
-    @Transactional
-    public void createEmptyClientAuthorizationIfNotExists(long accountId, long clientRegistrationId) {
-        final Optional<ClientAuthorizationEntity> optional = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
-        if (optional.isEmpty()) {
-            this.clientAuthorizationRepository.save(createAuthorizedClientEntity(accountId, clientRegistrationId));
-        }
-    }
+    public List<ClientAuthorization> getClientAuthorizations(long accountId, String clientId) {
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientId(accountId, clientId).stream()
+                .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
+                .collect(Collectors.toList());
 
-    @Override
-    @Transactional
-    public void deleteClientAuthorization(long accountId, String clientId) {
-        this.clientAuthorizationRepository.findByAccountIdAndClientId(accountId, clientId).ifPresent(this::deleteInternal);
-    }
+        final Set<String> clientAuthorizationIds = clientAuthorizationEntities.stream()
+                .map(ClientAuthorizationEntity::id)
+                .collect(Collectors.toSet());
 
-    @Override
-    @Transactional
-    public void deleteClientAuthorization(long accountId, long clientRegistrationId) {
-        this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).ifPresent(this::deleteInternal);
-    }
+        final Map<String, List<ClientAuthorizationTokenEntity>> clientAuthorizationTokenEntitiesByAuthorizationId = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationIds(accountId, clientAuthorizationIds).stream()
+                .collect(Collectors.groupingBy(ClientAuthorizationTokenEntity::clientAuthorizationId));
 
-    @Transactional
-    protected void deleteInternal(ClientAuthorizationEntity entity) {
-        // not actually deleting, since we want to keep the client specific account sub
+        final List<ClientAuthorization> result = new ArrayList<>(clientAuthorizationEntities.size());
 
-        entity = entity.withAuthorizedScopes(Set.of());
+        for (ClientAuthorizationEntity clientAuthorizationEntity : clientAuthorizationEntities) {
+            final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = clientAuthorizationTokenEntitiesByAuthorizationId.get(clientAuthorizationEntity.id());
 
-        entity = this.clientAuthorizationRepository.save(entity);
-        this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId());
-        this.clientAuthorizationLogRepository.deleteAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId());
-    }
-
-    @Override
-    @Transactional
-    public void updateTokens(long accountId, long clientRegistrationId, Map<String, ClientAuthorization.Token> tokens) {
-        this.clientAuthorizationTokenRepository.saveAll(
-                tokens.entrySet().stream()
-                        .map((e) -> new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, e.getKey(), e.getValue().gw2ApiSubtoken(), e.getValue().expirationTime()))
-                        .collect(Collectors.toList())
-        );
-    }
-
-    @Override
-    public LoggingContext log(long accountId, long clientRegistrationId, LogType logType) {
-        return new LoggingContextImpl(accountId, clientRegistrationId, logType);
-    }
-
-    // region OAuth2AuthorizationConsentService
-    @Override
-    @Transactional
-    public void save(OAuth2AuthorizationConsent authorizationConsent) {
-        if (!authorizationConsent.getScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes())) {
-            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
-        }
-
-        final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
-        final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
-
-        try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
-            ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
-                    .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
-                    .withAuthorizedScopes(authorizationConsent.getScopes());
-
-            clientAuthorizationEntity = this.clientAuthorizationRepository.save(clientAuthorizationEntity);
-            log.log("Updated consented oauth2-scopes to [%s]", String.join(", ", clientAuthorizationEntity.authorizedScopes()));
-
-            final Set<String> authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
-                    .map(Map.Entry::getKey)
-                    .filter((v) -> v.startsWith("token:"))
-                    .map((v) -> v.replaceFirst("token:", ""))
-                    .collect(Collectors.toSet());
-
-            if (authorizedTokenGw2AccountIds.isEmpty()) {
-                throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+            if (clientAuthorizationTokenEntities != null && !clientAuthorizationTokenEntities.isEmpty()) {
+                result.add(ClientAuthorization.fromEntity(clientAuthorizationEntity, clientAuthorizationTokenEntities));
             }
+        }
 
-            final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
+        return result;
+    }
 
-            for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-                tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientRegistrationId, authorizedTokenGw2AccountId, "", Instant.now()));
+    @Override
+    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds) {
+        final Map<String, ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndLinkedTokens(accountId, gw2AccountIds).stream()
+                .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
+                .collect(Collectors.toMap(ClientAuthorizationEntity::id, Function.identity()));
+
+        final Map<String, List<ClientAuthorizationTokenEntity>> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationIds(accountId, clientAuthorizationEntities.keySet()).stream()
+                .collect(Collectors.groupingBy(ClientAuthorizationTokenEntity::clientAuthorizationId));
+
+        final List<ClientAuthorization> result = new ArrayList<>(clientAuthorizationEntities.size());
+
+        for (Map.Entry<String, ClientAuthorizationEntity> entry : clientAuthorizationEntities.entrySet()) {
+            final List<ClientAuthorizationTokenEntity> tokens = clientAuthorizationTokenEntities.get(entry.getKey());
+
+            if (tokens != null && !tokens.isEmpty()) {
+                result.add(ClientAuthorization.fromEntity(entry.getValue(), tokens));
             }
+        }
 
-            this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
-            this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
+        return result;
+    }
 
-            log.log("Updated consented API-Tokens: %d API-Tokens are now consented", authorizedTokenGw2AccountIds.size());
+    @Override
+    public boolean deleteClientAuthorization(long accountId, String id) {
+        return this.clientAuthorizationRepository.deleteByAccountIdAndId(accountId, id);
+    }
+
+    private static boolean isValidAuthorization(ClientAuthorizationEntity entity) {
+        return entity.authorizedScopes() != null && !entity.authorizedScopes().isEmpty();
+    }
+
+    // region OAuth2AuthorizationService
+    @Override
+    @Transactional
+    public void save(OAuth2Authorization authorization) {
+        final long accountId = Long.parseLong(authorization.getPrincipalName());
+        final long clientRegistrationId = Long.parseLong(authorization.getRegisteredClientId());
+
+        this.clientConsentService.createEmptyClientConsentIfNotExists(accountId, clientRegistrationId);
+
+        final Optional<OAuth2Authorization.Token<OAuth2AuthorizationCode>> authorizationCode = Optional.ofNullable(authorization.getToken(OAuth2AuthorizationCode.class));
+        final Optional<OAuth2Authorization.Token<OAuth2AccessToken>> accessToken = Optional.ofNullable(authorization.getAccessToken());
+        final Optional<OAuth2Authorization.Token<OAuth2RefreshToken>> refreshToken = Optional.ofNullable(authorization.getRefreshToken());
+
+        final Map<String, Object> attributes = new HashMap<>(authorization.getAttributes());
+        final Set<String> authorizedScopes = authorization.getAttribute(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
+        attributes.remove(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
+
+        final String name;
+
+        if (this.authorizationCodeParamAccessor.isInCodeRequest()) {
+            name = this.authorizationCodeParamAccessor.getAdditionalParameters()
+                    .filter((e) -> e.getKey().equals(AUTHORIZATION_NAME_PARAM))
+                    .map(Map.Entry::getValue)
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .findFirst()
+                    .orElse(null);
+        } else {
+            name = null;
+        }
+
+        final Instant now = Instant.now();
+
+        final ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
+                accountId,
+                authorization.getId(),
+                clientRegistrationId,
+                now,
+                now,
+                Optional.ofNullable(name).orElse(authorization.getId()),
+                authorization.getAuthorizationGrantType().getValue(),
+                Optional.ofNullable(authorizedScopes).orElse(Set.of()),
+                writeJson(attributes),
+                authorization.getAttribute(OAuth2ParameterNames.STATE),
+                authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
+                authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
+                authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                authorizationCode.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getToken).map((v) -> v.getTokenType().getValue()).orElse(null),
+                accessToken.map(OAuth2Authorization.Token::getToken).map(OAuth2AccessToken::getScopes).orElse(Set.of()),
+                refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
+                refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
+                refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                refreshToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null)
+        ));
+
+        if (this.authorizationCodeParamAccessor.isInConsentContext()) {
+            try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.AUTHORIZATION)) {
+                final Set<String> authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
+                        .map(Map.Entry::getKey)
+                        .filter((v) -> v.startsWith("token:"))
+                        .map((v) -> v.replaceFirst("token:", ""))
+                        .collect(Collectors.toSet());
+
+                if (authorizedTokenGw2AccountIds.isEmpty()) {
+                    throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+                }
+
+                final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
+
+                for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
+                    tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationEntity.id(), authorizedTokenGw2AccountId));
+                }
+
+                this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorizationEntity.id());
+                this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
+
+                logging.log("New authorization with name '%s' (id %s)", clientAuthorizationEntity.displayName(), clientAuthorizationEntity.id());
+                logging.log("Authorized scopes for this authorization: %s", clientAuthorizationEntity.authorizedScopes());
+                logging.log("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size());
+            }
         }
     }
 
     @Override
-    public void remove(OAuth2AuthorizationConsent authorizationConsent) {
-        final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
-        final long registeredClientId = Long.parseLong(authorizationConsent.getRegisteredClientId());
-
-        deleteClientAuthorization(accountId, registeredClientId);
+    public void remove(OAuth2Authorization authorization) {
+        this.clientAuthorizationRepository.deleteByAccountIdAndId(Long.parseLong(authorization.getPrincipalName()), authorization.getId());
     }
 
     @Override
-    public OAuth2AuthorizationConsent findById(String _registeredClientId, String principalName) {
-        if (this.authorizationCodeParamAccessor.isInConsentContext() || isForceConsentRequest()) {
+    public OAuth2Authorization findById(String id) {
+        throw new UnsupportedOperationException("findById should not be used");
+    }
+
+    @Override
+    public OAuth2Authorization findByToken(String token, OAuth2TokenType tokenType) {
+        final ClientAuthorizationEntity clientAuthorizationEntity;
+
+        if (tokenType == null) {
+            clientAuthorizationEntity = this.clientAuthorizationRepository.findByAnyToken(token).orElse(null);
+        } else {
+            clientAuthorizationEntity = switch (tokenType.getValue()) {
+                case OAuth2ParameterNames.STATE -> this.clientAuthorizationRepository.findByState(token).orElse(null);
+                case OAuth2ParameterNames.CODE -> this.clientAuthorizationRepository.findByAuthorizationCode(token).orElse(null);
+                case OAuth2ParameterNames.ACCESS_TOKEN -> this.clientAuthorizationRepository.findByAccessToken(token).orElse(null);
+                case OAuth2ParameterNames.REFRESH_TOKEN -> this.clientAuthorizationRepository.findByRefreshToken(token).orElse(null);
+                default -> null;
+            };
+        }
+
+        if (clientAuthorizationEntity == null) {
             return null;
         }
 
-        final long accountId = Long.parseLong(principalName);
-        final long registeredClientId = Long.parseLong(_registeredClientId);
+        final RegisteredClient registeredClient = this.registeredClientRepository.findById(Long.toString(clientAuthorizationEntity.clientRegistrationId()));
 
-        return this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, registeredClientId)
-                .filter(ClientAuthorizationServiceImpl::isAuthorized)
-                .filter((entity) -> !this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(entity.accountId(), entity.clientRegistrationId()).isEmpty())
-                .map((entity) -> {
-                    final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(Long.toString(entity.clientRegistrationId()), Long.toString(entity.accountId()));
-                    entity.authorizedScopes().forEach(builder::scope);
+        if (registeredClient == null) {
+            return null;
+        }
 
-                    return builder.build();
-                })
-                .orElse(null);
+        OAuth2Authorization.Builder builder = OAuth2Authorization
+                .withRegisteredClient(registeredClient)
+                .id(clientAuthorizationEntity.id())
+                .principalName(Long.toString(clientAuthorizationEntity.accountId()))
+                .authorizationGrantType(new AuthorizationGrantType(clientAuthorizationEntity.authorizationGrantType()));
+
+        final Map<String, Object> attributes = readJson(clientAuthorizationEntity.attributes());
+
+        if (clientAuthorizationEntity.authorizedScopes() != null) {
+            attributes.put(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME, clientAuthorizationEntity.authorizedScopes());
+        }
+
+        builder.attributes((attrs) -> attrs.putAll(attributes));
+
+        final String state = clientAuthorizationEntity.state();
+        if (StringUtils.hasText(state)) {
+            builder.attribute(OAuth2ParameterNames.STATE, state);
+        }
+
+        // authorization code
+        final String authorizationCodeValue = clientAuthorizationEntity.authorizationCodeValue();
+        if (authorizationCodeValue != null) {
+            final OAuth2AuthorizationCode authorizationCode = new OAuth2AuthorizationCode(authorizationCodeValue, clientAuthorizationEntity.authorizationCodeIssuedAt(), clientAuthorizationEntity.authorizationCodeExpiresAt());
+            final Map<String, Object> tokenMetadata = readJson(clientAuthorizationEntity.authorizationCodeMetadata());
+
+            builder.token(authorizationCode, (metadata) -> metadata.putAll(tokenMetadata));
+        }
+
+        // access token
+        final String accessTokenValue = clientAuthorizationEntity.accessTokenValue();
+        if (accessTokenValue != null) {
+            OAuth2AccessToken.TokenType accessTokenType = null;
+            if (OAuth2AccessToken.TokenType.BEARER.getValue().equalsIgnoreCase(clientAuthorizationEntity.accessTokenType())) {
+                accessTokenType = OAuth2AccessToken.TokenType.BEARER;
+            }
+
+            Set<String> scopes = clientAuthorizationEntity.accessTokenScopes();
+            if (scopes == null) {
+                scopes = Set.of();
+            }
+
+            final OAuth2AccessToken accessToken = new OAuth2AccessToken(accessTokenType, accessTokenValue, clientAuthorizationEntity.accessTokenIssuedAt(), clientAuthorizationEntity.accessTokenExpiresAt(), scopes);
+            final Map<String, Object> tokenMetadata = readJson(clientAuthorizationEntity.accessTokenMetadata());
+
+            builder.token(accessToken, (metadata) -> metadata.putAll(tokenMetadata));
+        }
+
+        // refresh token
+        final String refreshTokenValue = clientAuthorizationEntity.refreshTokenValue();
+        if (refreshTokenValue != null) {
+            final OAuth2RefreshToken refreshToken = new OAuth2RefreshToken(refreshTokenValue, clientAuthorizationEntity.refreshTokenIssuedAt(), clientAuthorizationEntity.refreshTokenExpiresAt());
+            final Map<String, Object> tokenMetadata = readJson(clientAuthorizationEntity.refreshTokenMetadata());
+
+            builder.token(refreshToken, (metadata) -> metadata.putAll(tokenMetadata));
+        }
+
+        return builder.build();
+    }
+
+    private String writeJson(Map<String, Object> object) {
+        try {
+            return this.objectMapper.writeValueAsString(object);
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    private Map<String, Object> readJson(String data) {
+        try {
+            return this.objectMapper.readValue(data, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception ex) {
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
     }
     // endregion
 
-    private boolean isForceConsentRequest() {
-        return this.authorizationCodeParamAccessor.getAdditionalParameters()
-                .filter((v) -> v.getKey().equals(CONSENT_QUERY_PARAM))
-                .map(Map.Entry::getValue)
-                .anyMatch(FORCE_CONSENT_QUERY_VALUE::equals);
-    }
-
-    private ClientAuthorizationEntity createAuthorizedClientEntity(long accountId, long registeredClientId) {
-        return new ClientAuthorizationEntity(accountId, registeredClientId, UUID.randomUUID(), Set.of());
-    }
-
-    private static boolean isAuthorized(ClientAuthorizationEntity clientAuthorizationEntity) {
-        return clientAuthorizationEntity.authorizedScopes() != null && !clientAuthorizationEntity.authorizedScopes().isEmpty();
-    }
-
-    private final class LoggingContextImpl implements LoggingContext {
-
-        private final long accountId;
-        private final long clientRegistrationId;
-        private final LogType logType;
-        private final Instant timestamp;
-        private final List<String> messages;
-        private final AtomicBoolean isValid;
-
-        private LoggingContextImpl(long accountId, long clientRegistrationId, LogType logType) {
-            this.accountId = accountId;
-            this.clientRegistrationId = clientRegistrationId;
-            this.logType = logType;
-            this.timestamp = Instant.now();
-            this.messages = new LinkedList<>();
-            this.isValid = new AtomicBoolean(true);
-        }
-
-        @Override
-        public void log(String message) {
-            // not truly thread-safe
-            // this is an optimistic variant. I'm in control of all users of these methods
-            if (this.isValid.get()) {
-                this.messages.add(message);
-            }
-        }
-
-        @Override
-        public void close() {
-            if (this.isValid.compareAndSet(true, false)) {
-                ClientAuthorizationServiceImpl.this.clientAuthorizationLogRepository.deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(this.accountId, this.clientRegistrationId, MAX_LOG_COUNT - 1);
-                ClientAuthorizationServiceImpl.this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, this.accountId, this.clientRegistrationId, this.timestamp, this.logType.name(), this.messages));
-                this.messages.clear();
-            }
-        }
+    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    public void deleteAllExpiredAuthorizations() {
+        final int deleted = this.clientAuthorizationRepository.deleteAllExpired();
+        LOG.info("scheduled deletion of expired authorizations deleted {} rows", deleted);
     }
 }

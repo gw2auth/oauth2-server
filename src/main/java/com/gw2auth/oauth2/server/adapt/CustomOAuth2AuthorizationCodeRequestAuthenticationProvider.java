@@ -64,6 +64,10 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
         return contextToken.getAdditionalParameters().entrySet().stream();
     }
 
+    public static boolean isInCodeRequest() {
+        return CONTEXT_TOKEN.get() != null;
+    }
+
     public static boolean isInConsentContext() {
         final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
         return contextToken != null && contextToken.isConsent();
