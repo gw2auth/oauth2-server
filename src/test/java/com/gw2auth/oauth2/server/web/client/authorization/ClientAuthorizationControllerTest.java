@@ -2,17 +2,13 @@ package com.gw2auth.oauth2.server.web.client.authorization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gw2auth.oauth2.server.Gw2AuthLoginExtension;
-import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
-import com.gw2auth.oauth2.server.TruncateTablesExtension;
-import com.gw2auth.oauth2.server.WithGw2AuthLogin;
+import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.authorization.*;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -22,18 +18,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -53,23 +44,14 @@ class ClientAuthorizationControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ClientRegistrationRepository clientRegistrationRepository;
+    private TestHelper testHelper;
 
     @Autowired
     private ClientAuthorizationRepository clientAuthorizationRepository;
 
-    @Autowired
-    private ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
-
-    @Autowired
-    private ClientAuthorizationLogRepository clientAuthorizationLogRepository;
-
-    @Autowired
-    private ApiTokenRepository apiTokenRepository;
-
     @Test
     public void getClientAuthorizationsUnauthenticated() throws Exception {
-        this.mockMvc.perform(get("/api/client/authorization"))
+        this.mockMvc.perform(get("/api/client/authorization/someid"))
                 .andExpect(status().isForbidden());
     }
 
@@ -77,27 +59,28 @@ class ClientAuthorizationControllerTest {
     public void getClientAuthorizations(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 
-        final ClientRegistrationEntity clientRegistrationA = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
-        final ClientRegistrationEntity clientRegistrationB = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
-        final ClientRegistrationEntity clientRegistrationC = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
+        // create client
+        final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
 
-        final ApiTokenEntity apiTokenA = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameA"));
-        final ApiTokenEntity apiTokenB = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameB"));
-        final ApiTokenEntity apiTokenC = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameC"));
+        // create consent
+        this.testHelper.createClientConsent(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
-        final ClientAuthorizationEntity clientAuthorizationA = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationA.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE)));
-        final ClientAuthorizationEntity clientAuthorizationC = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationC.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2())));
+        // create 2 authorizations
+        final ClientAuthorizationEntity authorization1 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+        final ClientAuthorizationEntity authorization2 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
-        // tokens for authorization A
-        final ClientAuthorizationTokenEntity authorizationTokenA_A = this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationA.clientRegistrationId(), apiTokenA.gw2AccountId(), "", Instant.now()));
-        final ClientAuthorizationTokenEntity authorizationTokenA_C = this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationA.clientRegistrationId(), apiTokenC.gw2AccountId(), "", Instant.now()));
+        // insert tokens for these authorizations
+        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token A");
+        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token B");
+        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token C");
+        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token D");
 
-        // tokens for authorization C
-        final ClientAuthorizationTokenEntity authorizationTokenC_B = this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationC.clientRegistrationId(), apiTokenB.gw2AccountId(), "", Instant.now()));
+        this.testHelper.createClientAuthorizationTokens(accountId, authorization1.id(), tokenA.gw2AccountId(), tokenD.gw2AccountId());
+        this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
-        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization").session(session))
+        // query api
+        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.clientId()).session(session))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -106,196 +89,71 @@ class ClientAuthorizationControllerTest {
         final JsonNode node = mapper.readTree(jsonResponse);
 
         assertTrue(node.isArray());
-
-        boolean foundAuthorizationA = false;
-        boolean foundAuthorizationC = false;
+        assertEquals(2, node.size());
 
         for (int i = 0; i < node.size(); i++) {
-            final JsonNode element = node.get(i);
-            final JsonNode clientRegistrationNode = element.get("clientRegistration");
-
-            final ClientRegistrationEntity clientRegistration;
-            final ClientAuthorizationEntity clientAuthorization;
+            final JsonNode authorizationNode = node.get(i);
+            final String id = authorizationNode.get("id").textValue();
+            final ClientAuthorizationEntity authorization;
             final Map<String, ApiTokenEntity> apiTokens;
-            final Map<String, ClientAuthorizationTokenEntity> authorizationTokens;
 
-            if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.clientId())) {
-                if (foundAuthorizationA) {
-                    fail("authorization A appeared at least twice in the response");
-                    return;
-                } else {
-                    foundAuthorizationA = true;
-
-                    clientRegistration = clientRegistrationA;
-                    clientAuthorization = clientAuthorizationA;
-                    apiTokens = new HashMap<>(Map.of(
-                            apiTokenA.gw2AccountId(), apiTokenA,
-                            apiTokenC.gw2AccountId(), apiTokenC
-                    ));
-                    authorizationTokens = new HashMap<>(Map.of(
-                            apiTokenA.gw2AccountId(), authorizationTokenA_A,
-                            apiTokenC.gw2AccountId(), authorizationTokenA_C
-                    ));
-                }
-            } else if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationC.clientId())) {
-                if (foundAuthorizationC) {
-                    fail("authorization C appeared at least twice in the response");
-                    return;
-                } else {
-                    foundAuthorizationC = true;
-
-                    clientRegistration = clientRegistrationC;
-                    clientAuthorization = clientAuthorizationC;
-                    apiTokens = new HashMap<>(Map.of(apiTokenB.gw2AccountId(), apiTokenB));
-                    authorizationTokens = new HashMap<>(Map.of(apiTokenB.gw2AccountId(), authorizationTokenC_B));
-                }
+            if (id.equals(authorization1.id())) {
+                authorization = authorization1;
+                apiTokens = Map.of(tokenA.gw2AccountId(), tokenA, tokenD.gw2AccountId(), tokenD);
+            } else if (id.equals(authorization2.id())) {
+                authorization = authorization2;
+                apiTokens = Map.of(tokenA.gw2AccountId(), tokenA, tokenB.gw2AccountId(), tokenB, tokenC.gw2AccountId(), tokenC);
             } else {
-                fail("unknown authorization appeared in response");
-                return;
+                fail("unknown authorization id found in response");
+                throw new IllegalStateException("");
             }
 
-            // registration
-            assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
-            assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
-            assertEquals(clientRegistration.redirectUri(), clientRegistrationNode.get("redirectUri").textValue());
-
-            // accountsub
-            assertEquals(clientAuthorization.accountSub().toString(), element.get("accountSub").textValue());
+            assertInstantEquals(authorization.creationTime(), authorizationNode.get("creationTime").textValue());
+            assertInstantEquals(authorization.lastUpdateTime(), authorizationNode.get("lastUpdateTime").textValue());
+            assertEquals(authorization.displayName(), authorizationNode.get("displayName").textValue());
 
             // authorized scopes
-            final Set<String> expectedScopes = new HashSet<>(clientAuthorization.authorizedScopes());
-            final JsonNode authorizedGw2ApiPermissionsNode = element.get("authorizedGw2ApiPermissions");
+            final Set<String> expectedAuthorizedScopes = new HashSet<>(authorization.authorizedScopes());
+            final JsonNode gw2ApiPermissionsNode = authorizationNode.get("authorizedGw2ApiPermissions");
+            assertTrue(gw2ApiPermissionsNode.isArray());
 
-            assertTrue(authorizedGw2ApiPermissionsNode.isArray());
+            for (int j = 0; j < gw2ApiPermissionsNode.size(); j++) {
+                final String gw2ApiPermissionStr = gw2ApiPermissionsNode.get(j).textValue();
+                final Gw2ApiPermission gw2ApiPermission = Gw2ApiPermission.fromGw2(gw2ApiPermissionStr).orElseThrow();
 
-            for (int j = 0; j < authorizedGw2ApiPermissionsNode.size(); j++) {
-                final Gw2ApiPermission gw2ApiPermission = Gw2ApiPermission.fromGw2(authorizedGw2ApiPermissionsNode.get(j).textValue()).orElseThrow();
-
-                if (!expectedScopes.remove(gw2ApiPermission.oauth2())) {
-                    fail("got unexpected scope in authorization");
+                if (!expectedAuthorizedScopes.remove(gw2ApiPermission.oauth2())) {
+                    fail("received gw2 api permission which is not present in the entity");
                 }
             }
 
-            if (element.get("authorizedVerifiedInformation").booleanValue()) {
-                if (!expectedScopes.remove(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE)) {
-                    fail("got unexpected scope in authorization");
+            if (authorizationNode.get("authorizedVerifiedInformation").booleanValue()) {
+                if (!expectedAuthorizedScopes.remove(ClientConsentService.GW2AUTH_VERIFIED_SCOPE)) {
+                    fail("received verified scope but it is not present in the entity");
                 }
             }
 
-            assertTrue(expectedScopes.isEmpty());
+            assertTrue(expectedAuthorizedScopes.isEmpty());
 
             // tokens
-            final JsonNode tokensNode = element.get("tokens");
+            final Map<String, ApiTokenEntity> expectedApiTokens = new HashMap<>(apiTokens);
+            final JsonNode tokensNode = authorizationNode.get("tokens");
             assertTrue(tokensNode.isArray());
 
             for (int j = 0; j < tokensNode.size(); j++) {
                 final JsonNode tokenNode = tokensNode.get(j);
-                final String gw2AccountId = tokenNode.get("gw2AccountId").textValue();
+                final ApiTokenEntity expectedApiToken = expectedApiTokens.remove(tokenNode.get("gw2AccountId").textValue());
 
-                final ApiTokenEntity apiToken = apiTokens.remove(gw2AccountId);
-                final ClientAuthorizationTokenEntity authorizationToken = authorizationTokens.remove(gw2AccountId);
-
-                assertEquals(apiToken.displayName(), tokenNode.get("displayName").textValue());
-                assertInstantEquals(authorizationToken.expirationTime(), tokenNode.get("expirationTime").textValue());
+                assertNotNull(expectedApiToken);
+                assertEquals(expectedApiToken.displayName(), tokenNode.get("displayName").textValue());
             }
 
-            assertTrue(apiTokens.isEmpty());
-            assertTrue(authorizationTokens.isEmpty());
+            assertTrue(expectedApiTokens.isEmpty());
         }
-
-        assertTrue(foundAuthorizationA);
-        assertTrue(foundAuthorizationC);
     }
 
     @Test
-    public void getClientAuthorizationLogPageUnauthorized() throws Exception {
-        this.mockMvc.perform(get("/api/client/authorization/someid/logs"))
-                .andExpect(status().isForbidden());
-    }
-
-    @WithGw2AuthLogin
-    public void getClientAuthorizationLogPageEmpty(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(get("/api/client/authorization/someid/logs").session(session))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value("0"))
-                .andExpect(jsonPath("$.nextPage").value("-1"))
-                .andExpect(jsonPath("$.logs.length()").value("0"));
-    }
-
-    @WithGw2AuthLogin
-    public void getClientAuthorizationLogPage(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
-        final ClientAuthorizationEntity clientAuthorization = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistration.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2())));
-
-        final Queue<ClientAuthorizationLogEntity> insertedLogs = new PriorityQueue<>(Comparator.comparing(ClientAuthorizationLogEntity::timestamp).reversed());
-        Instant timestamp = Instant.now();
-
-        for (int i = 0; i < 143; i++) {
-            final int generateMessageCount = ThreadLocalRandom.current().nextInt(20);
-            final List<String> messages = new ArrayList<>(generateMessageCount);
-
-            for (int j = 0; j < generateMessageCount; j++) {
-                messages.add(UUID.randomUUID().toString());
-            }
-
-            insertedLogs.offer(this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, accountId, clientAuthorization.clientRegistrationId(), timestamp, UUID.randomUUID().toString(), messages)));
-            timestamp = timestamp.plus(Duration.ofMinutes(12L));
-        }
-
-        final ObjectMapper mapper = new ObjectMapper();
-        int page = 0;
-
-        do {
-            final String responseJson = this.mockMvc.perform(
-                    get("/api/client/authorization/{clientId}/logs", clientRegistration.clientId())
-                            .session(session)
-                            .queryParam("page", Integer.toString(page))
-            )
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.page").exists())
-                    .andExpect(jsonPath("$.nextPage").exists())
-                    .andExpect(jsonPath("$.logs").exists())
-                    .andReturn()
-                    .getResponse()
-                    .getContentAsString();
-
-            final JsonNode responseNode = mapper.readTree(responseJson);
-            final int nextPage = responseNode.get("nextPage").intValue();
-
-            assertEquals(page, responseNode.get("page").intValue());
-            assertTrue(nextPage == page + 1 || nextPage == -1);
-
-            final JsonNode logsNode = responseNode.get("logs");
-            assertTrue(logsNode.isArray());
-
-            for (int i = 0; i < logsNode.size(); i++) {
-                final ClientAuthorizationLogEntity expectedLog = insertedLogs.poll();
-                assertNotNull(expectedLog);
-
-                final JsonNode logNode = logsNode.get(i);
-
-                assertInstantEquals(expectedLog.timestamp(), logNode.get("timestamp").textValue());
-                assertEquals(expectedLog.type(), logNode.get("type").textValue());
-
-                final JsonNode messagesNode = logNode.get("messages");
-                assertTrue(messagesNode.isArray());
-
-                for (int j = 0; j < messagesNode.size(); j++) {
-                    assertEquals(expectedLog.messages().get(j), messagesNode.get(j).textValue());
-                }
-            }
-
-            page = nextPage;
-        } while (page != -1);
-
-        assertTrue(insertedLogs.isEmpty());
-    }
-
-    @Test
-    public void deleteClientAuthorizationUnauthorized() throws Exception {
-        this.mockMvc.perform(delete("/api/client/authorization/someid"))
+    public void deleteClientAuthorizationsUnauthenticated() throws Exception {
+        this.mockMvc.perform(delete("/api/client/authorization/someid").with(csrf()))
                 .andExpect(status().isForbidden());
     }
 
@@ -303,51 +161,33 @@ class ClientAuthorizationControllerTest {
     public void deleteClientAuthorization(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 
-        final ClientRegistrationEntity clientRegistrationA = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
-        final ClientRegistrationEntity clientRegistrationB = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/"));
+        // create client
+        final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
 
-        final ApiTokenEntity apiTokenA = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameA"));
-        final ApiTokenEntity apiTokenB = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameB"));
-        final ApiTokenEntity apiTokenC = this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID().toString(), Instant.now(), UUID.randomUUID().toString(), Gw2ApiPermission.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), "TokenNameC"));
+        // create consent
+        this.testHelper.createClientConsent(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
-        final ClientAuthorizationEntity clientAuthorizationA = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationA.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2())));
-        final ClientAuthorizationEntity clientAuthorizationB = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(accountId, clientRegistrationB.id(), UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2())));
+        // create 2 authorizations
+        final ClientAuthorizationEntity authorization1 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+        final ClientAuthorizationEntity authorization2 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
-        // tokens for authorization A
-        this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationA.clientRegistrationId(), apiTokenA.gw2AccountId(), "", Instant.now()));
-        this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationA.clientRegistrationId(), apiTokenC.gw2AccountId(), "", Instant.now()));
+        // insert tokens for these authorizations
+        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token A");
+        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token B");
+        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token C");
+        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token D");
 
-        // tokens for authorization B
-        this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationB.clientRegistrationId(), apiTokenB.gw2AccountId(), "", Instant.now()));
+        this.testHelper.createClientAuthorizationTokens(accountId, authorization1.id(), tokenA.gw2AccountId(), tokenD.gw2AccountId());
+        this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
-        // logs for authorization A
-        this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, accountId, clientAuthorizationA.clientRegistrationId(), Instant.now(), "SomeTypeA", List.of()));
-        this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, accountId, clientAuthorizationA.clientRegistrationId(), Instant.now(), "SomeTypeA", List.of()));
-
-        // logs for authorization B
-        this.clientAuthorizationLogRepository.save(new ClientAuthorizationLogEntity(null, accountId, clientAuthorizationB.clientRegistrationId(), Instant.now(), "SomeTypeB", List.of()));
-
-        // delete authorization A
-        this.mockMvc.perform(delete("/api/client/authorization/{clientId}", clientRegistrationA.clientId()).session(session).with(csrf()))
+        // delete second authorization
+        this.mockMvc.perform(delete("/api/client/authorization/_/{clientAuthorizationId}", authorization2.id()).with(csrf()).session(session))
                 .andExpect(status().isOk());
 
-        // entity should still be there
-        ClientAuthorizationEntity clientAuthorization = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientAuthorizationA.clientRegistrationId()).orElse(null);
-        assertNotNull(clientAuthorization);
-        assertNotEquals(clientAuthorizationA, clientAuthorization);
-        assertTrue(clientAuthorization.authorizedScopes().isEmpty());
-        assertEquals(clientAuthorizationA.accountSub(), clientAuthorization.accountSub());
+        // verify the authorization has been deleted
+        assertTrue(this.clientAuthorizationRepository.findByAccountIdAndId(accountId, authorization2.id()).isEmpty());
 
-        // logs and tokens should be deleted
-        assertTrue(this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientAuthorizationA.clientRegistrationId()).isEmpty());
-        assertTrue(this.clientAuthorizationLogRepository.findByAccountIdAndClientId(accountId, clientRegistrationA.clientId(), 0, 10).findAny().isEmpty());
-
-        // authorization B should still be there (and unchanged)
-        clientAuthorization = this.clientAuthorizationRepository.findByAccountIdAndClientRegistrationId(accountId, clientAuthorizationB.clientRegistrationId()).orElse(null);
-        assertEquals(clientAuthorizationB, clientAuthorization);
-
-        // logs and tokens of B should still be there
-        assertEquals(1, this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientAuthorizationB.clientRegistrationId()).size());
-        assertEquals(1L, this.clientAuthorizationLogRepository.findByAccountIdAndClientId(accountId, clientRegistrationB.clientId(), 0, 10).count());
+        // verify the  first authorization is still present
+        assertTrue(this.clientAuthorizationRepository.findByAccountIdAndId(accountId, authorization1.id()).isPresent());
     }
 }

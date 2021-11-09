@@ -4,20 +4,21 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum Gw2ApiPermission {
 
-    ACCOUNT("account"),
-    BUILDS("builds"),
-    CHARACTERS("characters"),
-    GUILDS("guilds"),
-    INVENTORIES("inventories"),
-    PROGRESSION("progression"),
-    PVP("pvp"),
-    TRADINGPOST("tradingpost"),
-    UNLOCKS("unlocks"),
-    WALLET("wallet");
+    ACCOUNT("account", 0),
+    BUILDS("builds", 1),
+    CHARACTERS("characters", 2),
+    GUILDS("guilds", 3),
+    INVENTORIES("inventories", 4),
+    PROGRESSION("progression", 5),
+    PVP("pvp", 6),
+    TRADINGPOST("tradingpost", 7),
+    UNLOCKS("unlocks", 8),
+    WALLET("wallet", 9);
 
     private static final List<Gw2ApiPermission> VALUES = List.of(values());
     private static final Set<Gw2ApiPermission> ALL = Set.copyOf(EnumSet.allOf(Gw2ApiPermission.class));
@@ -26,10 +27,22 @@ public enum Gw2ApiPermission {
     static {
         final Map<String, Gw2ApiPermission> byGw2 = new HashMap<>(VALUES.size());
         final Map<String, Gw2ApiPermission> byOauth2 = new HashMap<>(VALUES.size());
+        int flagAll = 0;
 
         for (Gw2ApiPermission gw2ApiPermission : VALUES) {
-            byGw2.put(gw2ApiPermission.gw2(), gw2ApiPermission);
-            byOauth2.put(gw2ApiPermission.oauth2(), gw2ApiPermission);
+            if (byGw2.put(gw2ApiPermission.gw2(), gw2ApiPermission) != null) {
+                throw new IllegalStateException("invalid configuration: gw2 value " + gw2ApiPermission.gw2() + " already present");
+            }
+
+            if (byOauth2.put(gw2ApiPermission.oauth2(), gw2ApiPermission) != null) {
+                throw new IllegalStateException("invalid configuration: oauth2 value " + gw2ApiPermission.oauth2() + " already present");
+            }
+
+            if ((flagAll & gw2ApiPermission.flag) == 0) {
+                flagAll |= gw2ApiPermission.flag;
+            } else {
+                throw new IllegalStateException("invalid configuration: flag " + Integer.toBinaryString(gw2ApiPermission.flag) + " already present");
+            }
         }
 
         BY_GW2 = Map.copyOf(byGw2);
@@ -37,9 +50,11 @@ public enum Gw2ApiPermission {
     }
 
     private final String value;
+    private final int flag;
 
-    Gw2ApiPermission(String value) {
+    Gw2ApiPermission(String value, int nthBitFlag) {
         this.value = value;
+        this.flag = 1 << nthBitFlag;
     }
 
     @JsonValue
@@ -59,12 +74,32 @@ public enum Gw2ApiPermission {
         return Optional.ofNullable(BY_GW2.get(gw2));
     }
 
+    public static Set<Gw2ApiPermission> fromBitSet(int bitSet) {
+        return stream()
+                .filter((gw2ApiPermission) -> (bitSet & gw2ApiPermission.flag) == gw2ApiPermission.flag)
+                .collect(Collectors.toSet());
+    }
+
+    public static int toBitSet(Collection<Gw2ApiPermission> gw2ApiPermissions) {
+        int bitSet = 0;
+
+        for (Gw2ApiPermission gw2ApiPermission : gw2ApiPermissions) {
+            bitSet |= gw2ApiPermission.flag;
+        }
+
+        return bitSet;
+    }
+
     public static boolean contains(Gw2ApiPermission gw2ApiPermission) {
         return ALL.contains(gw2ApiPermission);
     }
 
     public static Stream<Gw2ApiPermission> stream() {
         return VALUES.stream();
+    }
+
+    public static Set<Gw2ApiPermission> all() {
+        return ALL;
     }
 
     @JsonCreator

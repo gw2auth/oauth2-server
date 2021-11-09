@@ -46,6 +46,7 @@ $list-group-disabled-color: $list-group-color;
 $list-group-hover-bg: shade-color($list-group-active-bg, 60%);
 $list-group-action-color: $list-group-color;
 $list-group-action-hover-color: $list-group-action-color;
+$list-group-action-active-bg: $list-group-active-bg;
 // endregion
 
 @import 'global_pre';

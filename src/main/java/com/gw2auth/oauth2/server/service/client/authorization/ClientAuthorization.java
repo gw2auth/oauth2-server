@@ -4,31 +4,17 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public record ClientAuthorization(long accountId, long clientRegistrationId, UUID accountSub, Set<String> authorizedScopes, Map<String, Token> tokens) {
+public record ClientAuthorization(long accountId, String id, long clientRegistrationId, Instant creationTime, Instant lastUpdateTime, String displayName, Set<String> authorizedScopes, Set<String> gw2AccountIds) {
 
-    public static ClientAuthorization fromEntity(ClientAuthorizationEntity entity, List<ClientAuthorizationTokenEntity> tokenEntities) {
-        final Set<String> authorizedScopes;
-        final Map<String, Token> tokens = new HashMap<>(tokenEntities.size());
+    public static ClientAuthorization fromEntity(ClientAuthorizationEntity entity, List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities) {
+        final Set<String> gw2AccountIds = clientAuthorizationTokenEntities.stream()
+                .map(ClientAuthorizationTokenEntity::gw2AccountId)
+                .collect(Collectors.toSet());
 
-        if (entity.authorizedScopes() == null) {
-            authorizedScopes = Set.of();
-        } else {
-            authorizedScopes = new HashSet<>(entity.authorizedScopes());
-        }
-
-        for (ClientAuthorizationTokenEntity tokenEntity : tokenEntities) {
-            tokens.put(tokenEntity.gw2AccountId(), Token.fromEntity(tokenEntity));
-        }
-
-        return new ClientAuthorization(entity.accountId(), entity.clientRegistrationId(), entity.accountSub(), authorizedScopes, tokens);
-    }
-
-    public record Token(String gw2ApiSubtoken, Instant expirationTime) {
-
-        public static Token fromEntity(ClientAuthorizationTokenEntity entity) {
-            return new Token(entity.gw2ApiSubtoken(), entity.expirationTime());
-        }
+        return new ClientAuthorization(entity.accountId(), entity.id(), entity.clientRegistrationId(), entity.creationTime(), entity.lastUpdateTime(), entity.displayName(), Set.copyOf(entity.authorizedScopes()), gw2AccountIds);
     }
 }

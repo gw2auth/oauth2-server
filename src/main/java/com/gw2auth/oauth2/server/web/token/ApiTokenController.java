@@ -51,7 +51,7 @@ public class ApiTokenController extends AbstractRestController {
         for (ClientAuthorization clientAuthorization : clientAuthorizations) {
             clientRegistrationIds.add(clientAuthorization.clientRegistrationId());
 
-            for (String gw2AccountId : clientAuthorization.tokens().keySet()) {
+            for (String gw2AccountId : clientAuthorization.gw2AccountIds()) {
                 clientRegistrationIdsByGw2AccountId.computeIfAbsent(gw2AccountId, (k) -> new HashSet<>()).add(clientAuthorization.clientRegistrationId());
             }
         }

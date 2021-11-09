@@ -43,11 +43,11 @@ public interface ApiTokenRepository extends BaseRepository<ApiTokenEntity> {
     @Query("SELECT * FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
     Optional<ApiTokenEntity> findByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") String gw2AccountId);
 
-    @Query("DELETE FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
     @Modifying
+    @Query("DELETE FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
     int deleteByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") String gw2AccountId);
 
-    @Query("DELETE FROM gw2_api_tokens WHERE gw2_account_id = :gw2_account_id AND account_id <> :account_id")
     @Modifying
+    @Query("DELETE FROM gw2_api_tokens WHERE gw2_account_id = :gw2_account_id AND account_id <> :account_id")
     int deleteAllByGw2AccountIdExceptForAccountId(@Param("gw2_account_id") String gw2AccountId, @Param("account_id") long accountId);
 }

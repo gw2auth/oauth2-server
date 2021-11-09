@@ -3,13 +3,13 @@ package com.gw2auth.oauth2.server.web.oauth2.consent;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
-import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
+import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -54,7 +54,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         final Set<Gw2ApiPermission> requestedGw2ApiPermissions = requestedScopes.stream()
                 .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
                 .collect(Collectors.toSet());
-        final boolean requestedVerifiedInformation = requestedScopes.contains(ClientAuthorizationService.GW2AUTH_VERIFIED_SCOPE);
+        final boolean requestedVerifiedInformation = requestedScopes.contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
 
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
 

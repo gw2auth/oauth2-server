@@ -80,11 +80,11 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
         return getFromAPI("/v2/commerce/transactions/current/buys", token, new ParameterizedTypeReference<>() {});
     }
 
-    private <T> T getFromAPI(String url, String token, Class<T> clazz) {
+    public <T> T getFromAPI(String url, String token, Class<T> clazz) {
         return getFromAPI(url, token, exchangeByClass(clazz));
     }
 
-    private <T> T getFromAPI(String url, String token, ParameterizedTypeReference<T> reference) {
+    public <T> T getFromAPI(String url, String token, ParameterizedTypeReference<T> reference) {
         return getFromAPI(url, token, exchangeByReference(reference));
     }
 

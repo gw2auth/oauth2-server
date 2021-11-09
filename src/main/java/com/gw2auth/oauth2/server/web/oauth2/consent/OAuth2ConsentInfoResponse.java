@@ -3,7 +3,7 @@ package com.gw2auth.oauth2.server.web.oauth2.consent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
-import com.gw2auth.oauth2.server.web.client.authorization.ClientRegistrationPublicResponse;
+import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
 import org.springframework.util.MultiValueMap;
 
 import java.util.List;

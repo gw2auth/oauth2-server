@@ -14,7 +14,7 @@ public interface SummaryRepository extends BaseRepository<ApplicationSummaryEnti
         (SELECT COUNT(*) FROM gw2_api_tokens) AS api_tokens,
         (SELECT COUNT(*) FROM gw2_account_verifications) AS verified_gw2_accounts,
         (SELECT COUNT(*) FROM client_registrations) AS client_registrations,
-        (SELECT COUNT(*) FROM client_authorizations WHERE ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations
+        (SELECT COUNT(*) FROM client_consents WHERE ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations
     """)
     ApplicationSummaryEntity getApplicationSummary();
 
@@ -23,7 +23,7 @@ public interface SummaryRepository extends BaseRepository<ApplicationSummaryEnti
         (SELECT COUNT(*) FROM gw2_api_tokens WHERE account_id = :account_id) AS api_tokens,
         (SELECT COUNT(*) FROM gw2_account_verifications WHERE account_id = :account_id) AS verified_gw2_accounts,
         (SELECT COUNT(*) FROM client_registrations WHERE account_id = :account_id) AS client_registrations,
-        (SELECT COUNT(*) FROM client_authorizations WHERE account_id = :account_id AND ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations,
+        (SELECT COUNT(*) FROM client_consents WHERE account_id = :account_id AND ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations,
         (SELECT COUNT(*) FROM account_federations WHERE account_id = :account_id) AS account_federations
     """)
     AccountSummaryEntity getAccountSummary(@Param("account_id") long accountId);

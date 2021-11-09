@@ -63,7 +63,7 @@
                                                 <div *ngIf="token.authorizations.length > 0" class="col">
                                                     <label [htmlFor]="'applications'" class="form-label">Applications</label>
                                                     <div class="list-group" [id]="'applications'" [attr.aria-describedby]="'applicationsDescription'">
-                                                        <a *ngFor="let authorization of token.authorizations" [routerLink]="['', 'account', 'application']" [fragment]="authorization.clientId" class="list-group-item">
+                                                        <a *ngFor="let authorization of token.authorizations" [routerLink]="['', 'account', 'application']" [fragment]="authorization.clientId" class="list-group-item list-group-item-action">
                                                             {{authorization.displayName}}
                                                         </a>
                                                     </div>
