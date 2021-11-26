@@ -72,9 +72,6 @@ CREATE TABLE client_authorizations (
     PRIMARY KEY (account_id, id),
     FOREIGN KEY (account_id, client_registration_id) REFERENCES client_consents (account_id, client_registration_id) ON DELETE CASCADE,
     UNIQUE (state),
-    UNIQUE (authorization_code_value),
-    UNIQUE (access_token_value),
-    UNIQUE (refresh_token_value),
     CHECK ( LENGTH(display_name) > 0 AND LENGTH(display_name) <= 100 )
 ) ;
 
