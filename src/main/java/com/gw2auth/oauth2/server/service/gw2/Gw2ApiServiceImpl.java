@@ -1,19 +1,20 @@
 package com.gw2auth.oauth2.server.service.gw2;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.gw2.client.Gw2ApiClient;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -26,35 +27,32 @@ import java.util.stream.Collectors;
 public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
+    private static final MultiValueMap<String, String> EMPTY = new LinkedMultiValueMap<>();
 
-    private final RestTemplate restTemplate;
+    private final Gw2ApiClient gw2ApiClient;
 
     @Autowired
-    public Gw2ApiServiceImpl(@Qualifier("gw2-rest-template") RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public Gw2ApiServiceImpl(Gw2ApiClient gw2ApiClient) {
+        this.gw2ApiClient = gw2ApiClient;
     }
 
     @Override
     public Gw2TokenInfo getTokenInfo(String gw2ApiToken) {
-        return getFromAPI("/v2/tokeninfo", gw2ApiToken, Gw2TokenInfo.class);
+        return getFromAPI("/v2/tokeninfo", gw2ApiToken, new TypeReference<Gw2TokenInfo>() {});
     }
 
     @Override
     public Gw2Account getAccount(String gw2ApiToken) {
-        return getFromAPI("/v2/account", gw2ApiToken, Gw2Account.class);
+        return getFromAPI("/v2/account", gw2ApiToken, new TypeReference<Gw2Account>() {});
     }
 
     @Override
     public Gw2SubToken createSubToken(String token, Set<Gw2ApiPermission> permissions, Instant expirationTime) {
-        final String jwtString = getFromAPI(
-                UriComponentsBuilder.fromPath("/v2/createsubtoken")
-                        .queryParam("permissions", permissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.joining(",")))
-                        .queryParam("expire", expirationTime.toString())// ISO-8601
-                        .toUriString(),
-                token,
-                GW2CreateSubToken.class
-        ).subtoken();
+        final MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("permissions", permissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.joining(",")));
+        query.add("expire", expirationTime.toString()); // ISO-8601
 
+        final String jwtString = getFromAPI("/v2/createsubtoken", query, token, new TypeReference<GW2CreateSubToken>() {}).subtoken();
         final Set<Gw2ApiPermission> gw2ApiPermissions;
         try {
             final JWT jwt = JWTParser.parse(jwtString);
@@ -71,29 +69,18 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     @Override
-    public Gw2Item getItem(int itemId) {
-        return getFromAPI("/v2/items/" + itemId, null, Gw2Item.class);
-    }
-
-    @Override
     public List<Gw2Transaction> getCurrentBuyTransactions(String token) {
-        return getFromAPI("/v2/commerce/transactions/current/buys", token, new ParameterizedTypeReference<>() {});
+        return getFromAPI("/v2/commerce/transactions/current/buys", token, new TypeReference<List<Gw2Transaction>>() {});
     }
 
-    public <T> T getFromAPI(String url, String token, Class<T> clazz) {
-        return getFromAPI(url, token, exchangeByClass(clazz));
+    private <T> T getFromAPI(String url, String token, TypeReference<T> typeReference) {
+        return getFromAPI(url, EMPTY, token, typeReference);
     }
 
-    public <T> T getFromAPI(String url, String token, ParameterizedTypeReference<T> reference) {
-        return getFromAPI(url, token, exchangeByReference(reference));
-    }
-
-    private <T> T getFromAPI(String url, String token, Exchanger<T> exchanger) {
+    private <T> T getFromAPI(String url, MultiValueMap<String, String> query, String token, TypeReference<T> typeReference) {
         ResponseEntity<T> response;
         try {
-            response = exchanger.exchange(this.restTemplate, url, HttpMethod.GET, new HttpEntity<>(buildRequestHeaders(token)));
-        } catch (HttpClientErrorException e) {
-            response = ResponseEntity.status(e.getStatusCode()).build();
+            response = this.gw2ApiClient.get(url, query, buildRequestHeaders(token), typeReference);
         } catch (Exception e) {
             LOG.warn("unexpected exception during GW2-API-Request for url={}", url, e);
             throw new Gw2ApiServiceException(Gw2ApiServiceException.UNEXPECTED_EXCEPTION, HttpStatus.BAD_GATEWAY);
@@ -119,18 +106,4 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private record GW2CreateSubToken(@Value("subtoken") String subtoken) { }
-
-    @FunctionalInterface
-    private interface Exchanger<T> {
-
-        ResponseEntity<T> exchange(RestTemplate restTemplate, String url, HttpMethod method, HttpEntity<T> entity);
-    }
-
-    private static <T> Exchanger<T> exchangeByClass(Class<T> clazz) {
-        return (restTemplate, url, method, entity) ->  restTemplate.exchange(url, method, entity, clazz);
-    }
-
-    private static <T> Exchanger<T> exchangeByReference(ParameterizedTypeReference<T> reference) {
-        return (restTemplate, url, method, entity) ->  restTemplate.exchange(url, method, entity, reference);
-    }
 }
