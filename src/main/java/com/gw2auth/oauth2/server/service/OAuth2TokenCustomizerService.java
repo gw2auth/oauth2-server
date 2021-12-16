@@ -9,9 +9,11 @@ import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizatio
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsent;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
+import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.util.Batch;
+import com.gw2auth.oauth2.server.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -30,7 +32,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
@@ -152,10 +156,10 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
 
             final Instant expirationTime = minExpirationTime;
-            final Batch.Builder<Void> batch = Batch.builder();
+            final Batch.Builder<Map<String, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
 
             for (ApiToken authorizedRootToken : authorizedRootTokens) {
-                final Map<String, Object> tokenForJWT = new LinkedHashMap<>(3);
+                final Map<String, Object> tokenForJWT = new HashMap<>(3);
 
                 final String gw2AccountId = authorizedRootToken.gw2AccountId();
                 final String displayName = authorizedRootToken.displayName();
@@ -170,29 +174,18 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
                         final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
 
-                        batch.add(
-                                () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime),
-                                (accumulator, resultType, subToken, exception) -> {
-                                    // this will be executed on the calling thread again -> Transactional works here
+                        batch.add(() -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime), (accumulator, context) -> {
+                            try {
+                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
+                            } catch (ExecutionException | TimeoutException e) {
+                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
+                            }
 
-                                    if (resultType == Batch.ResultType.SUCCESS) {
-                                        if (subToken.permissions().equals(authorizedGw2ApiPermissions)) {
-                                            this.apiSubTokenRepository.save(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, subToken.value(), expirationTime));
-
-                                            tokenForJWT.put("token", subToken.value());
-                                            logging.log("Added Subtoken for the Root-API-Token named '%s'", displayName);
-                                        } else {
-                                            tokenForJWT.put("error", "Failed to obtain new subtoken");
-                                            logging.log("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName);
-                                        }
-                                    } else {
-                                        tokenForJWT.put("error", "Failed to obtain new subtoken");
-                                        logging.log("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName);
-                                    }
-
-                                    return accumulator;
-                                }
-                        );
+                            return accumulator;
+                        });
                     } else {
                         logging.log("The Root-API-Token named '%s' has less permissions than the authorization", displayName);
                     }
@@ -208,7 +201,29 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 tokensForJWT.put(gw2AccountId, tokenForJWT);
             }
 
-            batch.build().execute(() -> null, 5L, TimeUnit.SECONDS);
+            final Map<String, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(HashMap::new, 5L, TimeUnit.SECONDS);
+
+            for (Map.Entry<String, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
+                final String gw2AccountId = entry.getKey();
+                final Map<String, Object> tokenForJWT = tokensForJWT.get(gw2AccountId);
+                final String displayName = entry.getValue().v1().displayName();
+                final Gw2SubToken gw2SubToken = entry.getValue().v2();
+
+                if (gw2SubToken != null) {
+                    if (gw2SubToken.permissions().equals(authorizedGw2ApiPermissions)) {
+                        this.apiSubTokenRepository.save(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
+
+                        tokenForJWT.put("token", gw2SubToken.value());
+                        logging.log("Added Subtoken for the Root-API-Token named '%s'", displayName);
+                    } else {
+                        tokenForJWT.put("error", "Failed to obtain new subtoken");
+                        logging.log("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName);
+                    }
+                } else {
+                    tokenForJWT.put("error", "Failed to obtain new subtoken");
+                    logging.log("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName);
+                }
+            }
 
             customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
         }
