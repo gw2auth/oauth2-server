@@ -32,12 +32,16 @@ public interface ClientConsentLogRepository extends CrudRepository<ClientConsent
     @Modifying
     @Query("""
     DELETE FROM client_consent_logs
-    WHERE id IN (
-        SELECT id
+    WHERE account_id = :account_id
+    AND client_registration_id = :client_registration_id
+    AND timestamp <= (
+        SELECT timestamp
         FROM client_consent_logs
-        WHERE account_id = :account_id AND client_registration_id = :client_registration_id
+        WHERE account_id = :account_id
+        AND client_registration_id = :client_registration_id
         ORDER BY timestamp DESC
         OFFSET :keep_log_count
+        LIMIT 1
     )
     """)
     void deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(@Param("account_id") long accountId,
