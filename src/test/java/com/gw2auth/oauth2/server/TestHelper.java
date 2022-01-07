@@ -15,10 +15,19 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.shaded.json.JSONArray;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,12 +56,38 @@ public class TestHelper {
     @Autowired
     private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
 
+    public static String randomRootToken() {
+        return (UUID.randomUUID() + UUID.randomUUID().toString()).toUpperCase();
+    }
+
+    public static String createSubtokenJWT(String sub, Set<Gw2ApiPermission> permissions, Instant issuedAt, Duration expiresIn) {
+        final JSONArray jsonPermissions = new JSONArray();
+        permissions.stream().map(Gw2ApiPermission::gw2).forEach(jsonPermissions::add);
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .subject(sub)
+                .jwtID(UUID.randomUUID().toString())
+                .issueTime(new Date(issuedAt.toEpochMilli()))
+                .expirationTime(new Date(issuedAt.plus(expiresIn).toEpochMilli()))
+                .claim("permissions", jsonPermissions)
+                .build();
+
+        final SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256, JOSEObjectType.JWT, null, null, null, null, null, null, null, null, null, true,null, null), claims);
+        try {
+            signedJWT.sign(new MACSigner(new byte[32]));
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
+        return signedJWT.serialize();
+    }
+
     public ApiTokenEntity createApiToken(long accountId, String gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         return this.apiTokenRepository.save(new ApiTokenEntity(
                 accountId,
                 gw2AccountId,
                 Instant.now(),
-                UUID.randomUUID().toString(),
+                randomRootToken(),
                 gw2ApiPermissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()),
                 name
         ));

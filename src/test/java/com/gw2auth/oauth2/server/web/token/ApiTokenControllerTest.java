@@ -8,7 +8,6 @@ import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
@@ -18,6 +17,8 @@ import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationE
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.PlainJWT;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONObject;
@@ -160,7 +161,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiTokenInvalid(MockHttpSession session) throws Exception {
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
@@ -173,6 +174,38 @@ class ApiTokenControllerTest {
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andExpect(status().isBadRequest());
+    }
+
+    @WithGw2AuthLogin
+    public void addApiTokenInvalidRootTokenFormat(MockHttpSession session) throws Exception {
+        final String gw2ApiToken = TestHelper.randomRootToken() + "Hello";
+
+        // dont expect any request to the gw2 api
+        this.gw2RestServer.reset();
+
+        this.mockMvc.perform(
+                post("/api/token")
+                        .session(session)
+                        .with(csrf())
+                        .content(gw2ApiToken)
+        )
+                .andExpect(status().isBadRequest());
+    }
+
+    @WithGw2AuthLogin
+    public void addApiTokenInvalidSubTokenFormat(MockHttpSession session) throws Exception {
+        final String gw2ApiToken = new PlainJWT(new JWTClaimsSet.Builder().build()).serialize();
+
+        // dont expect any request to the gw2 api
+        this.gw2RestServer.reset();
+
+        this.mockMvc.perform(
+                        post("/api/token")
+                                .session(session)
+                                .with(csrf())
+                                .content(gw2ApiToken)
+                )
                 .andExpect(status().isBadRequest());
     }
 
@@ -204,7 +237,7 @@ class ApiTokenControllerTest {
         final String gw2AccountId = UUID.randomUUID().toString();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
@@ -238,7 +271,7 @@ class ApiTokenControllerTest {
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
         this.testHelper.createAccountVerification(otherUserAccountId, gw2AccountId);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
@@ -262,7 +295,7 @@ class ApiTokenControllerTest {
         final String gw2AccountId = UUID.randomUUID().toString();
         this.testHelper.createAccountVerification(accountId, gw2AccountId);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
@@ -291,7 +324,7 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void addApiToken(MockHttpSession session) throws Exception {
         final String gw2AccountId = UUID.randomUUID().toString();
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
@@ -464,7 +497,7 @@ class ApiTokenControllerTest {
         this.testHelper.createClientAuthorizationToken(accountId, authorizationIdA, gw2AccountId);
         this.testHelper.createClientAuthorizationToken(accountId, authorizationIdB, gw2AccountId);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
+        final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
         this.gw2RestServer.reset();
