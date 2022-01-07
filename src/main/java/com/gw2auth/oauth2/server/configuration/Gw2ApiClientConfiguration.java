@@ -20,6 +20,8 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration
 public class Gw2ApiClientConfiguration {
@@ -60,5 +62,10 @@ public class Gw2ApiClientConfiguration {
                 .withRegion(region)
                 .withClientConfiguration(CLIENT_CONFIGURATION)
                 .build();
+    }
+
+    @Bean("gw2-api-client-executor-service")
+    public ExecutorService gw2ApiClientExecutorService() {
+        return Executors.newCachedThreadPool();
     }
 }

@@ -15,6 +15,7 @@ import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -33,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -48,6 +50,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private final VerificationService verificationService;
     private final Gw2ApiService gw2APIService;
     private final ApiSubTokenRepository apiSubTokenRepository;
+    private final ExecutorService gw2ApiClientExecutorService;
     private volatile Clock clock;
 
     @Autowired
@@ -56,7 +59,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                                         ClientConsentService clientConsentService,
                                         VerificationService verificationService,
                                         Gw2ApiService gw2APIService,
-                                        ApiSubTokenRepository apiSubTokenRepository) {
+                                        ApiSubTokenRepository apiSubTokenRepository,
+                                        @Qualifier("gw2-api-client-executor-service") ExecutorService gw2ApiClientExecutorService) {
 
         this.apiTokenService = apiTokenService;
         this.clientAuthorizationService = clientAuthorizationService;
@@ -64,6 +68,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         this.verificationService = verificationService;
         this.gw2APIService = gw2APIService;
         this.apiSubTokenRepository = apiSubTokenRepository;
+        this.gw2ApiClientExecutorService = gw2ApiClientExecutorService;
         this.clock = Clock.systemDefaultZone();
     }
 
@@ -209,7 +214,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 tokensForJWT.put(gw2AccountId, tokenForJWT);
             }
 
-            final Map<String, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(HashMap::new, 5L, TimeUnit.SECONDS);
+            final Map<String, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
 
             for (Map.Entry<String, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
                 final String gw2AccountId = entry.getKey();

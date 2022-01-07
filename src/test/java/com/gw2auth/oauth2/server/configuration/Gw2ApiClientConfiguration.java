@@ -9,9 +9,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
+import org.testcontainers.shaded.com.google.common.util.concurrent.MoreExecutors;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 @Configuration
 public class Gw2ApiClientConfiguration {
@@ -30,5 +32,11 @@ public class Gw2ApiClientConfiguration {
     @Bean
     public Gw2ApiClient gw2ApiClient(@Qualifier("gw2-rest-template") RestTemplate gw2RestTemplate) {
         return new ChainedGw2ApiClient(List.of(new RestOperationsGw2ApiClient(gw2RestTemplate)), Duration.ofMinutes(1L));
+    }
+
+    @Primary
+    @Bean("gw2-api-client-executor-service")
+    public ExecutorService gw2ApiClientExecutorService() {
+        return MoreExecutors.newDirectExecutorService();
     }
 }
