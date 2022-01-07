@@ -2,7 +2,7 @@ import {Component, Inject, OnDestroy, OnInit} from '@angular/core';
 import {TokenService} from '../../../common/token.service';
 import { faAngleDoubleDown, faAngleDoubleUp, faEdit, faTrashAlt, faCheck, faBan, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import {catchError} from 'rxjs/operators';
-import {of} from 'rxjs';
+import {firstValueFrom, of} from 'rxjs';
 import {ToastService} from '../../../toast/toast.service';
 import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {Token} from '../../../common/token.model';
@@ -81,7 +81,7 @@ export class TokenComponent implements OnInit, OnDestroy {
             if (updatedDisplayName == undefined && updatedApiToken == undefined) {
                 return Promise.reject(false);
             } else {
-                return this.tokenService.updateToken(token.gw2AccountId, updatedDisplayName, updatedApiToken).toPromise();
+                return firstValueFrom(this.tokenService.updateToken(token.gw2AccountId, updatedDisplayName, updatedApiToken));
             }
         })
         .then((updatedToken: Token) => {

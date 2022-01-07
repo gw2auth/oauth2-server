@@ -7,6 +7,7 @@ import {ClientRegistrationPublic} from '../client/client-registration.model';
 import {DeleteAuthorizationModalComponent} from './delete-authorization-modal.component';
 import {ClientAuthorizationService} from './client-authorization.service';
 import {ToastService} from '../../../toast/toast.service';
+import { firstValueFrom } from 'rxjs';
 
 
 @Component({
@@ -90,7 +91,7 @@ export class AuthorizationModalComponent {
         modalRef.result
             .then((confirmed: boolean) => {
                 if (confirmed) {
-                    return this.clientAuthorizationService.deleteClientAuthorization(id).toPromise().then(() => null);
+                    return firstValueFrom(this.clientAuthorizationService.deleteClientAuthorization(id)).then(() => null);
                 } else {
                     return Promise.reject(false);
                 }

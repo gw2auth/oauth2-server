@@ -7,6 +7,7 @@ import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {ToastService} from '../../../toast/toast.service';
 import {ApiError} from '../../../common/common.model';
 import {DOCUMENT} from '@angular/common';
+import {firstValueFrom} from 'rxjs';
 
 
 @Component({
@@ -47,7 +48,7 @@ export class ClientComponent implements OnInit {
     modalRef.result
         .then((confirmed: boolean) => {
           if (confirmed) {
-            return this.clientRegistrationService.deleteClientRegistration(clientId).toPromise().then(() => null);
+            return firstValueFrom(this.clientRegistrationService.deleteClientRegistration(clientId)).then(() => null);
           } else {
             return Promise.reject();
           }
