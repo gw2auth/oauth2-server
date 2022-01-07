@@ -2,10 +2,7 @@ package com.gw2auth.oauth2.server.web.verification;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gw2auth.oauth2.server.Gw2AuthLoginExtension;
-import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
-import com.gw2auth.oauth2.server.TruncateTablesExtension;
-import com.gw2auth.oauth2.server.WithGw2AuthLogin;
+import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
@@ -18,9 +15,6 @@ import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.verification.VerificationChallengeStart;
 import com.gw2auth.oauth2.server.service.verification.VerificationServiceImpl;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
-import com.nimbusds.jose.shaded.json.JSONArray;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.PlainJWT;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONObject;
@@ -44,7 +38,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -73,6 +70,9 @@ class VerificationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private TestHelper testHelper;
 
     @Autowired
     private Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
@@ -240,7 +240,7 @@ class VerificationControllerTest {
 
         final String gw2AccountId = UUID.randomUUID().toString();
         final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -272,8 +272,8 @@ class VerificationControllerTest {
         this.verificationService.setClock(testingClock);
 
         final String gw2AccountId = UUID.randomUUID().toString();
-        final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -325,7 +325,7 @@ class VerificationControllerTest {
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        this.apiTokenRepository.save(new ApiTokenEntity(otherUserAccountId, gw2AccountId, Instant.now(), UUID.randomUUID().toString(), Set.of(), "Name"));
+        this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 
@@ -333,8 +333,8 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -391,7 +391,7 @@ class VerificationControllerTest {
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        this.apiTokenRepository.save(new ApiTokenEntity(otherUserAccountId, gw2AccountId, Instant.now(), UUID.randomUUID().toString(), Set.of(), "Name"));
+        this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 
@@ -399,8 +399,8 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // start the challenge
         final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 1L);
@@ -450,8 +450,8 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.TRADINGPOST), testingClock.instant(), Duration.ofMinutes(15L));
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.TRADINGPOST), testingClock.instant(), Duration.ofMinutes(15L));
 
         // start the challenge
         final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 2L);
@@ -620,8 +620,8 @@ class VerificationControllerTest {
         this.verificationService.setClock(testingClock);
 
         final String gw2AccountId = UUID.randomUUID().toString();
-        final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -682,7 +682,7 @@ class VerificationControllerTest {
 
         final String gw2AccountId = UUID.randomUUID().toString();
         final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // insert the verification
         this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
@@ -782,20 +782,5 @@ class VerificationControllerTest {
 
                     return response;
                 });
-    }
-
-    private String createSubtokenJWT(String sub, Set<Gw2ApiPermission> permissions, Instant issuedAt, Duration expiresIn) {
-        final JSONArray jsonPermissions = new JSONArray();
-        permissions.stream().map(Gw2ApiPermission::gw2).forEach(jsonPermissions::add);
-
-        JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(sub)
-                .jwtID(UUID.randomUUID().toString())
-                .issueTime(new Date(issuedAt.toEpochMilli()))
-                .expirationTime(new Date(issuedAt.plus(expiresIn).toEpochMilli()))
-                .claim("permissions", jsonPermissions)
-                .build();
-
-        return new PlainJWT(claims).serialize();
     }
 }

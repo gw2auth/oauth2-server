@@ -3,6 +3,8 @@ package com.gw2auth.oauth2.server.service.gw2;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.gw2.client.Gw2ApiClient;
+import com.nimbusds.jose.Header;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import org.slf4j.Logger;
@@ -21,13 +23,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
-    private static final MultiValueMap<String, String> EMPTY = new LinkedMultiValueMap<>();
+    private static final Pattern ROOT_TOKEN_PATTERN = Pattern.compile("^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{20}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$");
 
     private final Gw2ApiClient gw2ApiClient;
 
@@ -74,10 +77,14 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private <T> T getFromAPI(String url, String token, TypeReference<T> typeReference) {
-        return getFromAPI(url, EMPTY, token, typeReference);
+        return getFromAPI(url, HttpHeaders.EMPTY, token, typeReference);
     }
 
     private <T> T getFromAPI(String url, MultiValueMap<String, String> query, String token, TypeReference<T> typeReference) {
+        if (token != null && !validateToken(token)) {
+            throw new Gw2ApiServiceException(Gw2ApiServiceException.INVALID_API_TOKEN, HttpStatus.BAD_REQUEST);
+        }
+
         ResponseEntity<T> response;
         try {
             response = this.gw2ApiClient.get(url, query, buildRequestHeaders(token), typeReference);
@@ -96,13 +103,29 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private static HttpHeaders buildRequestHeaders(String token) {
-        final HttpHeaders headers = new HttpHeaders();
-
-        if (token != null) {
-            headers.add("Authorization", "Bearer " + token);
+        if (token == null) {
+            return HttpHeaders.EMPTY;
         }
 
+        final HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + token);
+
         return headers;
+    }
+
+    private static boolean validateToken(String token) {
+        if (ROOT_TOKEN_PATTERN.matcher(token).matches()) {
+            return true;
+        } else {
+            final Header jwtHeader;
+            try {
+                jwtHeader = JWTParser.parse(token).getHeader();
+            } catch (ParseException e) {
+                return false;
+            }
+
+            return jwtHeader.getAlgorithm().getName().equals("HS256") && jwtHeader.getType().equals(JOSEObjectType.JWT);
+        }
     }
 
     private record GW2CreateSubToken(@Value("subtoken") String subtoken) { }
