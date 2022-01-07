@@ -15,6 +15,7 @@ import {DeleteApplicationModalComponent} from './delete-application-modal.compon
 import {ClientAuthorization} from './client-authorization.model';
 import {ClientAuthorizationService} from './client-authorization.service';
 import {AuthorizationModalComponent} from './authorization-modal.component';
+import {firstValueFrom} from 'rxjs';
 
 
 class InternalClientConsent {
@@ -82,7 +83,7 @@ export class ApplicationComponent implements OnInit {
     modalRef.result
         .then((confirmed: boolean) => {
           if (confirmed) {
-            return this.clientConsentService.deleteClientConsent(clientId).toPromise().then(() => null);
+            return firstValueFrom(this.clientConsentService.deleteClientConsent(clientId)).then(() => null);
           } else {
             return Promise.reject(false);
           }

@@ -8,6 +8,7 @@ import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {ToastService} from '../../../toast/toast.service';
 import {AuthService} from '../../../auth.service';
+import {firstValueFrom} from 'rxjs';
 
 
 @Component({
@@ -64,7 +65,7 @@ export class SettingsComponent implements OnInit {
     modalRef.result
         .then((confirmed: boolean) => {
           if (confirmed) {
-            return this.accountService.deleteAccountFederation(issuer, idAtIssuer).toPromise();
+            return firstValueFrom(this.accountService.deleteAccountFederation(issuer, idAtIssuer));
           } else {
             return Promise.reject(false);
           }
@@ -96,7 +97,7 @@ export class SettingsComponent implements OnInit {
     modalRef.result
         .then((confirmed: boolean) => {
           if (confirmed) {
-            return this.accountService.deleteAccount().toPromise();
+            return firstValueFrom(this.accountService.deleteAccount());
           } else {
             return Promise.reject(false);
           }
