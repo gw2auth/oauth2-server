@@ -133,29 +133,37 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
             final int gw2ApiPermissionsBitSet = Gw2ApiPermission.toBitSet(authorizedGw2ApiPermissions);
             final List<ApiSubTokenEntity> savedSubTokens = this.apiSubTokenRepository.findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(accountId, authorizedGw2AccountIds, gw2ApiPermissionsBitSet);
+            final Instant atLeastValidUntil = this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME);
             final Map<String, ApiSubTokenEntity> savedSubTokenByGw2AccountId = new HashMap<>(savedSubTokens.size());
-            Instant minExpirationTime = null;
+            final Map<Instant, Integer> savedSubTokenCountByExpirationTime = new HashMap<>(savedSubTokens.size());
+            Instant expirationTimeWithMostSavedSubTokens = null;
+
+            // check all saved subtokens with the same permissions as this authorization
+            // find the expiration time for which the most subtokens are still valid
 
             for (ApiSubTokenEntity savedSubToken : savedSubTokens) {
-                savedSubTokenByGw2AccountId.put(savedSubToken.gw2AccountId(), savedSubToken);
+                if (savedSubToken.expirationTime().isAfter(atLeastValidUntil)) {
+                    savedSubTokenByGw2AccountId.put(savedSubToken.gw2AccountId(), savedSubToken);
 
-                if (minExpirationTime == null || minExpirationTime.isAfter(savedSubToken.expirationTime())) {
-                    minExpirationTime = savedSubToken.expirationTime();
+                    final int groupCount = savedSubTokenCountByExpirationTime.merge(savedSubToken.expirationTime(), 1, Integer::sum);
+
+                    if (expirationTimeWithMostSavedSubTokens == null || groupCount > savedSubTokenCountByExpirationTime.get(expirationTimeWithMostSavedSubTokens)) {
+                        expirationTimeWithMostSavedSubTokens = savedSubToken.expirationTime();
+                    }
                 }
             }
 
-            final Map<String, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
+            final Instant expirationTime;
 
-            // check if all authorized tokens are still valid for at least the configured amount of time
-            // if so, dont request new subtokens from the gw2 api but just respond with the existing ones
-
-            if (minExpirationTime != null && minExpirationTime.isAfter(this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME))) {
-                ctx.getClaims().expiresAt(minExpirationTime);
+            if (expirationTimeWithMostSavedSubTokens != null) {
+                // if existing subtokens which are still valid for at least AUTHORIZED_TOKEN_MIN_EXCESS_TIME could be found, use this expiration time
+                ctx.getClaims().expiresAt(expirationTimeWithMostSavedSubTokens);
+                expirationTime = expirationTimeWithMostSavedSubTokens;
             } else {
-                minExpirationTime = ctx.getClaims().build().getExpiresAt();
+                expirationTime = ctx.getClaims().build().getExpiresAt();
             }
 
-            final Instant expirationTime = minExpirationTime;
+            final Map<String, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
             final Batch.Builder<Map<String, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
 
             for (ApiToken authorizedRootToken : authorizedRootTokens) {
