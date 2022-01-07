@@ -113,30 +113,33 @@ export class TokenComponent implements OnInit, OnDestroy {
     modalRef.componentInstance.token = token;
 
     const gw2AccountId = token.gw2AccountId;
+    modalRef.result
+        .then((confirmed: boolean) => {
+            if (confirmed) {
+                return firstValueFrom(this.tokenService.deleteToken(gw2AccountId)).then(() => null);
+            } else {
+                return Promise.reject(false);
+            }
+        })
+        .then((apiError: ApiError | null) => {
+            if (apiError == null) {
+                this.toastService.show('API-Token deleted', 'The API-Token has been deleted successfully');
+                this.tokens = this.tokens.filter((v: Token) => v.gw2AccountId != gw2AccountId);
 
-      modalRef.result
-          .then((confirmed: boolean) => {
-              if (confirmed) {
-                  return this.tokenService.deleteToken(gw2AccountId).toPromise().then(() => null);
-              } else {
-                  return Promise.reject(false);
-              }
-          })
-          .then((apiError: ApiError | null) => {
-              if (apiError == null) {
-                  this.toastService.show('API-Token deleted', 'The API-Token has been deleted successfully');
-                  this.tokens = this.tokens.filter((v: Token) => v.gw2AccountId != gw2AccountId);
+                if (this.tokens.length < 1) {
+                    this.tokensState = 0;
+                }
 
-                  this.sendNotificationToOpener(Type.DELETE_TOKEN, token);
-              } else {
-                  this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed: ' + apiError.message);
-              }
-          })
-          .catch((e) => {
-              if (e) {
-                  this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed for an unknown reason');
-              }
-          });
+                this.sendNotificationToOpener(Type.DELETE_TOKEN, token);
+            } else {
+                this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed: ' + apiError.message);
+            }
+        })
+        .catch((e) => {
+            if (e) {
+                this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed for an unknown reason');
+            }
+        });
   }
 
   onAddTokenClick(): void {
@@ -153,6 +156,7 @@ export class TokenComponent implements OnInit, OnDestroy {
                   this.toastService.show('API-Token added', 'The API-Token was added to your account successfully');
                   this.addTokenValue = '';
                   this.tokens.push(token);
+                  this.tokensState = 1;
 
                   this.sendNotificationToOpener(Type.ADD_TOKEN, token);
               }
