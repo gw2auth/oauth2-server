@@ -9,3 +9,17 @@ server:
   forward-headers-strategy: native
   tomcat:
     redirect-context-root: false
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        exclude: prometheus
+    web:
+      exposure:
+        include: prometheus
+  server:
+    port: 8090
+  endpoint:
+    prometheus:
+      enabled: true

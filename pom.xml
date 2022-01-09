@@ -6,7 +6,7 @@
 
     <groupId>com.gw2auth</groupId>
     <artifactId>oauth2-server</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <packaging>jar</packaging>
 
     <parent>
@@ -105,6 +105,11 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-lambda</artifactId>
             <version>1.12.134</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <!-- endregion -->
 

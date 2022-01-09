@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.configuration;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -34,7 +35,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    @Order(1)
+    @Order(2)
     public SecurityFilterChain frontendHttpSecurityFilterChain(HttpSecurity http,
                                                                Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer,
                                                                Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer) throws Exception {
@@ -60,7 +61,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    @Order(0)
+    @Order(1)
     public SecurityFilterChain apiHttpSecurityFilterChain(HttpSecurity http, Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer) throws Exception {
         http
                 .antMatcher("/api/**")
@@ -70,6 +71,17 @@ public class SecurityConfiguration {
                             .anyRequest().authenticated();
                 })
                 .csrf(csrfCustomizer);
+
+        return http.build();
+    }
+
+    @Bean
+    @ConditionalOnExpression("${management.endpoint.prometheus.enabled:false} && ${management.server.port:${server.port:8080}} != ${server.port:8080}")
+    @Order(0)
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .antMatcher("/actuator/prometheus")
+                .authorizeRequests().anyRequest().permitAll();
 
         return http.build();
     }
