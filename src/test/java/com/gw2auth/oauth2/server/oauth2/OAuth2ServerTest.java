@@ -45,6 +45,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2TokenType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
@@ -963,6 +964,210 @@ public class OAuth2ServerTest {
         ), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.UNLOCKS));
     }
 
+    @WithGw2AuthLogin
+    public void revokeAccessToken(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        result = performRetrieveTokenByCodeAndExpectValid(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB)
+        ).andReturn();
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        // revoke the access_token
+        final String accessToken = tokenResponse.get("access_token").textValue();
+
+        this.mockMvc.perform(
+                post("/oauth2/revoke")
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
+                        .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
+                        .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
+                        .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
+        )
+                .andExpect(status().isOk());
+
+        // database should still contain the authorization
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(1, clientAuthorizationEntities.size());
+    }
+
+    @WithGw2AuthLogin
+    public void revokeAccessTokenWithInvalidClientSecret(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        result = performRetrieveTokenByCodeAndExpectValid(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB)
+        ).andReturn();
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        // revoke the access_token
+        final String accessToken = tokenResponse.get("access_token").textValue();
+
+        this.mockMvc.perform(
+                        post("/oauth2/revoke")
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
+                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
+                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
+                                .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
+                )
+                .andExpect(status().isUnauthorized());
+
+        // database should still contain the authorization
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(1, clientAuthorizationEntities.size());
+    }
+
+    @WithGw2AuthLogin
+    public void revokeRefreshToken(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        result = performRetrieveTokenByCodeAndExpectValid(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB)
+        ).andReturn();
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        // revoke the refresh_token
+        final String refreshToken = tokenResponse.get("refresh_token").textValue();
+
+        this.mockMvc.perform(
+                        post("/oauth2/revoke")
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
+                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
+                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
+                                .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
+                )
+                .andExpect(status().isOk());
+
+        // database should not contain the authorization anymore
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(0, clientAuthorizationEntities.size());
+    }
+
+    @WithGw2AuthLogin
+    public void revokeRefreshTokenWithInvalidClientSecret(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT("GW2AccIdFirst", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT("GW2AccIdSecond", Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        result = performRetrieveTokenByCodeAndExpectValid(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB)
+        ).andReturn();
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                "GW2AccIdFirst", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                "GW2AccIdSecond", new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        // revoke the refresh_token
+        final String refreshToken = tokenResponse.get("refresh_token").textValue();
+
+        this.mockMvc.perform(
+                        post("/oauth2/revoke")
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
+                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
+                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
+                                .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
+                )
+                .andExpect(status().isUnauthorized());
+
+        // database should still contain the authorization
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(1, clientAuthorizationEntities.size());
+    }
+
     private ResultActions performRetrieveTokensByRefreshTokenAndExpectValid(ClientRegistrationCreation clientRegistrationCreation, String refreshToken) throws Exception {
         return performRetrieveTokensByRefreshToken(clientRegistrationCreation, refreshToken)
                 .andExpectAll(expectValidTokenResponse());
@@ -1110,7 +1315,11 @@ public class OAuth2ServerTest {
 
     private JsonNode assertTokenResponse(MvcResult result, Supplier<Map<String, com.nimbusds.jose.shaded.json.JSONObject>> expectedTokenSupplier, Set<Gw2ApiPermission> expectedGw2ApiPermissions) throws Exception {
         final JsonNode tokenResponse = new ObjectMapper().readTree(result.getResponse().getContentAsString());
+
+        // access token
         final JWT accessToken = JWTParser.parse(tokenResponse.get("access_token").textValue());
+        assertNotNull(accessToken.getJWTClaimsSet().getIssueTime());
+        assertNotNull(accessToken.getJWTClaimsSet().getExpirationTime());
 
         final Set<String> expectedGw2ApiPermissionStrs = expectedGw2ApiPermissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet());
 
@@ -1128,6 +1337,10 @@ public class OAuth2ServerTest {
         }
 
         assertTrue(expectedTokens.isEmpty());
+
+        // refresh token
+        assertTrue(tokenResponse.has("refresh_token"));
+        assertTrue(tokenResponse.get("refresh_token").isTextual());
 
         return tokenResponse;
     }

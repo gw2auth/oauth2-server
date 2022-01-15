@@ -3,7 +3,6 @@ package com.gw2auth.oauth2.server.service.client.authorization;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.gw2auth.oauth2.server.adapt.Java9CollectionJackson2Module;
 import com.gw2auth.oauth2.server.adapt.LinkedHashSetJackson2Module;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
@@ -159,6 +158,11 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     public void save(OAuth2Authorization authorization) {
         final long accountId = Long.parseLong(authorization.getPrincipalName());
         final long clientRegistrationId = Long.parseLong(authorization.getRegisteredClientId());
+
+        if (authorization.getRefreshToken() != null && Boolean.TRUE.equals(authorization.getRefreshToken().getMetadata(OAuth2Authorization.Token.INVALIDATED_METADATA_NAME))) {
+            deleteClientAuthorization(accountId, authorization.getId());
+            return;
+        }
 
         this.clientConsentService.createEmptyClientConsentIfNotExists(accountId, clientRegistrationId);
 
