@@ -206,7 +206,7 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestWithExistingConsentAndConsentForce(MockHttpSession session) throws Exception {
+    public void authorizationCodeRequestWithExistingConsentAndPromptConsent(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
@@ -918,11 +918,8 @@ public class OAuth2ServerTest {
         final JsonNode firstAuthorizationResponse = tokenResponse;
 
         // perform a new authorization
-        // perform authorization request (which should redirect to the consent page)
+        // perform authorization request (which should redirect to application)
         result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), false).andReturn();
-
-        // submit the consent
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent is unchanged
         clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -1372,15 +1369,15 @@ public class OAuth2ServerTest {
         return performAuthorizeWithClient(session, clientRegistration, scopes, false);
     }
 
-    private ResultActions performAuthorizeWithClient(MockHttpSession session, ClientRegistration clientRegistration, List<String> scopes, boolean force) throws Exception {
+    private ResultActions performAuthorizeWithClient(MockHttpSession session, ClientRegistration clientRegistration, List<String> scopes, boolean promptConsent) throws Exception {
         MockHttpServletRequestBuilder builder = get("/oauth2/authorize");
 
         if (session != null) {
             builder = builder.session(session);
         }
 
-        if (force) {
-            builder = builder.queryParam("consent", "force");
+        if (promptConsent) {
+            builder = builder.queryParam("prompt", "consent");
         }
 
         return this.mockMvc.perform(

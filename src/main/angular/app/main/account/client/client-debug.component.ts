@@ -18,6 +18,7 @@ export class ClientDebugComponent implements OnInit {
 
   gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
   selectedGw2ApiPermissions = new Set<Gw2ApiPermission>();
+  forceConsentPrompt = true;
   requestVerifiedInformation = true;
   authorizationName = '';
 
@@ -59,6 +60,10 @@ export class ClientDebugComponent implements OnInit {
     query.set('scope', scopes.join(' '));
     query.set('redirect_uri', clientRegistration.redirectUri);
     query.set('state', clientRegistration.clientId);
+
+    if (this.forceConsentPrompt) {
+      query.set('prompt', 'consent');
+    }
 
     if (this.authorizationName.length > 0) {
       query.set('name', this.authorizationName);

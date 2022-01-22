@@ -99,7 +99,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     public List<ClientAuthorization> getClientAuthorizations(long accountId, String clientId) {
         final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientId(accountId, clientId).stream()
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
-                .collect(Collectors.toList());
+                .toList();
 
         final Set<String> clientAuthorizationIds = clientAuthorizationEntities.stream()
                 .map(ClientAuthorizationEntity::id)
@@ -148,7 +148,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         return this.clientAuthorizationRepository.deleteByAccountIdAndId(accountId, id);
     }
 
-    private static boolean isValidAuthorization(ClientAuthorizationEntity entity) {
+    public static boolean isValidAuthorization(ClientAuthorizationEntity entity) {
         return entity.authorizedScopes() != null && !entity.authorizedScopes().isEmpty();
     }
 
@@ -217,30 +217,43 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                 refreshToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null)
         ));
 
-        if (this.authorizationCodeParamAccessor.isInConsentContext()) {
-            try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.AUTHORIZATION)) {
-                final Set<String> authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
-                        .map(Map.Entry::getKey)
-                        .filter((v) -> v.startsWith("token:"))
-                        .map((v) -> v.replaceFirst("token:", ""))
-                        .collect(Collectors.toSet());
+        if (this.authorizationCodeParamAccessor.isInCodeRequest()) {
+            final String copyGw2AccountIdsFromClientAuthorizationId = this.authorizationCodeParamAccessor.<String>getValue("COPY_FROM_CLIENT_AUTHORIZATION_ID").orElse(null);
 
-                if (authorizedTokenGw2AccountIds.isEmpty()) {
-                    throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+            if (copyGw2AccountIdsFromClientAuthorizationId != null || this.authorizationCodeParamAccessor.isInConsentContext()) {
+                try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.AUTHORIZATION)) {
+                    final Set<String> authorizedTokenGw2AccountIds;
+
+                    if (copyGw2AccountIdsFromClientAuthorizationId != null) {
+                        logging.log("Using API-Tokens of existing authorization for same client and scopes");
+                        authorizedTokenGw2AccountIds = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, copyGw2AccountIdsFromClientAuthorizationId).stream()
+                                .map(ClientAuthorizationTokenEntity::gw2AccountId)
+                                .collect(Collectors.toSet());
+                    } else {
+                        authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
+                                .map(Map.Entry::getKey)
+                                .filter((v) -> v.startsWith("token:"))
+                                .map((v) -> v.replaceFirst("token:", ""))
+                                .collect(Collectors.toSet());
+                    }
+
+                    if (authorizedTokenGw2AccountIds.isEmpty()) {
+                        throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+                    }
+
+                    final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
+
+                    for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
+                        tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationEntity.id(), authorizedTokenGw2AccountId));
+                    }
+
+                    this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorizationEntity.id());
+                    this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
+
+                    logging.log("New authorization with name '%s' (id %s)", clientAuthorizationEntity.displayName(), clientAuthorizationEntity.id());
+                    logging.log("Authorized scopes for this authorization: %s", clientAuthorizationEntity.authorizedScopes());
+                    logging.log("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size());
                 }
-
-                final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
-
-                for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-                    tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationEntity.id(), authorizedTokenGw2AccountId));
-                }
-
-                this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorizationEntity.id());
-                this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
-
-                logging.log("New authorization with name '%s' (id %s)", clientAuthorizationEntity.displayName(), clientAuthorizationEntity.id());
-                logging.log("Authorized scopes for this authorization: %s", clientAuthorizationEntity.authorizedScopes());
-                logging.log("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size());
             }
         }
     }

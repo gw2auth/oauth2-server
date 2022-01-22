@@ -1,10 +1,13 @@
 package com.gw2auth.oauth2.server.service.client.consent;
 
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,22 +29,26 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     private final ClientConsentRepository clientConsentRepository;
     private final ClientConsentLogRepository clientConsentLogRepository;
+    private final ClientAuthorizationRepository clientAuthorizationRepository;
     private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
 
     public ClientConsentServiceImpl(ClientConsentRepository clientConsentRepository,
                                     ClientConsentLogRepository clientConsentLogRepository,
+                                    ClientAuthorizationRepository clientAuthorizationRepository,
                                     AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
 
         this.clientConsentRepository = clientConsentRepository;
         this.clientConsentLogRepository = clientConsentLogRepository;
+        this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
     }
 
     @Autowired
     public ClientConsentServiceImpl(ClientConsentRepository clientConsentRepository,
-                                    ClientConsentLogRepository clientConsentLogRepository) {
+                                    ClientConsentLogRepository clientConsentLogRepository,
+                                    ClientAuthorizationRepository clientAuthorizationRepository) {
 
-        this(clientConsentRepository, clientConsentLogRepository, AuthorizationCodeParamAccessor.DEFAULT);
+        this(clientConsentRepository, clientConsentLogRepository, clientAuthorizationRepository, AuthorizationCodeParamAccessor.DEFAULT);
     }
 
     @Override
@@ -121,15 +129,30 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     }
 
     @Override
-    public OAuth2AuthorizationConsent findById(String _registeredClientId, String principalName) {
-        if (this.authorizationCodeParamAccessor.isInCodeRequest()) {
-            return null;
+    public OAuth2AuthorizationConsent findById(String registeredClientId, String principalName) {
+        final long accountId = Long.parseLong(principalName);
+        final long clientRegistrationId = Long.parseLong(registeredClientId);
+
+        if (this.authorizationCodeParamAccessor.isInCodeRequest() && !this.authorizationCodeParamAccessor.isInConsentContext()) {
+            if (this.authorizationCodeParamAccessor.getAdditionalParameters().filter((e) -> e.getKey().equals("prompt")).map(Map.Entry::getValue).anyMatch(Predicate.isEqual("consent"))) {
+                return null;
+            }
+
+            final String copyGw2AccountIdsFromClientAuthorizationId = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).stream()
+                    .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
+                    .filter((v) -> v.authorizedScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes()))
+                    .max(Comparator.comparing(ClientAuthorizationEntity::creationTime))
+                    .map(ClientAuthorizationEntity::id)
+                    .orElse(null);
+
+            if (copyGw2AccountIdsFromClientAuthorizationId == null) {
+                return null;
+            }
+
+            this.authorizationCodeParamAccessor.putValue("COPY_FROM_CLIENT_AUTHORIZATION_ID", copyGw2AccountIdsFromClientAuthorizationId);
         }
 
-        final long accountId = Long.parseLong(principalName);
-        final long registeredClientId = Long.parseLong(_registeredClientId);
-
-        return this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, registeredClientId)
+        return this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                 .filter(ClientConsentServiceImpl::isAuthorized)
                 .map((entity) -> {
                     final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(Long.toString(entity.clientRegistrationId()), Long.toString(entity.accountId()));
