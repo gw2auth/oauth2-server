@@ -5,6 +5,7 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -32,6 +33,16 @@ public interface AuthorizationCodeParamAccessor {
         }
 
         @Override
+        public void putValue(String key, Object value) {
+            CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.putValue(key, value);
+        }
+
+        @Override
+        public <T> Optional<T> getValue(String key) {
+            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getValue(key);
+        }
+
+        @Override
         public OAuth2AuthorizationCodeRequestAuthenticationException error(OAuth2Error error) {
             return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.error(error);
         }
@@ -41,5 +52,7 @@ public interface AuthorizationCodeParamAccessor {
     boolean isInCodeRequest();
     boolean isInConsentContext();
     Set<String> getRequestedScopes();
+    void putValue(String key, Object value);
+    <T> Optional<T> getValue(String key);
     OAuth2AuthorizationCodeRequestAuthenticationException error(OAuth2Error error);
 }

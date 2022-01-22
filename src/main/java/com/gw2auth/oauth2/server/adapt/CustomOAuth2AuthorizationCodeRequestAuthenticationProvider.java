@@ -19,14 +19,15 @@ import org.springframework.security.oauth2.server.authorization.authentication.O
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
 public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implements AuthenticationProvider {
 
-    private static final ThreadLocal<CustomOAuth2AuthorizationCodeRequestAuthenticationProvider> CONTEXT_SELF = new ThreadLocal<>();
-    private static final ThreadLocal<OAuth2AuthorizationCodeRequestAuthenticationToken> CONTEXT_TOKEN = new ThreadLocal<>();
+    private static final ThreadLocal<Map<String, Object>> CONTEXT_MAP = new ThreadLocal<>();
 
     private final OAuth2AuthorizationCodeRequestAuthenticationProvider delegate;
     private final OAuth2AuthorizationService oAuth2AuthorizationService;
@@ -40,13 +41,16 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         final OAuth2AuthorizationCodeRequestAuthenticationToken authorizationCodeRequestAuthentication = (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
 
-        CONTEXT_SELF.set(this);
-        CONTEXT_TOKEN.set(authorizationCodeRequestAuthentication);
+        final Map<String, Object> map = new HashMap<>();
+        map.put("SELF", this);
+        map.put("TOKEN", authorizationCodeRequestAuthentication);
+        map.put("VALUES", new HashMap<>());
+
+        CONTEXT_MAP.set(map);
         try {
             return this.delegate.authenticate(authorizationCodeRequestAuthentication);
         } finally {
-            CONTEXT_SELF.remove();
-            CONTEXT_TOKEN.remove();
+            CONTEXT_MAP.remove();
         }
     }
 
@@ -55,8 +59,12 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
         return this.delegate.supports(aClass);
     }
 
+    private static <T> T getContextValue(String key) {
+        return Optional.ofNullable(CONTEXT_MAP.get()).map((v) -> v.get(key)).map((v) -> (T) v).orElse(null);
+    }
+
     public static Stream<Map.Entry<String, Object>> getAdditionalParameters() {
-        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = getContextValue("TOKEN");
         if (contextToken == null) {
             throw new IllegalStateException();
         }
@@ -65,36 +73,58 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
     }
 
     public static boolean isInCodeRequest() {
-        return CONTEXT_TOKEN.get() != null;
+        return CONTEXT_MAP.get() != null;
     }
 
     public static boolean isInConsentContext() {
-        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = getContextValue("TOKEN");
         return contextToken != null && contextToken.isConsent();
     }
 
     public static Set<String> getRequestedScopes() {
-        final CustomOAuth2AuthorizationCodeRequestAuthenticationProvider self = CONTEXT_SELF.get();
-        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
-        if (self == null || contextToken == null) {
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = getContextValue("TOKEN");
+        if (contextToken == null) {
             throw new IllegalStateException();
         }
 
-        final OAuth2Authorization authorization = self.oAuth2AuthorizationService.findByToken(contextToken.getState(), new OAuth2TokenType(OAuth2ParameterNames.STATE));
-        if (authorization == null) {
+        if (isInConsentContext()) {
+            final CustomOAuth2AuthorizationCodeRequestAuthenticationProvider self = getContextValue("SELF");
+            final OAuth2Authorization authorization = self.oAuth2AuthorizationService.findByToken(contextToken.getState(), new OAuth2TokenType(OAuth2ParameterNames.STATE));
+            if (authorization == null) {
+                throw new IllegalStateException();
+            }
+
+            final OAuth2AuthorizationRequest authorizationRequest = authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
+            if (authorizationRequest == null) {
+                throw new IllegalStateException();
+            }
+
+            return authorizationRequest.getScopes();
+        } else {
+            return contextToken.getScopes();
+        }
+    }
+
+    public static void putValue(String key, Object value) {
+        final Map<String, Object> values = getContextValue("VALUES");
+        if (values == null) {
             throw new IllegalStateException();
         }
 
-        final OAuth2AuthorizationRequest authorizationRequest = authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
-        if (authorizationRequest == null) {
+        values.put(key, value);
+    }
+
+    public static <T> Optional<T> getValue(String key) {
+        final Map<String, Object> values = getContextValue("VALUES");
+        if (values == null) {
             throw new IllegalStateException();
         }
 
-        return authorizationRequest.getScopes();
+        return Optional.ofNullable(values.get(key)).map((v) -> (T) v);
     }
 
     public static OAuth2AuthorizationCodeRequestAuthenticationException error(OAuth2Error error) {
-        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = CONTEXT_TOKEN.get();
+        final OAuth2AuthorizationCodeRequestAuthenticationToken contextToken = getContextValue("TOKEN");
         if (contextToken == null) {
             throw new IllegalStateException();
         }

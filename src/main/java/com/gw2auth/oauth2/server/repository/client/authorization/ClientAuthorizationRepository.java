@@ -144,12 +144,10 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     Optional<ClientAuthorizationEntity> findByAccountIdAndId(@Param("account_id") long accountId, @Param("id") String id);
 
     @Query("""
-    SELECT auth.*
-    FROM client_authorizations auth
-    INNER JOIN client_registrations reg
-    ON auth.client_registration_id = reg.id
-    WHERE auth.account_id = :account_id
-    AND reg.id = :client_registration_id
+    SELECT *
+    FROM client_authorizations
+    WHERE account_id = :account_id
+    AND client_registration_id = :client_registration_id
     """)
     List<ClientAuthorizationEntity> findAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
 
