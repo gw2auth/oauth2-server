@@ -34,7 +34,12 @@
                                                 <div class="mb-3">You have no account with the required permissions</div>
                                             </ng-container>
                                             <ng-container *ngSwitchDefault>
-                                                <div class="mb-3">Select the GW2-Accounts you want the application give API access to</div>
+                                                <div class="mb-3">Grant access to the GW2-API for the following GW2-Accounts:</div>
+
+                                                <div *ngIf="info.apiTokensWithSufficientPermissions.length > 1" class="btn-group w-75 mb-3" role="group">
+                                                    <button class="btn btn-success w-50" [disabled]="isApiTokenCheckInProgress()" (click)="onSelectAllClick()"><fa-icon [icon]="faCheck"></fa-icon> All</button>
+                                                    <button class="btn btn-danger w-50" [disabled]="isApiTokenCheckInProgress()" (click)="onSelectNoneClick()"><fa-icon [icon]="faTimesCircle"></fa-icon> None</button>
+                                                </div>
 
                                                 <div class="list-group mb-3">
                                                     <button *ngFor="let apiToken of info.apiTokensWithSufficientPermissions"
