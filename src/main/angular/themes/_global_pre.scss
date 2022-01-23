@@ -3,3 +3,5 @@
 
 $theme-colors: map-merge($theme-colors, ("accent": $accent));
 $table-variants: map-merge($table-variants, ("accent": $accent));
+
+$btn-focus-width:             0px;

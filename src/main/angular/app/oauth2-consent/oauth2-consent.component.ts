@@ -3,7 +3,7 @@ import {MinimalToken, OAuth2ConsentInformation, OAuth2ConsentService} from './oa
 import {ActivatedRoute, Router} from '@angular/router';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
-import {faCheck, faSync} from '@fortawesome/free-solid-svg-icons';
+import {faCheck, faSync, faTimesCircle} from '@fortawesome/free-solid-svg-icons';
 import {Gw2ApiService} from '../common/gw2-api.service';
 import {WINDOW} from '../app.module';
 import {MessageEventData, Type} from '../common/window.model';
@@ -17,6 +17,7 @@ export class OAuth2ConsentComponent implements OnInit {
 
   faCheck = faCheck;
   faSync = faSync;
+  faTimesCircle = faTimesCircle;
 
   oauth2ConsentInformation: OAuth2ConsentInformation | null = null;
   gw2ApiTokenValidStatus = new Map<string, number>();
@@ -59,9 +60,36 @@ export class OAuth2ConsentComponent implements OnInit {
     }
   }
 
+  isApiTokenCheckInProgress(): boolean {
+    let apiTokenCheckInProgress = false;
+
+    for (let validStatus of this.gw2ApiTokenValidStatus.values()) {
+      if (validStatus == undefined || validStatus == -1) {
+        apiTokenCheckInProgress = true;
+        break;
+      }
+    }
+
+    return apiTokenCheckInProgress;
+  }
+
   getApiTokenValidStatus(token: MinimalToken): number {
     const validStatus = this.gw2ApiTokenValidStatus.get(token.gw2ApiToken);
     return validStatus == undefined ? -1 : validStatus;
+  }
+
+  onSelectAllClick(): void {
+    if (this.oauth2ConsentInformation) {
+      for (let apiToken of this.oauth2ConsentInformation.apiTokensWithSufficientPermissions) {
+        if (this.getApiTokenValidStatus(apiToken) == 1) {
+          this.selectedGw2AccountIds.add(apiToken.gw2AccountId);
+        }
+      }
+    }
+  }
+
+  onSelectNoneClick(): void {
+    this.selectedGw2AccountIds.clear();
   }
 
   onSelectedGw2AccountChange(gw2AccountId: string): void {
