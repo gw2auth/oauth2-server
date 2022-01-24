@@ -23,7 +23,7 @@ export class UnauthenticatedInterceptor implements HttpInterceptor {
         }
       }
 
-      return throwError(error);
+      return throwError(() => error);
     }));
   }
 

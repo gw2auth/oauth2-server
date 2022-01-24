@@ -19,11 +19,16 @@ public class RedirectUriValidatorImpl implements RedirectUriValidator {
 
     @Override
     public boolean validate(String redirectUri) {
-        final RegisteredClient registeredClient = RegisteredClient.withId("0")
-                .clientId("0")
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri(redirectUri)
-                .build();
+        final RegisteredClient registeredClient;
+        try {
+            registeredClient = RegisteredClient.withId("0")
+                    .clientId("0")
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .redirectUri(redirectUri)
+                    .build();
+        } catch (Exception e) {
+            return false;
+        }
 
         try {
             return (boolean) this.method.invoke(null, redirectUri, registeredClient);

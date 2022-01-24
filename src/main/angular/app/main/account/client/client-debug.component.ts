@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {ClientRegistrationPrivate} from './client-registration.model';
 import {ClientRegistrationService} from './client-registration.service';
 import {Gw2ApiPermission} from '../../../common/common.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
+import {DOCUMENT} from "@angular/common";
 
 
 @Component({
@@ -22,7 +23,7 @@ export class ClientDebugComponent implements OnInit {
   requestVerifiedInformation = true;
   authorizationName = '';
 
-  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly activatedRoute: ActivatedRoute) { }
+  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly activatedRoute: ActivatedRoute, @Inject(DOCUMENT) private readonly document: Document) { }
 
   ngOnInit(): void {
     this.activatedRoute.paramMap.subscribe((params) => {
@@ -45,6 +46,14 @@ export class ClientDebugComponent implements OnInit {
   }
 
   getTestAuthorizeUri(clientRegistration: ClientRegistrationPrivate): string {
+    let correctRedirectUri = '';
+    for (let redirectUri of clientRegistration.redirectUris) {
+      if (redirectUri.startsWith(this.document.location.origin) && redirectUri.endsWith('/account/client/debug')) {
+        correctRedirectUri = redirectUri;
+        break;
+      }
+    }
+
     const scopes = [];
     for (let gw2ApiPermission of this.selectedGw2ApiPermissions) {
       scopes.push('gw2:' + gw2ApiPermission);
@@ -58,7 +67,7 @@ export class ClientDebugComponent implements OnInit {
     query.set('response_type', 'code');
     query.set('client_id', clientRegistration.clientId);
     query.set('scope', scopes.join(' '));
-    query.set('redirect_uri', clientRegistration.redirectUri);
+    query.set('redirect_uri', correctRedirectUri);
     query.set('state', clientRegistration.clientId);
 
     if (this.forceConsentPrompt) {

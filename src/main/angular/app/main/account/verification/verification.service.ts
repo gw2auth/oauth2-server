@@ -1,9 +1,7 @@
 import {Injectable} from '@angular/core';
-import {HttpClient, HttpErrorResponse} from '@angular/common/http';
-import {Observable, of} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
+import {Observable} from 'rxjs';
 import {VerificationChallenge, VerificationChallengeBootstrap, VerificationChallengePending, VerificationChallengeStart, VerificationChallengeSubmit} from './verification.model';
-import {catchError} from 'rxjs/operators';
-import {ApiError} from '../../../common/common.model';
 
 @Injectable()
 export class VerificationService {
@@ -27,17 +25,11 @@ export class VerificationService {
         return this.httpClient.get<VerificationChallengePending[]>('/api/verification/pending');
     }
 
-    startChallenge(challengeId: number): Observable<VerificationChallengeStart | ApiError> {
-        return this.httpClient.post<VerificationChallengeStart>('/api/verification', undefined, { params: { 'challengeId': challengeId } })
-            .pipe(catchError((e: HttpErrorResponse) => {
-                return of(e.error);
-            }));
+    startChallenge(challengeId: number): Observable<VerificationChallengeStart> {
+        return this.httpClient.post<VerificationChallengeStart>('/api/verification', undefined, { params: { 'challengeId': challengeId } });
     }
 
-    submitChallenge(token: string): Observable<VerificationChallengeSubmit | ApiError> {
-        return this.httpClient.post<VerificationChallengeSubmit>('/api/verification/pending', undefined, { params: { 'token': token } })
-            .pipe(catchError((e: HttpErrorResponse) => {
-                return of(e.error);
-            }));
+    submitChallenge(token: string): Observable<VerificationChallengeSubmit> {
+        return this.httpClient.post<VerificationChallengeSubmit>('/api/verification/pending', undefined, { params: { 'token': token } });
     }
 }

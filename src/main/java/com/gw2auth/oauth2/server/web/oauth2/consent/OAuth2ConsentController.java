@@ -16,7 +16,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,12 +38,13 @@ import java.util.stream.Collectors;
 public class OAuth2ConsentController extends AbstractRestController {
 
     private final ClientRegistrationService clientRegistrationService;
+    private final OAuth2AuthorizationService auth2AuthorizationService;
     private final ApiTokenService apiTokenService;
 
     @Autowired
-    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, ApiTokenService apiTokenService) {
-
+    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, OAuth2AuthorizationService auth2AuthorizationService, ApiTokenService apiTokenService) {
         this.clientRegistrationService = clientRegistrationService;
+        this.auth2AuthorizationService = auth2AuthorizationService;
         this.apiTokenService = apiTokenService;
     }
 
@@ -95,12 +100,19 @@ public class OAuth2ConsentController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/oauth2/consent-deny")
-    public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
-                                            @RequestParam(OAuth2ParameterNames.STATE) String state) {
+    public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.STATE) String state) {
+        final OAuth2Authorization oauth2Authorization = this.auth2AuthorizationService.findByToken(state, new OAuth2TokenType((OAuth2ParameterNames.STATE)));
+        if (oauth2Authorization == null) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        final ClientRegistration clientRegistration = this.clientRegistrationService.getClientRegistration(clientId).orElseThrow();
-        final URI redirectUri = UriComponentsBuilder.fromHttpUrl(clientRegistration.redirectUri())
-                .replaceQueryParam(OAuth2ParameterNames.STATE, state)
+        final OAuth2AuthorizationRequest authorizationRequest = oauth2Authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
+        if (authorizationRequest == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        final URI redirectUri = UriComponentsBuilder.fromHttpUrl(authorizationRequest.getRedirectUri())
+                .replaceQueryParam(OAuth2ParameterNames.STATE, authorizationRequest.getState())
                 .replaceQueryParam(OAuth2ParameterNames.ERROR, OAuth2ErrorCodes.ACCESS_DENIED)
                 .replaceQueryParam(OAuth2ParameterNames.ERROR_DESCRIPTION, "The user has denied your application access.")
                 .build()

@@ -7,6 +7,7 @@ public class ClientRegistrationServiceException extends Gw2AuthServiceException 
 
     public static final String NOT_FOUND = "Referenced ClientRegistration not found";
     public static final String INVALID_REDIRECT_URI = "The given Redirect-URI is invalid";
+    public static final String NOT_ENOUGH_REDIRECT_URIS = "At least one Redirect-URI is required";
 
     public ClientRegistrationServiceException(String message) {
         super(message);

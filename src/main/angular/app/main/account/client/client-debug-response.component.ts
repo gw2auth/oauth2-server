@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, Inject, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {ClientRegistrationPrivate} from './client-registration.model';
 import {ClientRegistrationService} from './client-registration.service';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
 import {Oauth2ClientService} from './oauth2-client.service';
 import {HttpErrorResponse, HttpResponse} from '@angular/common/http';
+import {DOCUMENT} from "@angular/common";
 
 
 @Component({
@@ -29,7 +30,7 @@ export class ClientDebugResponseComponent implements OnInit {
   codeRequestResponseScope: string | null = null;
   codeRequestResponseExpiresIn: number | null = null;
 
-  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly oauth2ClientService: Oauth2ClientService, private readonly activatedRoute: ActivatedRoute) { }
+  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly oauth2ClientService: Oauth2ClientService, private readonly activatedRoute: ActivatedRoute, @Inject(DOCUMENT) private readonly document: Document) { }
 
   ngOnInit(): void {
     this.activatedRoute.queryParamMap.subscribe((query) => {
@@ -49,7 +50,15 @@ export class ClientDebugResponseComponent implements OnInit {
   onRequestTokensClick(): void {
     this.codeRequestInProgress = true;
 
-    this.oauth2ClientService.getToken(this.code!, this.clientRegistration!.clientId, this.clientSecret, this.clientRegistration!.redirectUri).subscribe((response) => {
+    let correctRedirectUri = '';
+    for (let redirectUri of this.clientRegistration!.redirectUris) {
+      if (redirectUri.startsWith(this.document.location.origin) && redirectUri.endsWith('/account/client/debug')) {
+        correctRedirectUri = redirectUri;
+        break;
+      }
+    }
+
+    this.oauth2ClientService.getToken(this.code!, this.clientRegistration!.clientId, this.clientSecret, correctRedirectUri).subscribe((response) => {
       this.codeRequestResponseText = null;
       this.codeRequestResponseAccessToken = null;
       this.codeRequestResponseRefreshToken = null;

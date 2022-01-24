@@ -8,11 +8,11 @@ import java.util.*;
 @ConfigurationProperties(prefix = "com.gw2auth.client")
 public class Gw2AuthClientProperties implements InitializingBean {
 
-    private final Map<String, Account> account = new HashMap<>();
+    private final Map<String, List<Account>> account = new HashMap<>();
 
     private final List<Registration> registration = new ArrayList<>();
 
-    public Map<String, Account> getAccount() {
+    public Map<String, List<Account>> getAccount() {
         return account;
     }
 

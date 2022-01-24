@@ -14,6 +14,9 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Configuration
 @EnableConfigurationProperties(Gw2AuthClientProperties.class)
@@ -45,14 +48,22 @@ public class Gw2AuthClientConfiguration {
     public void initialize() {
         for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.getRegistration()) {
             if (this.clientRegistrationService.getClientRegistration(registrationConfig.getClientId()).isEmpty()) {
-                final Gw2AuthClientProperties.Account accountConfig = this.properties.getAccount().get(registrationConfig.getAccount());
-                final Account account = this.accountService.getOrCreateAccount(accountConfig.getIssuer(), accountConfig.getIdAtIssuer());
+                final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.getAccount().get(registrationConfig.getAccount());
+                Account account = null;
+
+                for (Gw2AuthClientProperties.Account accountConfig : accountsConfig) {
+                    if (account == null) {
+                        account = this.accountService.getOrCreateAccount(accountConfig.getIssuer(), accountConfig.getIdAtIssuer());
+                    } else {
+                        account = this.accountService.addAccountFederationOrReturnExisting(account.id(), accountConfig.getIssuer(), accountConfig.getIdAtIssuer());
+                    }
+                }
 
                 final ClientRegistrationCreation clientRegistrationCreation = this.clientRegistrationService.createClientRegistration(
-                        account.id(),
+                        Objects.requireNonNull(account).id(),
                         registrationConfig.getDisplayName(),
                         registrationConfig.getAuthorizationGrantTypes(),
-                        registrationConfig.getRedirectUri()
+                        Set.of(registrationConfig.getRedirectUri())
                 );
 
                 this.jdbcOperations.update(

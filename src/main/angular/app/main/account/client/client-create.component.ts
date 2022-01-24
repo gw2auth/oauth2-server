@@ -13,7 +13,7 @@ import {of} from 'rxjs';
 export class ClientCreateComponent implements OnInit {
 
   displayName = '';
-  authorizationGrantTypes = Object.values(AuthorizationGrantType);
+  authorizationGrantTypes: AuthorizationGrantType[] = Object.values(AuthorizationGrantType);
   redirectUri = '';
 
   createInProgress = false;
@@ -35,7 +35,7 @@ export class ClientCreateComponent implements OnInit {
   onCreateClientClick(): void {
     this.createInProgress = true;
 
-    this.clientRegistrationService.createClientRegistration({displayName: this.displayName, authorizationGrantTypes: this.authorizationGrantTypes, redirectUri: this.redirectUri})
+    this.clientRegistrationService.createClientRegistration({displayName: this.displayName, authorizationGrantTypes: this.authorizationGrantTypes, redirectUris: [this.redirectUri]})
         .pipe(catchError((e) => {
           const error = e.error as ApiError;
 
@@ -49,7 +49,7 @@ export class ClientCreateComponent implements OnInit {
 
           this.displayName = response.clientRegistration.displayName;
           this.authorizationGrantTypes = response.clientRegistration.authorizationGrantTypes;
-          this.redirectUri = response.clientRegistration.redirectUri;
+          this.redirectUri = response.clientRegistration.redirectUris.join(',');
           this.creationTime = response.clientRegistration.creationTime;
           this.clientId = response.clientRegistration.clientId;
           this.clientSecret = response.clientSecret;

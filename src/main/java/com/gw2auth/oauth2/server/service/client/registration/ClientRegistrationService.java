@@ -15,7 +15,13 @@ public interface ClientRegistrationService {
 
     Optional<ClientRegistration> getClientRegistration(String clientId);
 
-    ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> authorizationGrantTypes, String redirectUri);
+    ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris);
+
+    ClientRegistration addRedirectUri(long accountId, String clientId, String redirectUri);
+
+    ClientRegistration removeRedirectUri(long accountId, String clientId, String redirectUri);
+
+    ClientRegistrationCreation regenerateClientSecret(long accountId, String clientId);
 
     void deleteClientRegistration(long accountId, String clientId);
 }
