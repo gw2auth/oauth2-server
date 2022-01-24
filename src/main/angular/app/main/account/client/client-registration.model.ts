@@ -14,7 +14,6 @@ export interface ClientRegistrationPublic {
     creationTime: Date;
     displayName: string;
     clientId: string;
-    redirectUri: string;
 }
 
 export interface ClientRegistrationPrivate {
@@ -22,7 +21,7 @@ export interface ClientRegistrationPrivate {
     displayName: string;
     clientId: string;
     authorizationGrantTypes: AuthorizationGrantType[];
-    redirectUri: string;
+    redirectUris: string[];
 }
 
 export interface ClientRegistrationCreation {
@@ -33,5 +32,5 @@ export interface ClientRegistrationCreation {
 export interface ClientRegistrationCreationRequest {
     displayName: string;
     authorizationGrantTypes: AuthorizationGrantType[];
-    redirectUri: string;
+    redirectUris: string[];
 }

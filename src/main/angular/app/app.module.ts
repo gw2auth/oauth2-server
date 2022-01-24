@@ -55,6 +55,7 @@ import { FaqComponent } from './main/faq/faq.component';
 import {ClientAuthorizationService} from './main/account/application/client-authorization.service';
 import {DeleteAuthorizationModalComponent} from './main/account/application/delete-authorization-modal.component';
 import {AuthorizationModalComponent} from './main/account/application/authorization-modal.component';
+import {RegenerateClientSecretModalComponent} from './main/account/client/regenerate-client-secret-modal.component';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -130,7 +131,8 @@ const cookieConfig: NgcCookieConsentConfig = {
     DeleteApplicationModalComponent,
     FaqComponent,
     DeleteAuthorizationModalComponent,
-    AuthorizationModalComponent
+    AuthorizationModalComponent,
+    RegenerateClientSecretModalComponent
   ],
   imports: [
     BrowserModule,

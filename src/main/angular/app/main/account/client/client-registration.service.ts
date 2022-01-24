@@ -20,6 +20,18 @@ export class ClientRegistrationService {
     return this.http.post<ClientRegistrationCreation>('/api/client/registration', request);
   }
 
+  addRedirectUri(clientId: string, redirectUri: string): Observable<ClientRegistrationPrivate> {
+    return this.http.put<ClientRegistrationPrivate>('/api/client/registration/' + encodeURIComponent(clientId) + '/redirect-uris', redirectUri);
+  }
+
+  removeRedirectUri(clientId: string, redirectUri: string): Observable<ClientRegistrationPrivate> {
+    return this.http.delete<ClientRegistrationPrivate>('/api/client/registration/' + encodeURIComponent(clientId) + '/redirect-uris', { params: { redirectUri: redirectUri } });
+  }
+
+  regenerateClientSecret(clientId: string): Observable<ClientRegistrationCreation> {
+    return this.http.patch<ClientRegistrationCreation>('/api/client/registration/' + encodeURIComponent(clientId) + '/client-secret', null);
+  }
+
   deleteClientRegistration(clientId: string): Observable<void> {
     return this.http.delete<void>('/api/client/registration/' + encodeURIComponent(clientId));
   }

@@ -82,6 +82,10 @@ public class TestHelper {
         return signedJWT.serialize();
     }
 
+    public static <T> Optional<? extends T> first(Collection<? extends T> collection) {
+        return collection.stream().findFirst();
+    }
+
     public ApiTokenEntity createApiToken(long accountId, String gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         return this.apiTokenRepository.save(new ApiTokenEntity(
                 accountId,
@@ -102,7 +106,7 @@ public class TestHelper {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
-                "http://test.gw2auth.com/dummy"
+                Set.of("http://test.gw2auth.com/dummy")
         ));
     }
 

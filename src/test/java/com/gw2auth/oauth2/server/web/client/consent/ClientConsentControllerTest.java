@@ -138,7 +138,6 @@ class ClientConsentControllerTest {
             // registration
             assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
             assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
-            assertEquals(clientRegistration.redirectUri(), clientRegistrationNode.get("redirectUri").textValue());
 
             // accountsub
             assertEquals(clientConsent.accountSub().toString(), element.get("accountSub").textValue());

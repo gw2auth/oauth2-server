@@ -10,10 +10,9 @@ import java.time.Instant;
  */
 public record ClientRegistrationPublicResponse(@JsonProperty("creationTime") Instant creationTime,
                                                @JsonProperty("displayName") String displayName,
-                                               @JsonProperty("clientId") String clientId,
-                                               @JsonProperty("redirectUri") String redirectUri) {
+                                               @JsonProperty("clientId") String clientId) {
 
     public static ClientRegistrationPublicResponse create(ClientRegistration clientRegistration) {
-        return new ClientRegistrationPublicResponse(clientRegistration.creationTime(), clientRegistration.displayName(), clientRegistration.clientId(), clientRegistration.redirectUri());
+        return new ClientRegistrationPublicResponse(clientRegistration.creationTime(), clientRegistration.displayName(), clientRegistration.clientId());
     }
 }

@@ -4,6 +4,8 @@ import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ import java.util.stream.StreamSupport;
 @Service
 public class ClientRegistrationServiceImpl implements ClientRegistrationService, RegisteredClientRepository {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ClientRegistrationServiceImpl.class);
     private static final int CLIENT_SECRET_LENGTH = 64;
     private static final String CLIENT_SECRET_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final Set<AuthorizationGrantType> ALLOWED_GRANT_TYPES = Set.of(AuthorizationGrantType.AUTHORIZATION_CODE, AuthorizationGrantType.REFRESH_TOKEN, AuthorizationGrantType.CLIENT_CREDENTIALS);
@@ -65,8 +68,10 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
 
     @Override
     @Transactional
-    public ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> _authorizationGrantTypes, String redirectUri) {
-        if (!this.redirectUriValidator.validate(redirectUri)) {
+    public ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> _authorizationGrantTypes, Set<String> redirectUris) {
+        if (redirectUris.isEmpty()) {
+            throw new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
+        } else if (!redirectUris.stream().allMatch(this.redirectUriValidator::validate)) {
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.INVALID_REDIRECT_URI, HttpStatus.BAD_REQUEST);
         }
 
@@ -86,8 +91,52 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
                 generateClientId(),
                 encodedClientSecret,
                 authorizationGrantTypes.stream().map(AuthorizationGrantType::getValue).collect(Collectors.toSet()),
-                redirectUri
+                redirectUris
         ));
+
+        return ClientRegistrationCreation.fromEntity(clientRegistrationEntity, clientSecret);
+    }
+
+    @Override
+    public ClientRegistration addRedirectUri(long accountId, String clientId, String redirectUri) {
+        if (!this.redirectUriValidator.validate(redirectUri)) {
+            throw new ClientRegistrationServiceException(ClientRegistrationServiceException.INVALID_REDIRECT_URI, HttpStatus.BAD_REQUEST);
+        }
+
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+                .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        clientRegistrationEntity.redirectUris().add(redirectUri);
+        clientRegistrationEntity = this.clientRegistrationRepository.save(clientRegistrationEntity);
+
+        return ClientRegistration.fromEntity(clientRegistrationEntity);
+    }
+
+    @Override
+    public ClientRegistration removeRedirectUri(long accountId, String clientId, String redirectUri) {
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+                .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        clientRegistrationEntity.redirectUris().remove(redirectUri);
+
+        if (clientRegistrationEntity.redirectUris().isEmpty()) {
+            throw new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
+        }
+
+        clientRegistrationEntity = this.clientRegistrationRepository.save(clientRegistrationEntity);
+
+        return ClientRegistration.fromEntity(clientRegistrationEntity);
+    }
+
+    @Override
+    public ClientRegistrationCreation regenerateClientSecret(long accountId, String clientId) {
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+                .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        final String clientSecret = generateClientSecret();
+        final String encodedClientSecret = this.passwordEncoder.encode(clientSecret);
+
+        clientRegistrationEntity = this.clientRegistrationRepository.save(clientRegistrationEntity.withClientSecret(encodedClientSecret));
 
         return ClientRegistrationCreation.fromEntity(clientRegistrationEntity, clientSecret);
     }
@@ -121,8 +170,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
                 .clientId(entity.clientId())
                 .clientSecret(entity.clientSecret())
                 .clientIdIssuedAt(entity.creationTime())
-                .redirectUri(entity.redirectUri())
-                .clientAuthenticationMethod(ClientAuthenticationMethod.BASIC)// TODO: check if this is still a thing in 0.2.0
+                .redirectUris((v) -> v.addAll(entity.redirectUris()))
+                .clientAuthenticationMethod(ClientAuthenticationMethod.BASIC)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.POST)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_JWT)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)

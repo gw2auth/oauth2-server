@@ -15,7 +15,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <ng-container *ngFor="let clientRegistration of clientRegistrations">
+                    <ng-container *ngFor="let clientRegistration of clientRegistrations; trackBy:trackByClientRegistration">
                         <tr>
                             <td>{{clientRegistration.displayName}}</td>
                             <td>
@@ -43,8 +43,19 @@
                                         </div>
                                         <div class="col">
                                             <label [htmlFor]="'clientSecret'" class="form-label">Client-Secret</label>
-                                            <input type="text" class="form-control" [id]="'clientSecret'" [attr.aria-describedby]="'clientSecretDescription'" disabled value="***************" />
-                                            <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation</div>
+                                            <ng-container [ngSwitch]="clientSecretsByClientId.has(clientRegistration.clientId)">
+                                                <ng-container *ngSwitchCase="true">
+                                                    <app-input-copyable [inputId]="'clientSecret'" [aria-describedby]="'clientSecretDescription'" [inputValue]="getClientSecretSafe(clientRegistration)"></app-input-copyable>
+                                                    <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation. Make sure to copy it now!</div>
+                                                </ng-container>
+                                                <ng-container *ngSwitchDefault>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" [id]="'clientSecret'" [attr.aria-describedby]="'clientSecretDescription'" disabled value="***************" />
+                                                        <button class="btn btn-accent-inner" (click)="openRegenerateClientSecretModal(clientRegistration)"><fa-icon [icon]="faRedo"></fa-icon></button>
+                                                    </div>
+                                                    <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation</div>
+                                                </ng-container>
+                                            </ng-container>
                                         </div>
                                         <div class="col">
                                             <label [htmlFor]="'authorizationGrantTypes'" class="form-label">Authorization Grant Types</label>
@@ -56,11 +67,26 @@
                                             </div>
                                         </div>
                                         <div class="col">
-                                            <label [htmlFor]="'redirectUri'" class="form-label">Redirect URI</label>
-                                            <app-input-copyable [inputId]="'redirectUri'" [inputValue]="clientRegistration.redirectUri"></app-input-copyable>
+                                            <label [htmlFor]="'redirectUris'" class="form-label">Redirect URIs</label>
+                                            <div class="container-fluid" [id]="'redirectUris'">
+                                                <div class="row row-cols-1 g-1">
+                                                    <ng-container *ngFor="let redirectUri of clientRegistration.redirectUris">
+                                                        <ng-template #copyResponse let-message="message">{{message}}</ng-template>
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control" [value]="redirectUri" disabled />
+                                                            <button class="btn btn-accent-inner" #t="ngbTooltip" [ngbTooltip]="copyResponse" [closeDelay]="1000" triggers="manual" (click)="onCopyClick(t, redirectUri)"><fa-icon [icon]="faCopy"></fa-icon></button>
+                                                            <button class="btn btn-danger" [disabled]="clientRegistration.redirectUris.length < 2" (click)="openDeleteRedirectUriModal(clientRegistration, redirectUri)"><fa-icon [icon]="faTrashAlt"></fa-icon></button>
+                                                        </div>
+                                                    </ng-container>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" [id]="'redirectUriToAdd'" #redirectUriToAddElement />
+                                                        <button class="btn btn-accent-inner" (click)="onAddRedirectUriClick(clientRegistration, redirectUriToAddElement)"><fa-icon [icon]="faPlusSquare"></fa-icon></button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            <a *ngIf="isTestRedirectUri(clientRegistration)" role="button" class="btn btn-primary" [routerLink]="['', 'account', 'client', clientRegistration.clientId, 'debug']">Debug</a>
+                                            <a *ngIf="hasTestRedirectUri(clientRegistration)" role="button" class="btn btn-primary" [routerLink]="['', 'account', 'client', clientRegistration.clientId, 'debug']">Debug</a>
                                         </div>
                                     </div>
                                 </div>

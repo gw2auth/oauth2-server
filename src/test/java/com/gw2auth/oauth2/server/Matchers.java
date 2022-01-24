@@ -80,8 +80,19 @@ public final class Matchers {
         return new MappingMatcher<>("split '" + delimiter + "'", (v) -> Utils.split(v, delimiter).collect(Collectors.toList()), matcher);
     }
 
+    @SafeVarargs
     public static <T> Matcher<Iterable<? extends T>> containingAll(T... values) {
         final List<Matcher<? super T>> matchers = new ArrayList<>(values.length);
+
+        for (T value: values) {
+            matchers.add(new IsEqual<>(value));
+        }
+
+        return new IsIterableContainingInAnyOrder<>(matchers);
+    }
+
+    public static <T> Matcher<Iterable<? extends T>> containingAll(Collection<T> values) {
+        final List<Matcher<? super T>> matchers = new ArrayList<>(values.size());
 
         for (T value: values) {
             matchers.add(new IsEqual<>(value));

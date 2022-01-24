@@ -97,7 +97,7 @@ class AccountControllerTest {
         final Queue<ClientRegistrationEntity> clientRegistrationEntities = new LinkedList<>();
 
         for (int i = 0; i < clientRegistrations; i++) {
-            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), "http://127.0.0.1/")));
+            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID().toString(), "", Set.of(), Set.of("http://127.0.0.1/"))));
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {

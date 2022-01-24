@@ -6,14 +6,13 @@ import {
   VerificationChallengePending,
   VerificationChallengeStart,
   ApiTokenNameMessage,
-  TpBuyOrderMessage,
-  VerificationChallengeSubmit
+  TpBuyOrderMessage
 } from './verification.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
 import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
 import {Token} from '../../../common/token.model';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
-import {Observable, of} from 'rxjs';
+import {firstValueFrom, Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 import {ToastService} from '../../../toast/toast.service';
 
@@ -113,17 +112,15 @@ export class VerificationComponent implements OnInit {
   onStartChallengeClick(challenge: VerificationChallenge): void {
     this.startChallengeInProgress = true;
 
-    this.verificationService.startChallenge(challenge.id)
-        .subscribe((response) => {
-          if ((<VerificationChallengeStart> response).challengeId) {
-            this.startedChallenge = <VerificationChallengeStart> response;
-          } else {
-            const apiError = <ApiError> response;
-            this.toastService.show('Failed to start challenge', apiError.message);
-          }
-
+    firstValueFrom(this.verificationService.startChallenge(challenge.id))
+        .then((response) => {
+          this.startedChallenge = response;
           this.startChallengeInProgress = false;
-        });
+        })
+        .catch((apiError: ApiError) => {
+          this.toastService.show('Failed to start challenge', apiError.message);
+          this.startChallengeInProgress = false;
+        })
   }
 
   onTokenSelectClick(token: Token): void {
@@ -141,23 +138,20 @@ export class VerificationComponent implements OnInit {
   onSubmitChallengeClick(challenge: VerificationChallengeStart): void {
     this.verificationSubmitInProgress = true;
 
-    this.verificationService.submitChallenge(this.selectedGw2ApiToken!)
-        .subscribe((response) => {
-          if ((<ApiError> response).message) {
-            const apiError = <ApiError> response;
-            this.toastService.show('Failed to submit challenge', apiError.message);
-          } else {
-            const verificationChallengeSubmit = <VerificationChallengeSubmit> response;
+    firstValueFrom(this.verificationService.submitChallenge(this.selectedGw2ApiToken!))
+        .then((response) => {
+          this.startedChallenge = null;
 
-            this.startedChallenge = null;
-
-            if (!verificationChallengeSubmit.isSuccess) {
-              this.pendingChallenges.push(verificationChallengeSubmit.pending!);
-            }
+          if (!response.isSuccess) {
+            this.pendingChallenges.push(response.pending!);
           }
 
           this.verificationSubmitInProgress = false;
-    });
+        })
+        .catch((apiError: ApiError) => {
+          this.verificationSubmitInProgress = false;
+          this.toastService.show('Failed to submit challenge', apiError.message);
+        });
   }
 
   onUseNewApiTokenClick(): void {

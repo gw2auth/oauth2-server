@@ -15,6 +15,18 @@ public record ClientRegistrationEntity(@Id @Column("id") Long id,
                                        @Column("client_id") String clientId,
                                        @Column("client_secret") String clientSecret,
                                        @Column("authorization_grant_types") Set<String> authorizationGrantTypes,
-                                       @Column("redirect_uri") String redirectUri) {
+                                       @Column("redirect_uris") Set<String> redirectUris) {
 
+    public ClientRegistrationEntity withClientSecret(String clientSecret) {
+        return new ClientRegistrationEntity(
+                this.id,
+                this.accountId,
+                this.creationTime,
+                this.displayName,
+                this.clientId,
+                clientSecret,
+                this.authorizationGrantTypes,
+                this.redirectUris
+        );
+    }
 }

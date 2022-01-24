@@ -589,7 +589,7 @@ public class OAuth2ServerTest {
                         .queryParam(OAuth2ParameterNames.CODE, codeParam)
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
                         .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
-                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, clientRegistrationCreation.clientRegistration().redirectUri())
+                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistrationCreation.clientRegistration().redirectUris()).orElseThrow())
         )
                 .andExpectAll(expectValidTokenResponse())
                 .andReturn();
@@ -1206,7 +1206,7 @@ public class OAuth2ServerTest {
                                 .queryParam(OAuth2ParameterNames.CODE, codeParam)
                                 .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
-                                .queryParam(OAuth2ParameterNames.REDIRECT_URI, clientRegistrationCreation.clientRegistration().redirectUri())
+                                .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistrationCreation.clientRegistration().redirectUris()).orElseThrow())
                 );
     }
 
@@ -1301,7 +1301,7 @@ public class OAuth2ServerTest {
         return this.mockMvc.perform(builder)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", new AllOf<>(
-                        new StringStartsWith(clientRegistration.redirectUri()),
+                        new StringStartsWith(TestHelper.first(clientRegistration.redirectUris()).orElseThrow()),
                         asUri(new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, hasQueryParam(OAuth2ParameterNames.CODE)))
                 )));
     }
@@ -1385,13 +1385,13 @@ public class OAuth2ServerTest {
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistration.clientId())
                         .queryParam(OAuth2ParameterNames.SCOPE, String.join(" ", scopes))
                         .queryParam(OAuth2ParameterNames.RESPONSE_TYPE, "code")
-                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, clientRegistration.redirectUri())
+                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistration.redirectUris()).orElseThrow())
                         .queryParam(OAuth2ParameterNames.STATE, UUID.randomUUID().toString())
         );
     }
 
     private ClientRegistrationCreation createClientRegistration() {
         final Account account = this.accountService.getOrCreateAccount(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-        return this.clientRegistrationService.createClientRegistration(account.id(), "Test", Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()), "https://clientapplication.gw2auth.com/callback");
+        return this.clientRegistrationService.createClientRegistration(account.id(), "Test", Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()), Set.of("https://clientapplication.gw2auth.com/callback"));
     }
 }
