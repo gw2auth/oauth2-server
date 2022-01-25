@@ -21,7 +21,7 @@ spring:
             client-name: "GitHub"
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
-            scope: "read:user"
+            scope: [""]
             redirect-uri: "${com.gw2auth.url}/login/oauth2/code/github"
           google:
             provider: google
