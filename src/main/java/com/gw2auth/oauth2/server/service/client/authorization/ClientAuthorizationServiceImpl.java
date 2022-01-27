@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @EnableScheduling
@@ -96,7 +97,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId, String clientId) {
+    public List<ClientAuthorization> getClientAuthorizations(long accountId, UUID clientId) {
         final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientId(accountId, clientId).stream()
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .toList();
@@ -122,7 +123,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<String> gw2AccountIds) {
+    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<UUID> gw2AccountIds) {
         final Map<String, ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndLinkedTokens(accountId, gw2AccountIds).stream()
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .collect(Collectors.toMap(ClientAuthorizationEntity::id, Function.identity()));
@@ -222,7 +223,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
             if (copyGw2AccountIdsFromClientAuthorizationId != null || this.authorizationCodeParamAccessor.isInConsentContext()) {
                 try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.AUTHORIZATION)) {
-                    final Set<String> authorizedTokenGw2AccountIds;
+                    final Set<UUID> authorizedTokenGw2AccountIds;
 
                     if (copyGw2AccountIdsFromClientAuthorizationId != null) {
                         logging.log("Using API-Tokens of existing authorization for same client and scopes");
@@ -234,6 +235,13 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                                 .map(Map.Entry::getKey)
                                 .filter((v) -> v.startsWith("token:"))
                                 .map((v) -> v.replaceFirst("token:", ""))
+                                .flatMap((v) -> {
+                                    try {
+                                        return Stream.of(UUID.fromString(v));
+                                    } catch (IllegalArgumentException e) {
+                                        return Stream.empty();
+                                    }
+                                })
                                 .collect(Collectors.toSet());
                     }
 
@@ -243,7 +251,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
                     final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
 
-                    for (String authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
+                    for (UUID authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
                         tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationEntity.id(), authorizedTokenGw2AccountId));
                     }
 

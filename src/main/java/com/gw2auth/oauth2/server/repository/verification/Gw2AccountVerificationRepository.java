@@ -6,9 +6,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface Gw2AccountVerificationRepository extends CrudRepository<Gw2AccountVerificationEntity, String> {
+public interface Gw2AccountVerificationRepository extends CrudRepository<Gw2AccountVerificationEntity, UUID> {
 
     @Override
     default Gw2AccountVerificationEntity save(Gw2AccountVerificationEntity entity) {
@@ -24,7 +25,7 @@ public interface Gw2AccountVerificationRepository extends CrudRepository<Gw2Acco
     account_id = EXCLUDED.account_id
     RETURNING *
     """)
-    Gw2AccountVerificationEntity save(@Param("gw2_account_id") String gw2AccountId, @Param("account_id") long accountId);
+    Gw2AccountVerificationEntity save(@Param("gw2_account_id") UUID gw2AccountId, @Param("account_id") long accountId);
 
     @Query("SELECT * FROM gw2_account_verifications WHERE account_id = :account_id")
     List<Gw2AccountVerificationEntity> findAllByAccountId(@Param("account_id") long accountId);

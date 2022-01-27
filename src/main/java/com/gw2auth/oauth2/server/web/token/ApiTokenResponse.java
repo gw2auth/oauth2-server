@@ -8,8 +8,9 @@ import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
-public record ApiTokenResponse(@JsonProperty("gw2AccountId") String gw2AccountId,
+public record ApiTokenResponse(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                @JsonProperty("creationTime") Instant creationTime,
                                @JsonProperty("gw2ApiToken") String gw2ApiToken,
                                @JsonProperty("displayName") String displayName,
@@ -21,7 +22,7 @@ public record ApiTokenResponse(@JsonProperty("gw2AccountId") String gw2AccountId
         return new ApiTokenResponse(apiToken.gw2AccountId(), apiToken.creationTime(), apiToken.gw2ApiToken(), apiToken.displayName(), apiToken.gw2ApiPermissions(), isVerified, authorizations);
     }
 
-    public record Authorization(@JsonProperty("displayName") String displayName, @JsonProperty("clientId") String clientId) {
+    public record Authorization(@JsonProperty("displayName") String displayName, @JsonProperty("clientId") UUID clientId) {
 
         public static Authorization create(ClientRegistration value) {
             return new Authorization(value.displayName(), value.clientId());

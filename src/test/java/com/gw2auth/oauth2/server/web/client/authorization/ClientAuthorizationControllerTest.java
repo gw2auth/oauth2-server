@@ -70,10 +70,10 @@ class ClientAuthorizationControllerTest {
         final ClientAuthorizationEntity authorization2 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
         // insert tokens for these authorizations
-        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token A");
-        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token B");
-        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token C");
-        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token D");
+        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token A");
+        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token B");
+        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token C");
+        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token D");
 
         this.testHelper.createClientAuthorizationTokens(accountId, authorization1.id(), tokenA.gw2AccountId(), tokenD.gw2AccountId());
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
@@ -95,7 +95,7 @@ class ClientAuthorizationControllerTest {
             final JsonNode authorizationNode = node.get(i);
             final String id = authorizationNode.get("id").textValue();
             final ClientAuthorizationEntity authorization;
-            final Map<String, ApiTokenEntity> apiTokens;
+            final Map<UUID, ApiTokenEntity> apiTokens;
 
             if (id.equals(authorization1.id())) {
                 authorization = authorization1;
@@ -135,13 +135,13 @@ class ClientAuthorizationControllerTest {
             assertTrue(expectedAuthorizedScopes.isEmpty());
 
             // tokens
-            final Map<String, ApiTokenEntity> expectedApiTokens = new HashMap<>(apiTokens);
+            final Map<UUID, ApiTokenEntity> expectedApiTokens = new HashMap<>(apiTokens);
             final JsonNode tokensNode = authorizationNode.get("tokens");
             assertTrue(tokensNode.isArray());
 
             for (int j = 0; j < tokensNode.size(); j++) {
                 final JsonNode tokenNode = tokensNode.get(j);
-                final ApiTokenEntity expectedApiToken = expectedApiTokens.remove(tokenNode.get("gw2AccountId").textValue());
+                final ApiTokenEntity expectedApiToken = expectedApiTokens.remove(UUID.fromString(tokenNode.get("gw2AccountId").textValue()));
 
                 assertNotNull(expectedApiToken);
                 assertEquals(expectedApiToken.displayName(), tokenNode.get("displayName").textValue());
@@ -172,10 +172,10 @@ class ClientAuthorizationControllerTest {
         final ClientAuthorizationEntity authorization2 = this.testHelper.createClientAuthorization(accountId, client.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
 
         // insert tokens for these authorizations
-        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token A");
-        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token B");
-        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token C");
-        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "Token D");
+        final ApiTokenEntity tokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token A");
+        final ApiTokenEntity tokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token B");
+        final ApiTokenEntity tokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token C");
+        final ApiTokenEntity tokenD = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "Token D");
 
         this.testHelper.createClientAuthorizationTokens(accountId, authorization1.id(), tokenA.gw2AccountId(), tokenD.gw2AccountId());
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());

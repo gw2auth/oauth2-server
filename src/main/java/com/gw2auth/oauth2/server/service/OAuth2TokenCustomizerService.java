@@ -109,7 +109,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             final Set<String> effectiveAuthorizedScopes = new HashSet<>(clientConsent.authorizedScopes());
             effectiveAuthorizedScopes.retainAll(clientAuthorization.authorizedScopes());
 
-            final Set<String> authorizedGw2AccountIds = clientAuthorization.gw2AccountIds();
+            final Set<UUID> authorizedGw2AccountIds = clientAuthorization.gw2AccountIds();
             final Set<Gw2ApiPermission> authorizedGw2ApiPermissions = effectiveAuthorizedScopes.stream()
                     .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
                     .collect(Collectors.toSet());
@@ -127,7 +127,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
             }
 
-            final Set<String> verifiedGw2AccountIds;
+            final Set<UUID> verifiedGw2AccountIds;
             final boolean hasGw2AuthVerifiedScope = effectiveAuthorizedScopes.contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
 
             if (hasGw2AuthVerifiedScope) {
@@ -139,7 +139,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             final int gw2ApiPermissionsBitSet = Gw2ApiPermission.toBitSet(authorizedGw2ApiPermissions);
             final List<ApiSubTokenEntity> savedSubTokens = this.apiSubTokenRepository.findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(accountId, authorizedGw2AccountIds, gw2ApiPermissionsBitSet);
             final Instant atLeastValidUntil = this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME);
-            final Map<String, ApiSubTokenEntity> savedSubTokenByGw2AccountId = new HashMap<>(savedSubTokens.size());
+            final Map<UUID, ApiSubTokenEntity> savedSubTokenByGw2AccountId = new HashMap<>(savedSubTokens.size());
             final Map<Instant, Integer> savedSubTokenCountByExpirationTime = new HashMap<>(savedSubTokens.size());
             Instant expirationTimeWithMostSavedSubTokens = null;
 
@@ -168,13 +168,13 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 expirationTime = ctx.getClaims().build().getExpiresAt();
             }
 
-            final Map<String, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
-            final Batch.Builder<Map<String, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
+            final Map<UUID, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
+            final Batch.Builder<Map<UUID, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
 
             for (ApiToken authorizedRootToken : authorizedRootTokens) {
                 final Map<String, Object> tokenForJWT = new HashMap<>(3);
 
-                final String gw2AccountId = authorizedRootToken.gw2AccountId();
+                final UUID gw2AccountId = authorizedRootToken.gw2AccountId();
                 final String displayName = authorizedRootToken.displayName();
                 final ApiSubTokenEntity potentialExistingSubToken = savedSubTokenByGw2AccountId.get(gw2AccountId);
 
@@ -214,10 +214,10 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 tokensForJWT.put(gw2AccountId, tokenForJWT);
             }
 
-            final Map<String, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+            final Map<UUID, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
 
-            for (Map.Entry<String, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
-                final String gw2AccountId = entry.getKey();
+            for (Map.Entry<UUID, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
+                final UUID gw2AccountId = entry.getKey();
                 final Map<String, Object> tokenForJWT = tokensForJWT.get(gw2AccountId);
                 final String displayName = entry.getValue().v1().displayName();
                 final Gw2SubToken gw2SubToken = entry.getValue().v2();
@@ -242,7 +242,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         }
     }
 
-    private void customize(JwtEncodingContext ctx, UUID accountSub, Set<Gw2ApiPermission> authorizedGw2ApiPermissions, Map<String, Map<String, Object>> tokensForJWT) {
+    private void customize(JwtEncodingContext ctx, UUID accountSub, Set<Gw2ApiPermission> authorizedGw2ApiPermissions, Map<UUID, Map<String, Object>> tokensForJWT) {
         final List<String> permissionsForJWT = authorizedGw2ApiPermissions.stream()
                 .map(Gw2ApiPermission::gw2)
                 .collect(Collectors.toList());

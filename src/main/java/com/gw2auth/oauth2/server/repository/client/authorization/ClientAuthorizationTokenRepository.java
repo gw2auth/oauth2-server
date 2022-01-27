@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface ClientAuthorizationTokenRepository extends BaseRepository<ClientAuthorizationTokenEntity> {
@@ -27,7 +28,7 @@ public interface ClientAuthorizationTokenRepository extends BaseRepository<Clien
     """)
     ClientAuthorizationTokenEntity save(@Param("account_id") long accountId,
                                         @Param("client_authorization_id") String clientAuthorizationId,
-                                        @Param("gw2_account_id") String gw2AccountId);
+                                        @Param("gw2_account_id") UUID gw2AccountId);
 
     @Query("SELECT * FROM client_authorization_tokens WHERE account_id = :account_id")
     List<ClientAuthorizationTokenEntity> findAllByAccountId(@Param("account_id") long accountId);
@@ -42,7 +43,7 @@ public interface ClientAuthorizationTokenRepository extends BaseRepository<Clien
     @Query("""
     SELECT *
     FROM client_authorization_tokens
-    WHERE account_id = :account_id AND client_authorization_id = ANY(ARRAY[ :client_authorization_ids ]::VARCHAR[])
+    WHERE account_id = :account_id AND client_authorization_id = ANY(ARRAY[ :client_authorization_ids ]::TEXT[])
     """)
     List<ClientAuthorizationTokenEntity> findAllByAccountIdAndClientAuthorizationIds(@Param("account_id") long accountId, @Param("client_authorization_ids") Collection<String> clientAuthorizationIds);
 

@@ -17,6 +17,7 @@ import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @Configuration
 @EnableConfigurationProperties(Gw2AuthClientProperties.class)
@@ -47,7 +48,7 @@ public class Gw2AuthClientConfiguration {
     @PostConstruct
     public void initialize() {
         for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.getRegistration()) {
-            if (this.clientRegistrationService.getClientRegistration(registrationConfig.getClientId()).isEmpty()) {
+            if (this.clientRegistrationService.getClientRegistration(UUID.fromString(registrationConfig.getClientId())).isEmpty()) {
                 final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.getAccount().get(registrationConfig.getAccount());
                 Account account = null;
 

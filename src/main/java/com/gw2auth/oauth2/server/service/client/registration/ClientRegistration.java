@@ -5,8 +5,9 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
-public record ClientRegistration(long id, Instant creationTime, String displayName, String clientId, Set<String> authorizationGrantTypes, Set<String> redirectUris) {
+public record ClientRegistration(long id, Instant creationTime, String displayName, UUID clientId, Set<String> authorizationGrantTypes, Set<String> redirectUris) {
 
     public static ClientRegistration fromEntity(ClientRegistrationEntity entity) {
         final Set<String> authorizationGrantTypes;

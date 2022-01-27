@@ -5,10 +5,11 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 @Table("gw2_api_tokens")
 public record ApiTokenEntity(@Column("account_id") long accountId,
-                             @Column("gw2_account_id") String gw2AccountId,
+                             @Column("gw2_account_id") UUID gw2AccountId,
                              @Column("creation_time") Instant creationTime,
                              @Column("gw2_api_token") String gw2ApiToken,
                              @Column("gw2_api_permissions") Set<String> gw2ApiPermissions,

@@ -5,13 +5,14 @@ import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The response visible to the owner of this client
  */
 public record ClientRegistrationPrivateResponse(@JsonProperty("creationTime") Instant creationTime,
                                                 @JsonProperty("displayName") String displayName,
-                                                @JsonProperty("clientId") String clientId,
+                                                @JsonProperty("clientId") UUID clientId,
                                                 @JsonProperty("authorizationGrantTypes") Set<String> authorizationGrantTypes,
                                                 @JsonProperty("redirectUris") Set<String> redirectUris) {
 

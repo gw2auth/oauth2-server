@@ -67,7 +67,7 @@ public class ClientConsentController extends AbstractRestController {
 
     @GetMapping(value = "/api/client/consent/{clientId}/logs", produces = MediaType.APPLICATION_JSON_VALUE)
     public ClientAuthorizationLogsResponse getClientConsentLogPage(@AuthenticationPrincipal Gw2AuthUser user,
-                                                                   @PathVariable("clientId") String clientId,
+                                                                   @PathVariable("clientId") UUID clientId,
                                                                    @RequestParam(value = "page", required = false) Integer page) {
 
         if (page == null || page < 0) {
@@ -93,7 +93,7 @@ public class ClientConsentController extends AbstractRestController {
     }
 
     @DeleteMapping("/api/client/consent/{clientId}")
-    public ResponseEntity<Void> deleteClientConsent(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+    public ResponseEntity<Void> deleteClientConsent(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
         this.clientConsentService.deleteClientConsent(user.getAccountId(), clientId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }

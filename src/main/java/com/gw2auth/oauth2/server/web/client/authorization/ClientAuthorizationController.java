@@ -16,10 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,15 +33,15 @@ public class ClientAuthorizationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/authorization/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+    public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), clientId);
 
         // get all gw2-account ids for batch lookup
-        final Set<String> gw2AccountIds = clientAuthorizations.stream()
+        final Set<UUID> gw2AccountIds = clientAuthorizations.stream()
                 .flatMap((v) -> v.gw2AccountIds().stream())
                 .collect(Collectors.toSet());
 
-        final Map<String, ApiToken> apiTokenByGw2AccountId = this.apiTokenService.getApiTokens(user.getAccountId(), gw2AccountIds).stream()
+        final Map<UUID, ApiToken> apiTokenByGw2AccountId = this.apiTokenService.getApiTokens(user.getAccountId(), gw2AccountIds).stream()
                 .collect(Collectors.toMap(ApiToken::gw2AccountId, Function.identity()));
 
         final List<ClientAuthorizationResponse> result = new ArrayList<>(clientAuthorizations.size());
@@ -52,7 +49,7 @@ public class ClientAuthorizationController extends AbstractRestController {
         for (ClientAuthorization clientAuthorization : clientAuthorizations) {
             final List<ClientAuthorizationResponse.Token> tokens = new ArrayList<>(clientAuthorization.gw2AccountIds().size());
 
-            for (String gw2AccountId : clientAuthorization.gw2AccountIds()) {
+            for (UUID gw2AccountId : clientAuthorization.gw2AccountIds()) {
                 final ApiToken apiToken = apiTokenByGw2AccountId.get(gw2AccountId);
 
                 if (apiToken != null) {

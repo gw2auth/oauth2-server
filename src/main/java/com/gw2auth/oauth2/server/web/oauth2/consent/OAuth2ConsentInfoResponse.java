@@ -8,6 +8,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") ClientRegistrationPublicResponse clientRegistration,
                                         @JsonProperty("requestedGw2ApiPermissions") Set<Gw2ApiPermission> requestedGw2ApiPermissions,
@@ -18,7 +19,7 @@ public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") Clie
                                         @JsonProperty("apiTokensWithSufficientPermissions") List<MinimalApiToken> apiTokensWithSufficientPermissionResponses,
                                         @JsonProperty("apiTokensWithInsufficientPermissions") List<MinimalApiToken> apiTokensWithInsufficientPermissionResponses) {
 
-    public record MinimalApiToken(@JsonProperty("gw2AccountId") String gw2AccountId,
+    public record MinimalApiToken(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                   @JsonProperty("gw2ApiToken") String gw2ApiToken,
                                   @JsonProperty("displayName") String displayName) {
 

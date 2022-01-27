@@ -6,12 +6,13 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-public record ClientAuthorization(long accountId, String id, long clientRegistrationId, Instant creationTime, Instant lastUpdateTime, String displayName, Set<String> authorizedScopes, Set<String> gw2AccountIds) {
+public record ClientAuthorization(long accountId, String id, long clientRegistrationId, Instant creationTime, Instant lastUpdateTime, String displayName, Set<String> authorizedScopes, Set<UUID> gw2AccountIds) {
 
     public static ClientAuthorization fromEntity(ClientAuthorizationEntity entity, List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities) {
-        final Set<String> gw2AccountIds = clientAuthorizationTokenEntities.stream()
+        final Set<UUID> gw2AccountIds = clientAuthorizationTokenEntities.stream()
                 .map(ClientAuthorizationTokenEntity::gw2AccountId)
                 .collect(Collectors.toSet());
 

@@ -39,19 +39,19 @@ public class ApiTokenController extends AbstractRestController {
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
 
         // get all gw2 account ids for authorization batch lookup
-        final Set<String> gw2AccountIds = apiTokens.stream()
+        final Set<UUID> gw2AccountIds = apiTokens.stream()
                 .map(ApiToken::gw2AccountId)
                 .collect(Collectors.toSet());
 
         // aggregate authorizations for later lookup
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), gw2AccountIds);
         final Set<Long> clientRegistrationIds = new HashSet<>(clientAuthorizations.size());
-        final Map<String, Set<Long>> clientRegistrationIdsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
+        final Map<UUID, Set<Long>> clientRegistrationIdsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
 
         for (ClientAuthorization clientAuthorization : clientAuthorizations) {
             clientRegistrationIds.add(clientAuthorization.clientRegistrationId());
 
-            for (String gw2AccountId : clientAuthorization.gw2AccountIds()) {
+            for (UUID gw2AccountId : clientAuthorization.gw2AccountIds()) {
                 clientRegistrationIdsByGw2AccountId.computeIfAbsent(gw2AccountId, (k) -> new HashSet<>()).add(clientAuthorization.clientRegistrationId());
             }
         }
@@ -61,7 +61,7 @@ public class ApiTokenController extends AbstractRestController {
                 .collect(Collectors.toMap(ClientRegistration::id, Function.identity()));
 
         // find all verified gw2 account ids for this account (better than querying for every single one)
-        final Set<String> verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(user.getAccountId());
+        final Set<UUID> verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(user.getAccountId());
 
         final List<ApiTokenResponse> response = new ArrayList<>(apiTokens.size());
 
@@ -99,7 +99,7 @@ public class ApiTokenController extends AbstractRestController {
 
     @PatchMapping(value = "/api/token/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiTokenResponse updateApiToken(@AuthenticationPrincipal Gw2AuthUser user,
-                                   @PathVariable("gw2AccountId") String gw2AccountId,
+                                   @PathVariable("gw2AccountId") UUID gw2AccountId,
                                    @RequestParam(value = "displayName", required = false) String displayName,
                                    @RequestParam(value = "gw2ApiToken", required = false) String gw2ApiToken) {
 
@@ -125,7 +125,7 @@ public class ApiTokenController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/token/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public void deleteApiToken(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("gw2AccountId") String gw2AccountId) {
+    public void deleteApiToken(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("gw2AccountId") UUID gw2AccountId) {
         this.apiTokenService.deleteApiToken(user.getAccountId(), gw2AccountId);
     }
 }

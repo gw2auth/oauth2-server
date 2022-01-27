@@ -6,13 +6,14 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 @Table("client_registrations")
 public record ClientRegistrationEntity(@Id @Column("id") Long id,
                                        @Column("account_id") long accountId,
                                        @Column("creation_time") Instant creationTime,
                                        @Column("display_name") String displayName,
-                                       @Column("client_id") String clientId,
+                                       @Column("client_id") UUID clientId,
                                        @Column("client_secret") String clientSecret,
                                        @Column("authorization_grant_types") Set<String> authorizationGrantTypes,
                                        @Column("redirect_uris") Set<String> redirectUris) {

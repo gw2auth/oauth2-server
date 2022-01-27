@@ -110,7 +110,7 @@ class ClientConsentControllerTest {
             final ClientRegistrationEntity clientRegistration;
             final ClientConsentEntity clientConsent;
 
-            if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.clientId())) {
+            if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.clientId().toString())) {
                 if (foundAuthorizationA) {
                     fail("authorization A appeared at least twice in the response");
                     return;
@@ -120,7 +120,7 @@ class ClientConsentControllerTest {
                     clientRegistration = clientRegistrationA;
                     clientConsent = clientConsentA;
                 }
-            } else if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationC.clientId())) {
+            } else if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationC.clientId().toString())) {
                 if (foundAuthorizationC) {
                     fail("authorization C appeared at least twice in the response");
                     return;
@@ -177,7 +177,7 @@ class ClientConsentControllerTest {
 
     @WithGw2AuthLogin
     public void getClientConsentLogPageEmpty(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(get("/api/client/consent/someid/logs").session(session))
+        this.mockMvc.perform(get("/api/client/consent/{clientId}/logs", UUID.randomUUID()).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value("0"))
                 .andExpect(jsonPath("$.nextPage").value("-1"))
@@ -266,9 +266,9 @@ class ClientConsentControllerTest {
         final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientRegistrationEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
 
-        final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "TokenNameA");
-        final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "TokenNameB");
-        final ApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Gw2ApiPermission.all(), "TokenNameC");
+        final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameA");
+        final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameB");
+        final ApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameC");
 
         final ClientConsentEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
         final ClientConsentEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationB.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
