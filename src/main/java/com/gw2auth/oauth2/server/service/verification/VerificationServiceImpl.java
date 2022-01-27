@@ -64,14 +64,14 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Override
-    public Set<String> getVerifiedGw2AccountIds(long accountId) {
+    public Set<UUID> getVerifiedGw2AccountIds(long accountId) {
         return this.gw2AccountVerificationRepository.findAllByAccountId(accountId).stream()
                 .map(Gw2AccountVerificationEntity::gw2AccountId)
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public OptionalLong getVerifiedAccountId(String gw2AccountId) {
+    public OptionalLong getVerifiedAccountId(UUID gw2AccountId) {
         return this.gw2AccountVerificationRepository.findById(gw2AccountId)
                 .map(Gw2AccountVerificationEntity::accountId)
                 .map(OptionalLong::of)
@@ -109,7 +109,7 @@ public class VerificationServiceImpl implements VerificationService {
         return this.gw2AccountVerificationChallengeRepository.findAllByAccountId(accountId).stream()
                 .filter((e) -> e.challengeId() != VERIFICATION_FAILED_CHALLENGE_ID)
                 .filter((e) -> !e.gw2AccountId().equals(STARTED_CHALLENGE_GW2_ACCOUNT_ID))
-                .map((e) -> new VerificationChallengePending(e.challengeId(), e.gw2AccountId(), e.startedAt()))
+                .map((e) -> new VerificationChallengePending(e.challengeId(), UUID.fromString(e.gw2AccountId()), e.startedAt()))
                 .collect(Collectors.toList());
 
     }
@@ -177,8 +177,8 @@ public class VerificationServiceImpl implements VerificationService {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.INSUFFICIENT_PERMISSIONS, HttpStatus.BAD_REQUEST);
         }
 
-        final String gw2AccountId = this.gw2ApiService.getAccount(gw2SubToken.value()).id();
-        final Gw2AccountVerificationChallengeEntity pendingChallengeEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null);
+        final UUID gw2AccountId = this.gw2ApiService.getAccount(gw2SubToken.value()).id();
+        final Gw2AccountVerificationChallengeEntity pendingChallengeEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
 
         if (pendingChallengeEntity != null) {
             if (pendingChallengeEntity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID) {
@@ -198,7 +198,7 @@ public class VerificationServiceImpl implements VerificationService {
 
         entity = new Gw2AccountVerificationChallengeEntity(
                 entity.accountId(),
-                gw2AccountId,
+                gw2AccountId.toString(),
                 entity.challengeId(),
                 entity.state(),
                 gw2SubToken.value(),
@@ -240,11 +240,14 @@ public class VerificationServiceImpl implements VerificationService {
 
         if (isVerified) {
             this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
-            this.apiTokenRepository.deleteAllByGw2AccountIdExceptForAccountId(gw2AccountId, accountId);
+
+            final UUID gw2AccountIdUUID = UUID.fromString(gw2AccountId);
+
+            this.apiTokenRepository.deleteAllByGw2AccountIdExceptForAccountId(gw2AccountIdUUID, accountId);
             this.gw2AccountVerificationRepository.save(
-                    this.gw2AccountVerificationRepository.findById(gw2AccountId)
+                    this.gw2AccountVerificationRepository.findById(gw2AccountIdUUID)
                             .map((e) -> e.withAccountId(accountId))
-                            .orElseGet(() -> new Gw2AccountVerificationEntity(gw2AccountId, accountId))
+                            .orElseGet(() -> new Gw2AccountVerificationEntity(gw2AccountIdUUID, accountId))
             );
         }
 

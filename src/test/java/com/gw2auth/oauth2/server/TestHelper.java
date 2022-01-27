@@ -60,12 +60,12 @@ public class TestHelper {
         return (UUID.randomUUID() + UUID.randomUUID().toString()).toUpperCase();
     }
 
-    public static String createSubtokenJWT(String sub, Set<Gw2ApiPermission> permissions, Instant issuedAt, Duration expiresIn) {
+    public static String createSubtokenJWT(UUID sub, Set<Gw2ApiPermission> permissions, Instant issuedAt, Duration expiresIn) {
         final JSONArray jsonPermissions = new JSONArray();
         permissions.stream().map(Gw2ApiPermission::gw2).forEach(jsonPermissions::add);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .subject(sub)
+                .subject(sub.toString())
                 .jwtID(UUID.randomUUID().toString())
                 .issueTime(new Date(issuedAt.toEpochMilli()))
                 .expirationTime(new Date(issuedAt.plus(expiresIn).toEpochMilli()))
@@ -86,7 +86,7 @@ public class TestHelper {
         return collection.stream().findFirst();
     }
 
-    public ApiTokenEntity createApiToken(long accountId, String gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+    public ApiTokenEntity createApiToken(long accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         return this.apiTokenRepository.save(new ApiTokenEntity(
                 accountId,
                 gw2AccountId,
@@ -103,7 +103,7 @@ public class TestHelper {
                 accountId,
                 Instant.now(),
                 name,
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 UUID.randomUUID().toString(),
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
                 Set.of("http://test.gw2auth.com/dummy")
@@ -156,17 +156,17 @@ public class TestHelper {
         ));
     }
 
-    public ClientAuthorizationTokenEntity createClientAuthorizationToken(long accountId, String clientAuthorizationId, String gw2AccountId) {
+    public ClientAuthorizationTokenEntity createClientAuthorizationToken(long accountId, String clientAuthorizationId, UUID gw2AccountId) {
         return this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationId, gw2AccountId));
     }
 
-    public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(long accountId, String clientAuthorizationId, String... gw2AccountIds) {
+    public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(long accountId, String clientAuthorizationId, UUID... gw2AccountIds) {
         return Arrays.stream(gw2AccountIds)
                 .map((gw2AccountId) -> createClientAuthorizationToken(accountId, clientAuthorizationId, gw2AccountId))
                 .collect(Collectors.toList());
     }
 
-    public Gw2AccountVerificationEntity createAccountVerification(long accountId, String gw2AccountId) {
+    public Gw2AccountVerificationEntity createAccountVerification(long accountId, UUID gw2AccountId) {
         return this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
     }
 }

@@ -107,9 +107,9 @@ class ApiTokenControllerTest {
     public void getApiTokens(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 
-        final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
-        final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.TRADINGPOST), "TokenB");
-        final ApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.BUILDS, Gw2ApiPermission.PROGRESSION), "TokenC");
+        final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
+        final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.TRADINGPOST), "TokenB");
+        final ApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.BUILDS, Gw2ApiPermission.PROGRESSION), "TokenC");
 
         this.testHelper.createAccountVerification(accountId, apiTokenB.gw2AccountId());
 
@@ -136,7 +136,7 @@ class ApiTokenControllerTest {
         final JsonNode responseNode = mapper.readTree(responseJson);
         assertTrue(responseNode.isArray());
 
-        final Map<String, ExpectedApiToken> expectedApiTokens = new HashMap<>(Map.of(
+        final Map<UUID, ExpectedApiToken> expectedApiTokens = new HashMap<>(Map.of(
                 apiTokenA.gw2AccountId(), new ExpectedApiToken(apiTokenA, false, List.of()),
                 apiTokenB.gw2AccountId(), new ExpectedApiToken(apiTokenB, true, List.of(clientRegistrationA)),
                 apiTokenC.gw2AccountId(), new ExpectedApiToken(apiTokenC, false, List.of(clientRegistrationA, clientRegistrationB))
@@ -144,7 +144,7 @@ class ApiTokenControllerTest {
 
         for (int i = 0; i < responseNode.size(); i++) {
             final JsonNode tokenNode = responseNode.get(i);
-            final String gw2AccountId = tokenNode.get("gw2AccountId").textValue();
+            final UUID gw2AccountId = UUID.fromString(tokenNode.get("gw2AccountId").textValue());
             final ExpectedApiToken expectedApiToken = expectedApiTokens.remove(gw2AccountId);
 
             assertExpectedApiToken(expectedApiToken, tokenNode);
@@ -211,7 +211,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiTokenAlreadyAdded(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId, Set.of(), "Name");
 
         final String gw2ApiToken = UUID.randomUUID().toString();
@@ -234,7 +234,7 @@ class ApiTokenControllerTest {
     public void addApiTokenLinkedToOtherAccountButNotVerified(MockHttpSession session) throws Exception {
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
 
         final String gw2ApiToken = TestHelper.randomRootToken();
@@ -251,7 +251,7 @@ class ApiTokenControllerTest {
                         .content(gw2ApiToken)
         )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId))
+                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
                 .andExpect(jsonPath("$.gw2ApiToken").value(gw2ApiToken))
                 .andExpect(jsonPath("$.displayName").value("Gw2AccountName.1234"))
@@ -267,7 +267,7 @@ class ApiTokenControllerTest {
     public void addApiTokenLinkedAndVerifiedToOtherAccount(MockHttpSession session) throws Exception {
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
         this.testHelper.createAccountVerification(otherUserAccountId, gw2AccountId);
 
@@ -292,7 +292,7 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void addApiTokenAlreadyVerified(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createAccountVerification(accountId, gw2AccountId);
 
         final String gw2ApiToken = TestHelper.randomRootToken();
@@ -309,7 +309,7 @@ class ApiTokenControllerTest {
                         .content(gw2ApiToken)
         )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId))
+                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
                 .andExpect(jsonPath("$.gw2ApiToken").value(gw2ApiToken))
                 .andExpect(jsonPath("$.displayName").value("Gw2AccountName.1234"))
@@ -323,7 +323,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiToken(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
@@ -338,7 +338,7 @@ class ApiTokenControllerTest {
                         .content(gw2ApiToken)
         )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId))
+                .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
                 .andExpect(jsonPath("$.gw2ApiToken").value(gw2ApiToken))
                 .andExpect(jsonPath("$.displayName").value("Gw2AccountName.1234"))
@@ -366,7 +366,7 @@ class ApiTokenControllerTest {
     public void updateApiTokenThatHasBeenVerifiedByAnotherAccount(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
 
         // save key for the same gw2 account id on both accounts
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(), "Name A");
@@ -389,7 +389,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiTokenNotExisting(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = UUID.randomUUID().toString();
 
         // prepare the gw2 rest server
@@ -409,7 +409,7 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void updateApiTokenInvalid(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
         final String gw2ApiToken = UUID.randomUUID().toString();
@@ -431,7 +431,7 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void updateApiTokenWithoutAccountPermission(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
         final String gw2ApiToken = UUID.randomUUID().toString();
@@ -453,10 +453,10 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void updateApiTokenForDifferentGw2AccountId(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountIdOriginal = UUID.randomUUID().toString();
+        final UUID gw2AccountIdOriginal = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountIdOriginal, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
-        final String gw2AccountIdUpdate = UUID.randomUUID().toString();
+        final UUID gw2AccountIdUpdate = UUID.randomUUID();
         final String gw2ApiToken = UUID.randomUUID().toString();
 
         // prepare the gw2 rest server
@@ -476,7 +476,7 @@ class ApiTokenControllerTest {
     @WithGw2AuthLogin
     public void updateApiToken(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final ApiTokenEntity apiToken = this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
         // verified
@@ -536,14 +536,14 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void deleteApiTokenNotExisting(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(delete("/api/token/someid").session(session).with(csrf()))
+        this.mockMvc.perform(delete("/api/token/{gw2AccountId}", UUID.randomUUID()).session(session).with(csrf()))
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin
     public void deleteApiToken(MockHttpSession session) throws Exception {
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
         // verified
@@ -576,7 +576,7 @@ class ApiTokenControllerTest {
         assertTrue(this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientConsent.clientRegistrationId()).isPresent());
     }
 
-    private void preparedGw2RestServerForAccountRequest(String gw2AccountId, String gw2ApiToken, String accountName) {
+    private void preparedGw2RestServerForAccountRequest(UUID gw2AccountId, String gw2ApiToken, String accountName) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
@@ -621,7 +621,7 @@ class ApiTokenControllerTest {
 
     private void assertExpectedApiToken(ExpectedApiToken expectedApiToken, String expectedDisplayName, String expectedGw2ApiToken, Set<String> expectedGw2ApiPermissions, JsonNode apiTokenNode) {
         assertNotNull(expectedApiToken);
-        assertEquals(expectedApiToken.apiToken().gw2AccountId(), apiTokenNode.get("gw2AccountId").textValue());
+        assertEquals(expectedApiToken.apiToken().gw2AccountId(), UUID.fromString(apiTokenNode.get("gw2AccountId").textValue()));
         assertInstantEquals(expectedApiToken.apiToken().creationTime(), apiTokenNode.get("creationTime").textValue());
         assertEquals(expectedGw2ApiToken, apiTokenNode.get("gw2ApiToken").textValue());
         assertEquals(expectedDisplayName, apiTokenNode.get("displayName").textValue());
@@ -641,7 +641,7 @@ class ApiTokenControllerTest {
         assertTrue(expectedGw2ApiPermissions.isEmpty());
 
         // authorizations
-        final Map<String, ClientRegistrationEntity> expectedAuthorizations = expectedApiToken.authorizations().stream()
+        final Map<UUID, ClientRegistrationEntity> expectedAuthorizations = expectedApiToken.authorizations().stream()
                 .collect(Collectors.toMap(ClientRegistrationEntity::clientId, Function.identity()));
 
         final JsonNode authorizationsNode = apiTokenNode.get("authorizations");
@@ -649,7 +649,7 @@ class ApiTokenControllerTest {
 
         for (int j = 0; j < authorizationsNode.size(); j++) {
             final JsonNode authorizationNode = authorizationsNode.get(j);
-            final String clientId = authorizationNode.get("clientId").textValue();
+            final UUID clientId = UUID.fromString(authorizationNode.get("clientId").textValue());
             final ClientRegistrationEntity expectedAuthorization = expectedAuthorizations.remove(clientId);
 
             assertNotNull(expectedAuthorization);

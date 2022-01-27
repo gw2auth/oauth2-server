@@ -77,7 +77,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     @Override
     @Transactional
-    public void deleteClientConsent(long accountId, String clientId) {
+    public void deleteClientConsent(long accountId, UUID clientId) {
         this.clientConsentRepository.findByAccountIdAndClientId(accountId, clientId).ifPresent(this::deleteInternal);
     }
 

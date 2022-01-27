@@ -15,10 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,7 +40,7 @@ public class ApiTokenServiceImpl implements ApiTokenService {
     }
 
     @Override
-    public List<ApiToken> getApiTokens(long accountId, Collection<String> gw2AccountIds) {
+    public List<ApiToken> getApiTokens(long accountId, Collection<UUID> gw2AccountIds) {
         if (gw2AccountIds.isEmpty()) {
             return List.of();
         }
@@ -55,7 +52,7 @@ public class ApiTokenServiceImpl implements ApiTokenService {
 
     @Override
     @Transactional(noRollbackFor = ApiTokenOwnershipMismatchException.class)
-    public ApiToken updateApiToken(long accountId, String gw2AccountId, String gw2ApiToken, String displayName) {
+    public ApiToken updateApiToken(long accountId, UUID gw2AccountId, String gw2ApiToken, String displayName) {
         final OptionalLong optional = this.verificationService.getVerifiedAccountId(gw2AccountId);
 
         if (optional.isPresent() && optional.getAsLong() != accountId) {
@@ -119,7 +116,7 @@ public class ApiTokenServiceImpl implements ApiTokenService {
     }
 
     @Override
-    public void deleteApiToken(long accountId, String gw2AccountId) {
+    public void deleteApiToken(long accountId, UUID gw2AccountId) {
         final int deletedCount = this.apiTokenRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
 
         if (deletedCount < 1) {

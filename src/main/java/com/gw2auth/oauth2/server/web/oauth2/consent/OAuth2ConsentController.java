@@ -32,6 +32,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,7 +51,7 @@ public class OAuth2ConsentController extends AbstractRestController {
 
     @GetMapping(value = "/api/oauth2/consent", produces = MediaType.APPLICATION_JSON_VALUE)
     public OAuth2ConsentInfoResponse oauth2ConsentInformation(@AuthenticationPrincipal Gw2AuthUser user,
-                                                              @RequestParam(OAuth2ParameterNames.CLIENT_ID) String clientId,
+                                                              @RequestParam(OAuth2ParameterNames.CLIENT_ID) UUID clientId,
                                                               @RequestParam(OAuth2ParameterNames.STATE) String state,
                                                               @RequestParam(OAuth2ParameterNames.SCOPE) String scopes) {
 
@@ -77,7 +78,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         }
 
         final MultiValueMap<String, String> submitFormParameters = new LinkedMultiValueMap<>();
-        submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId);
+        submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId.toString());
         submitFormParameters.set(OAuth2ParameterNames.STATE, state);
 
         requestedScopes.forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));

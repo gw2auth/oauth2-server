@@ -6,6 +6,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Repository
@@ -21,7 +22,7 @@ public interface ClientConsentLogRepository extends CrudRepository<ClientConsent
     LIMIT :page_size OFFSET (:page * :page_size)
     """)
     Stream<ClientConsentLogEntity> findByAccountIdAndClientId(@Param("account_id") long accountId,
-                                                              @Param("client_id") String clientId,
+                                                              @Param("client_id") UUID clientId,
                                                               @Param("page") int page,
                                                               @Param("page_size") int pageSize);
 

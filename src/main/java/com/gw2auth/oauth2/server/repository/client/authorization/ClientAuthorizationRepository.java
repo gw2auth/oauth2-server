@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Repository
 public interface ClientAuthorizationRepository extends BaseRepository<ClientAuthorizationEntity> {
@@ -48,7 +49,7 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     INSERT INTO client_authorizations
     (account_id, id, client_registration_id, creation_time, last_update_time, display_name, authorization_grant_type, authorized_scopes, attributes, state, authorization_code_value, authorization_code_issued_at, authorization_code_expires_at, authorization_code_metadata, access_token_value, access_token_issued_at, access_token_expires_at, access_token_metadata, access_token_type, access_token_scopes, refresh_token_value, refresh_token_issued_at, refresh_token_expires_at, refresh_token_metadata)
     VALUES
-    (:account_id, :id, :client_registration_id, :creation_time, :last_update_time, :display_name, :authorization_grant_type, ARRAY[ :authorized_scopes ]::VARCHAR[], :attributes, :state, :authorization_code_value, :authorization_code_issued_at, :authorization_code_expires_at, :authorization_code_metadata, :access_token_value, :access_token_issued_at, :access_token_expires_at, :access_token_metadata, :access_token_type, ARRAY[ :access_token_scopes ]::VARCHAR[], :refresh_token_value, :refresh_token_issued_at, :refresh_token_expires_at, :refresh_token_metadata)
+    (:account_id, :id, :client_registration_id, :creation_time, :last_update_time, :display_name, :authorization_grant_type, ARRAY[ :authorized_scopes ]::TEXT[], :attributes, :state, :authorization_code_value, :authorization_code_issued_at, :authorization_code_expires_at, :authorization_code_metadata, :access_token_value, :access_token_issued_at, :access_token_expires_at, :access_token_metadata, :access_token_type, ARRAY[ :access_token_scopes ]::TEXT[], :refresh_token_value, :refresh_token_issued_at, :refresh_token_expires_at, :refresh_token_metadata)
     ON CONFLICT (account_id, id) DO UPDATE SET
     last_update_time = EXCLUDED.last_update_time,
     display_name = CASE
@@ -159,17 +160,17 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     WHERE auth.account_id = :account_id
     AND reg.client_id = :client_id
     """)
-    List<ClientAuthorizationEntity> findAllByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") String clientId);
+    List<ClientAuthorizationEntity> findAllByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") UUID clientId);
 
     @Query("""
     SELECT auth.*
     FROM client_authorizations auth
     INNER JOIN client_authorization_tokens auth_tk
     ON auth.account_id = auth_tk.account_id AND auth.id = auth_tk.client_authorization_id
-    WHERE auth.account_id = :account_id AND auth_tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::VARCHAR[])
+    WHERE auth.account_id = :account_id AND auth_tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
     GROUP BY auth.account_id, auth.id
     """)
-    List<ClientAuthorizationEntity> findAllByAccountIdAndLinkedTokens(@Param("account_id") long accountId, @Param("gw2_account_ids") Set<String> gw2AccountIds);
+    List<ClientAuthorizationEntity> findAllByAccountIdAndLinkedTokens(@Param("account_id") long accountId, @Param("gw2_account_ids") Set<UUID> gw2AccountIds);
 
     @Modifying
     @Query("DELETE FROM client_authorizations WHERE account_id = :account_id AND id = :id")

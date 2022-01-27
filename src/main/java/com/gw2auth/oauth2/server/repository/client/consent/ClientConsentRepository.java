@@ -23,7 +23,7 @@ public interface ClientConsentRepository extends BaseRepository<ClientConsentEnt
     INSERT INTO client_consents
     (account_id, client_registration_id, account_sub, authorized_scopes)
     VALUES
-    (:account_id, :client_registration_id, :account_sub, ARRAY[ :authorized_scopes ]::VARCHAR[])
+    (:account_id, :client_registration_id, :account_sub, ARRAY[ :authorized_scopes ]::TEXT[])
     ON CONFLICT (account_id, client_registration_id) DO UPDATE SET
     account_sub = EXCLUDED.account_sub,
     authorized_scopes = EXCLUDED.authorized_scopes
@@ -34,17 +34,8 @@ public interface ClientConsentRepository extends BaseRepository<ClientConsentEnt
     @Query("SELECT * FROM client_consents WHERE account_id = :account_id")
     List<ClientConsentEntity> findAllByAccountId(@Param("account_id") long accountId);
 
-    @Query("""
-    SELECT auth.*
-    FROM client_consents auth
-    INNER JOIN client_authorization_tokens auth_tk
-    ON auth.account_id = auth_tk.account_id AND auth.client_registration_id = auth_tk.client_registration_id
-    WHERE auth.account_id = :account_id AND auth_tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::VARCHAR[])
-    """)
-    List<ClientConsentEntity> findAllByAccountIdAndLinkedTokens(@Param("account_id") long accountId, @Param("gw2_account_ids") Set<String> gw2AccountIds);
-
     @Query("SELECT auth.* FROM client_consents auth INNER JOIN client_registrations reg ON auth.client_registration_id = reg.id WHERE auth.account_id = :account_id AND reg.client_id = :client_id")
-    Optional<ClientConsentEntity> findByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") String clientId);
+    Optional<ClientConsentEntity> findByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") UUID clientId);
 
     @Query("SELECT * FROM client_consents WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
     Optional<ClientConsentEntity> findByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);

@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -31,7 +32,7 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/registration/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> getClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+    public ResponseEntity<Object> getClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
         return fromOptional(this.clientRegistrationService.getClientRegistration(user.getAccountId(), clientId).map(ClientRegistrationPrivateResponse::create));
     }
 
@@ -46,7 +47,7 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @PutMapping(value = "/api/client/registration/{clientId}/redirect-uris", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ClientRegistrationPrivateResponse addRedirectUri(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId, @RequestBody String redirectUri) {
+    public ClientRegistrationPrivateResponse addRedirectUri(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId, @RequestBody String redirectUri) {
         return ClientRegistrationPrivateResponse.create(this.clientRegistrationService.addRedirectUri(
                 user.getAccountId(),
                 clientId,
@@ -55,7 +56,7 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/client/registration/{clientId}/redirect-uris", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ClientRegistrationPrivateResponse removeRedirectUri(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId, @RequestParam("redirectUri") String redirectUri) {
+    public ClientRegistrationPrivateResponse removeRedirectUri(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId, @RequestParam("redirectUri") String redirectUri) {
         return ClientRegistrationPrivateResponse.create(this.clientRegistrationService.removeRedirectUri(
                 user.getAccountId(),
                 clientId,
@@ -64,7 +65,7 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @PatchMapping(value = "/api/client/registration/{clientId}/client-secret", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ClientRegistrationCreationResponse regenerateClientSecret(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+    public ClientRegistrationCreationResponse regenerateClientSecret(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
         return ClientRegistrationCreationResponse.create(this.clientRegistrationService.regenerateClientSecret(
                 user.getAccountId(),
                 clientId
@@ -72,7 +73,7 @@ public class ClientRegistrationController extends AbstractRestController {
     }
 
     @DeleteMapping("/api/client/registration/{clientId}")
-    public ResponseEntity<Void> deleteClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") String clientId) {
+    public ResponseEntity<Void> deleteClientRegistration(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
         this.clientRegistrationService.deleteClientRegistration(user.getAccountId(), clientId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }

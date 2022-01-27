@@ -8,6 +8,7 @@ import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public record ClientAuthorizationResponse(@JsonProperty("id") String id,
@@ -26,7 +27,7 @@ public record ClientAuthorizationResponse(@JsonProperty("id") String id,
         return new ClientAuthorizationResponse(authorization.id(), authorization.creationTime(), authorization.lastUpdateTime(), authorization.displayName(), gw2ApiPermissions, authorization.authorizedScopes().contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE), tokens);
     }
 
-    public record Token(@JsonProperty("gw2AccountId") String gw2AccountId,
+    public record Token(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                         @JsonProperty("displayName") String displayName) {
 
     }

@@ -238,9 +238,9 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -271,9 +271,9 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = TestHelper.randomRootToken();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -299,7 +299,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
 
         // pending challenge should be inserted
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isPresent());
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isPresent());
 
         // let 91 minutes pass
         testingClock = Clock.offset(testingClock, Duration.ofMinutes(91L));
@@ -313,7 +313,7 @@ class VerificationControllerTest {
         this.verificationService.tryVerifyAllPending();
 
         // pending challenge should be updated to verification failed entity
-        final Gw2AccountVerificationChallengeEntity verificationFailedEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null);
+        final Gw2AccountVerificationChallengeEntity verificationFailedEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
         assertNotNull(verificationFailedEntity);
         assertEquals(-1L, verificationFailedEntity.challengeId());
         assertInstantEquals(testingClock.instant().plus(Duration.ofHours(2L)), verificationFailedEntity.timeoutAt());
@@ -321,7 +321,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeLaterFulfilled(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
@@ -334,7 +334,7 @@ class VerificationControllerTest {
         this.verificationService.setClock(testingClock);
 
         final String gw2ApiToken = TestHelper.randomRootToken();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -360,7 +360,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
 
         // pending challenge should be inserted
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isPresent());
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isPresent());
 
         // let 15 minutes pass
         testingClock = Clock.offset(testingClock, Duration.ofMinutes(15L));
@@ -374,7 +374,7 @@ class VerificationControllerTest {
         this.verificationService.tryVerifyAllPending();
 
         // pending challenge should be removed
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
         final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
@@ -387,7 +387,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeDirectlyFulfilled(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
@@ -400,7 +400,7 @@ class VerificationControllerTest {
         this.verificationService.setClock(testingClock);
 
         final String gw2ApiToken = TestHelper.randomRootToken();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // start the challenge
         final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 1L);
@@ -425,7 +425,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
 
         // pending challenge should not be present (either removed or never inserted)
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
         final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
@@ -438,7 +438,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitTPBuyOrderChallengeDirectlyFulfilled(MockHttpSession session) throws Exception {
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
@@ -451,7 +451,7 @@ class VerificationControllerTest {
         this.verificationService.setClock(testingClock);
 
         final String gw2ApiToken = TestHelper.randomRootToken();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.TRADINGPOST), testingClock.instant(), Duration.ofMinutes(15L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.TRADINGPOST), testingClock.instant(), Duration.ofMinutes(15L));
 
         // start the challenge
         final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 2L);
@@ -476,7 +476,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
 
         // pending challenge should not be present (either removed or never inserted)
-        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
         final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
@@ -619,9 +619,9 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = TestHelper.randomRootToken();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -647,7 +647,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
 
         // pending challenge should be inserted
-        final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null);
+        final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
         assertNotNull(startedChallenge);
 
         // start a new challenge
@@ -669,7 +669,7 @@ class VerificationControllerTest {
                 .andExpect(status().isBadRequest());
 
         // pending challenge should not be modified
-        assertEquals(startedChallenge, this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElse(null));
+        assertEquals(startedChallenge, this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null));
     }
 
     @WithGw2AuthLogin
@@ -680,9 +680,9 @@ class VerificationControllerTest {
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.verificationService.setClock(testingClock);
 
-        final String gw2AccountId = UUID.randomUUID().toString();
+        final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = UUID.randomUUID().toString();
-        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID().toString(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // insert the verification
         this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
@@ -768,7 +768,7 @@ class VerificationControllerTest {
                 });
     }
 
-    private void preparedGw2RestServerForAccountRequest(String gw2AccountId, String gw2ApiToken) {
+    private void preparedGw2RestServerForAccountRequest(UUID gw2AccountId, String gw2ApiToken) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))

@@ -50,7 +50,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public Optional<ClientRegistration> getClientRegistration(long accountId, String clientId) {
+    public Optional<ClientRegistration> getClientRegistration(long accountId, UUID clientId) {
         return this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId).map(ClientRegistration::fromEntity);
     }
 
@@ -62,7 +62,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public Optional<ClientRegistration> getClientRegistration(String clientId) {
+    public Optional<ClientRegistration> getClientRegistration(UUID clientId) {
         return this.clientRegistrationRepository.findByClientId(clientId).map(ClientRegistration::fromEntity);
     }
 
@@ -98,7 +98,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistration addRedirectUri(long accountId, String clientId, String redirectUri) {
+    public ClientRegistration addRedirectUri(long accountId, UUID clientId, String redirectUri) {
         if (!this.redirectUriValidator.validate(redirectUri)) {
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.INVALID_REDIRECT_URI, HttpStatus.BAD_REQUEST);
         }
@@ -113,7 +113,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistration removeRedirectUri(long accountId, String clientId, String redirectUri) {
+    public ClientRegistration removeRedirectUri(long accountId, UUID clientId, String redirectUri) {
         ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
                 .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
 
@@ -129,7 +129,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistrationCreation regenerateClientSecret(long accountId, String clientId) {
+    public ClientRegistrationCreation regenerateClientSecret(long accountId, UUID clientId) {
         ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
                 .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
 
@@ -142,15 +142,15 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public void deleteClientRegistration(long accountId, String clientId) {
+    public void deleteClientRegistration(long accountId, UUID clientId) {
         if (!this.clientRegistrationRepository.deleteByAccountIdIdAndClientId(accountId, clientId)) {
             // return not found since we dont want the user to know this client id exists
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND);
         }
     }
 
-    private String generateClientId() {
-        return UUID.randomUUID().toString();
+    private UUID generateClientId() {
+        return UUID.randomUUID();
     }
 
     private String generateClientSecret() {
@@ -167,7 +167,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     private static RegisteredClient registeredClientFromEntity(ClientRegistrationEntity entity) {
         final RegisteredClient.Builder builder = RegisteredClient.withId(Long.toString(entity.id()))
                 .clientName(entity.displayName())
-                .clientId(entity.clientId())
+                .clientId(entity.clientId().toString())
                 .clientSecret(entity.clientSecret())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(entity.redirectUris()))
@@ -215,7 +215,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
 
     @Override
     public RegisteredClient findByClientId(String clientId) {
-        return this.clientRegistrationRepository.findByClientId(clientId).map(ClientRegistrationServiceImpl::registeredClientFromEntity).orElse(null);
+        return this.clientRegistrationRepository.findByClientId(UUID.fromString(clientId)).map(ClientRegistrationServiceImpl::registeredClientFromEntity).orElse(null);
     }
     // endregion
 }
