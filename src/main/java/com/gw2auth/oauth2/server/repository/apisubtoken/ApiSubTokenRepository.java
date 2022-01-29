@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ApiSubTokenRepository extends BaseRepository<ApiSubTokenEntity> {
+public interface ApiSubTokenRepository extends BaseRepository<ApiSubTokenEntity>, CustomApiSubTokenRepository {
 
     @Override
     default ApiSubTokenEntity save(ApiSubTokenEntity entity) {

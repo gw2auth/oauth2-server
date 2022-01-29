@@ -215,6 +215,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
 
             final Map<UUID, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+            final List<ApiSubTokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(result.size());
 
             for (Map.Entry<UUID, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
                 final UUID gw2AccountId = entry.getKey();
@@ -224,7 +225,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
                 if (gw2SubToken != null) {
                     if (gw2SubToken.permissions().equals(authorizedGw2ApiPermissions)) {
-                        this.apiSubTokenRepository.save(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
+                        apiSubTokenEntitiesToSave.add(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
 
                         tokenForJWT.put("token", gw2SubToken.value());
                         logging.log("Added Subtoken for the Root-API-Token named '%s'", displayName);
@@ -237,6 +238,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     logging.log("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName);
                 }
             }
+
+            this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave);
 
             customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
         }

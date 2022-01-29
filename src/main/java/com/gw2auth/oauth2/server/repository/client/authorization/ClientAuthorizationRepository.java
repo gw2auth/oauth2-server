@@ -153,6 +153,17 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     List<ClientAuthorizationEntity> findAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
 
     @Query("""
+    SELECT *
+    FROM client_authorizations
+    WHERE account_id = :account_id
+    AND client_registration_id = :client_registration_id
+    AND authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
+    ORDER BY creation_time DESC
+    LIMIT 1
+    """)
+    Optional<ClientAuthorizationEntity> findLatestByAccountIdAndClientRegistrationIdAndHavingScopes(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId, @Param("authorized_scopes") Set<String> scopes);
+
+    @Query("""
     SELECT auth.*
     FROM client_authorizations auth
     INNER JOIN client_registrations reg

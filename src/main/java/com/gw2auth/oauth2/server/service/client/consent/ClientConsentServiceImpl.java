@@ -7,7 +7,6 @@ import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntit
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -138,10 +137,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
                 return null;
             }
 
-            final String copyGw2AccountIdsFromClientAuthorizationId = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).stream()
-                    .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
-                    .filter((v) -> v.authorizedScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes()))
-                    .max(Comparator.comparing(ClientAuthorizationEntity::creationTime))
+            final String copyGw2AccountIdsFromClientAuthorizationId = this.clientAuthorizationRepository.findLatestByAccountIdAndClientRegistrationIdAndHavingScopes(accountId, clientRegistrationId, this.authorizationCodeParamAccessor.getRequestedScopes())
                     .map(ClientAuthorizationEntity::id)
                     .orElse(null);
 
