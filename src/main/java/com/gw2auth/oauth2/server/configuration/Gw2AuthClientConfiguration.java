@@ -48,7 +48,9 @@ public class Gw2AuthClientConfiguration {
     @PostConstruct
     public void initialize() {
         for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.getRegistration()) {
-            if (this.clientRegistrationService.getClientRegistration(UUID.fromString(registrationConfig.getClientId())).isEmpty()) {
+            final UUID clientId = UUID.fromString(registrationConfig.getClientId());
+
+            if (this.clientRegistrationService.getClientRegistration(clientId).isEmpty()) {
                 final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.getAccount().get(registrationConfig.getAccount());
                 Account account = null;
 
@@ -69,7 +71,7 @@ public class Gw2AuthClientConfiguration {
 
                 this.jdbcOperations.update(
                         "UPDATE client_registrations SET client_id = ?, client_secret = ? WHERE id = ?",
-                        registrationConfig.getClientId(),
+                        clientId,
                         this.passwordEncoder.encode(registrationConfig.getClientSecret()),
                         clientRegistrationCreation.clientRegistration().id()
                 );
