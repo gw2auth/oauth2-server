@@ -96,7 +96,11 @@ export class VerificationComponent implements OnInit {
             const silver = coins % 100;
             coins = (coins - silver) / 100;
 
-            return {gold: coins, silver: silver, copper: copper, name: gw2Item.name, icon: gw2Item.icon};
+            const icon = gw2Item.icon
+                .replace('https://render.guildwars2.com/file/', 'https://icons-gw2.darthmaim-cdn.de/')
+                .replace('.png', '-64px.png');
+
+            return {gold: coins, silver: silver, copper: copper, name: gw2Item.name, icon: icon};
           }),
           catchError((e) => {
             return of({gold: 0, silver: 0, copper: 0, name: '', icon: ''});

@@ -31,7 +31,7 @@ public class SecurityConfiguration {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().antMatchers("/**/*.css", "/**/*.js", "/favicon.ico", "/robots.txt");
+        return (web) -> web.ignoring().antMatchers("/**/*.css", "/**/*.js", "/assets/**", "/favicon.ico", "/robots.txt");
     }
 
     @Bean
@@ -50,7 +50,7 @@ public class SecurityConfiguration {
                                     "connect-src 'self' https://api.guildwars2.com",
                                     "script-src 'self' 'unsafe-inline'",
                                     "style-src 'self' 'unsafe-inline'",
-                                    "img-src 'self' https://render.guildwars2.com https://wiki.guildwars2.com/images/ data:"
+                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.de/ data:"
                             )));
                 })
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
