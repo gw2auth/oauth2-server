@@ -13,7 +13,7 @@ import {ClientRegistrationPrivate} from "./client-registration.model";
         </div>
         <div class="modal-body">
             <p>Do you really want to regenerate the Client-Secret for <strong>{{clientRegistration.displayName}}</strong>?</p>
-            <p>This action can't be undone. The Client-Secret will be updated immediately and currently active applications using this Client-Secret will no longer work until you update their configuration accordingly!</p>
+            <p>This action cannot be undone. The Client-Secret will be updated immediately and currently active applications using this Client-Secret will no longer work until you update their configuration accordingly!</p>
             <form>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" value="" [id]="'regenerate-client-secret-confirm'" [(ngModel)]="confirmed" name="confirmed" />
