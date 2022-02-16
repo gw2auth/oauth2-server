@@ -21,3 +21,12 @@ jobs:
           cache: "maven"
       - name: "Build"
         run: mvn clean package
+      - name: "Upload Artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: "oauth2-server"
+          path: |
+            Dockerfile
+            docker-entrypoint.sh
+            target/oauth2-server.jar
+            target/version.txt
