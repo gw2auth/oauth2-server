@@ -21,6 +21,7 @@ export interface MinimalToken {
     gw2AccountId: string;
     gw2ApiToken: string;
     displayName: string;
+    isVerified: boolean;
 }
 
 export interface OAuth2ConsentInformation {

@@ -13,27 +13,47 @@
                                     <h2>Authorize {{info.clientRegistration.displayName}}</h2>
                                 </div>
                                 <div class="card-body">
-                                    <div class="border border-accent-inner rounded-2 p-3 mb-3">
-                                        <div class="card-title mb-3">Requested permissions</div>
-                                        <div class="container-fluid">
-                                            <div class="row row-cols-1 row-cols-sm-2 g-2">
-                                                <ng-container *ngFor="let requestedGw2ApiPermission of info.requestedGw2ApiPermissions">
-                                                    <div class="col">
-                                                        <app-gw2-api-permission-badge [gw2ApiPermission]="requestedGw2ApiPermission" [isPresent]="true"></app-gw2-api-permission-badge>
+                                    <div class="mb-3">
+
+                                        <h5 class="card-title mb-3">Requested permissions:</h5>
+
+                                        <ngb-accordion #accPermissions [activeIds]="['ngb-panel-0', 'ngb-panel-1']" [type]="'accent'">
+                                            <ngb-panel>
+                                                <ng-template ngbPanelTitle><span>GW2-API access <span class="badge rounded-pill bg-success">{{info.requestedGw2ApiPermissions.length}}</span></span></ng-template>
+                                                <ng-template ngbPanelContent>
+                                                    <div class="container-fluid">
+                                                        <div class="row row-cols-1 row-cols-sm-2 g-2">
+                                                            <ng-container *ngFor="let requestedGw2ApiPermission of info.requestedGw2ApiPermissions">
+                                                                <div class="col">
+                                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="requestedGw2ApiPermission" [isPresent]="true"></app-gw2-api-permission-badge>
+                                                                </div>
+                                                            </ng-container>
+                                                        </div>
                                                     </div>
-                                                </ng-container>
-                                            </div>
-                                        </div>
-                                        <div *ngIf="info.requestedVerifiedInformation" class="mt-3">
-                                            <small>The application further requested to read the account verification status of all GW2-Accounts you choose to authorize</small>
-                                        </div>
+                                                </ng-template>
+                                            </ngb-panel>
+
+                                            <ngb-panel *ngIf="info.requestedVerifiedInformation">
+                                                <ng-template ngbPanelTitle><span>Other <span class="badge rounded-pill bg-success">1</span></span></ng-template>
+                                                <ng-template ngbPanelContent>
+                                                    <div class="list-group">
+                                                        <div class="list-group-item">
+                                                            <p class="mb-0 text-start">Account verification status</p>
+                                                            <div class="ps-2 text-start">
+                                                                <p class="mb-0">The application requested to read the account verification status of all GW2-Accounts you select below.</p>
+                                                                <p class="mb-0">Depending on the verification status of these accounts the application <strong>may refuse to work with your GW2-Accounts</strong> until you verify them.</p>
+                                                                <p class="mb-0">You can verify your GW2-Accounts <a [routerLink]="['/', 'account', 'verification']" target="_blank">here</a></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ng-template>
+                                            </ngb-panel>
+                                        </ngb-accordion>
                                     </div>
                                     <div class="border border-accent-inner rounded-2 p-3 mb-3">
-                                        <ng-container [ngSwitch]="info.apiTokensWithSufficientPermissions.length">
-                                            <ng-container *ngSwitchCase="0">
-                                                <div class="mb-3">You have no account with the required permissions</div>
-                                            </ng-container>
-                                            <ng-container *ngSwitchDefault>
+                                        <!-- region Accounts with permissions -->
+                                        <ng-container [ngSwitch]="info.apiTokensWithSufficientPermissions.length > 0">
+                                            <ng-container *ngSwitchCase="true">
                                                 <div class="mb-3">Grant access to the GW2-API for the following GW2-Accounts:</div>
 
                                                 <div *ngIf="info.apiTokensWithSufficientPermissions.length > 1" class="btn-group w-75 mb-3" role="group">
@@ -49,25 +69,47 @@
                                                             [disabled]="getApiTokenValidStatus(apiToken) != 1"
                                                             (click)="onSelectedGw2AccountChange(apiToken.gw2AccountId)">
 
-                                                        <fa-icon *ngIf="selectedGw2AccountIds.has(apiToken.gw2AccountId)" [icon]="faCheck"></fa-icon> {{apiToken.displayName}}
-                                                        <ng-container [ngSwitch]="getApiTokenValidStatus(apiToken)">
-                                                            <span *ngSwitchCase="-1" class="position-absolute end-0 me-2 spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                                            <span *ngSwitchCase="0" class="position-absolute end-0 me-2 badge rounded-pill bg-danger">Invalid / Expired</span>
-                                                        </ng-container>
+                                                        <div class="container-fluid m-0 p-0">
+                                                            <div class="row row-cols-3 justify-content-between">
+                                                                <div class="col text-start">
+                                                                    <fa-icon *ngIf="selectedGw2AccountIds.has(apiToken.gw2AccountId)" class="align-self-start" [icon]="faCheck"></fa-icon>
+                                                                </div>
+                                                                <div class="col">{{apiToken.displayName}}</div>
+                                                                <div class="col text-end">
+                                                                    <span *ngIf="info.requestedVerifiedInformation" class="badge rounded-pill" [class]="apiToken.isVerified ? 'bg-success' : 'bg-danger'">{{apiToken.isVerified ? 'Verified' : 'Unverified'}}</span>
+
+                                                                    <ng-container [ngSwitch]="getApiTokenValidStatus(apiToken)">
+                                                                        <span *ngSwitchCase="-1" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                                        <span *ngSwitchCase="0" class="badge rounded-pill bg-danger">Invalid / Expired</span>
+                                                                    </ng-container>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </button>
                                                 </div>
+
+                                                <small class="align-middle">Missing your GW2-Account? <a href="" (click)="onManageTokensClick($event)">Manage your API-Tokens</a></small>
                                             </ng-container>
+                                            <!-- endregion -->
+                                            <!-- region No accounts with permissions -->
+                                            <ng-container *ngSwitchDefault>
+                                                <h5 class="mb-3">You did not add a GW2-Account with the requested permissions yet</h5>
+                                                <div class="text-start">
+                                                    <p>The application <strong>{{info.clientRegistration.displayName}}</strong> requested access to the GW2-API using your GW2-Accounts.</p>
+                                                    <p>You did not add any API-Token for the GW2-API fulfilling the requested permissions to your GW2Auth-Account (this website) yet.</p>
+                                                    <p class="mb-0">Please add your API-Token(s) using <a href="" (click)="onManageTokensClick($event)">this link</a> first and then come back.</p>
+                                                </div>
+                                            </ng-container>
+                                            <!-- endregion -->
                                         </ng-container>
 
-                                        <div class="mb-3" *ngIf="info.apiTokensWithInsufficientPermissions.length > 0">
+                                        <div class="mt-3" *ngIf="info.apiTokensWithInsufficientPermissions.length > 0">
                                             <ng-template #apiTokensWithInsufficientPermissionsTooltip>
                                                 <p *ngFor="let apiToken of info.apiTokensWithInsufficientPermissions">{{apiToken.displayName}}</p>
                                             </ng-template>
 
                                             <small>You have <strong [ngbTooltip]="apiTokensWithInsufficientPermissionsTooltip">{{info.apiTokensWithInsufficientPermissions.length}} more GW2-Account(s)</strong> which don't have enough permissions for this request</small>
                                         </div>
-
-                                        <small class="align-middle">Missing your GW2-Account? <a href="" (click)="onManageTokensClick($event)">Manage your API-Tokens</a></small>
                                     </div>
                                 </div>
                                 <div class="card-footer">

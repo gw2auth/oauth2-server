@@ -7,6 +7,7 @@ import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
@@ -41,12 +42,14 @@ public class OAuth2ConsentController extends AbstractRestController {
     private final ClientRegistrationService clientRegistrationService;
     private final OAuth2AuthorizationService auth2AuthorizationService;
     private final ApiTokenService apiTokenService;
+    private final VerificationService verificationService;
 
     @Autowired
-    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, OAuth2AuthorizationService auth2AuthorizationService, ApiTokenService apiTokenService) {
+    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, OAuth2AuthorizationService auth2AuthorizationService, ApiTokenService apiTokenService, VerificationService verificationService) {
         this.clientRegistrationService = clientRegistrationService;
         this.auth2AuthorizationService = auth2AuthorizationService;
         this.apiTokenService = apiTokenService;
+        this.verificationService = verificationService;
     }
 
     @GetMapping(value = "/api/oauth2/consent", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -66,9 +69,15 @@ public class OAuth2ConsentController extends AbstractRestController {
 
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
+        final Set<UUID> verifiedGw2AccountIds;
+        if (apiTokens.isEmpty() || !requestedVerifiedInformation) {
+            verifiedGw2AccountIds = Set.of();
+        } else {
+            verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(user.getAccountId());
+        }
 
         for (ApiToken apiToken : apiTokens) {
-            final OAuth2ConsentInfoResponse.MinimalApiToken resultApiToken = OAuth2ConsentInfoResponse.MinimalApiToken.create(apiToken);
+            final OAuth2ConsentInfoResponse.MinimalApiToken resultApiToken = OAuth2ConsentInfoResponse.MinimalApiToken.create(apiToken, verifiedGw2AccountIds.contains(apiToken.gw2AccountId()));
 
             if (apiToken.gw2ApiPermissions().containsAll(requestedGw2ApiPermissions)) {
                 apiTokensWithSufficientPermissionResponses.add(resultApiToken);

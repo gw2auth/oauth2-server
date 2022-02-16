@@ -87,7 +87,10 @@
                 <div class="mb-3">
                     <label [htmlFor]="'api-token'" class="form-label">API-Token</label>
                     <input type="text" class="form-control" [id]="'api-token'" [attr.aria-describedby]="'api-token-help'" [(ngModel)]="addTokenValue" name="token" [disabled]="addTokenLoading" />
-                    <div [id]="'api-token-help'" class="form-text">You can only add one API-Token per GW2-Account. If you want to update the API-Token for a GW2-Account you already have linked another API-Token for, update it in the table above.</div>
+                    <div [id]="'api-token-help'" class="form-text">
+                        <p class="mb-1">You can create a new API-Token for your GW2-Account <a href="https://account.arena.net/applications" target="_blank">using the official website</a>.</p>
+                        <p class="mb-0">Only one API-Token per GW2-Account can be added. If you want to update the API-Token for a GW2-Account you already have linked another API-Token for, update it in the table above .</p>
+                    </div>
                 </div>
                 <app-button-loadable [class]="'btn-primary'" [disabled]="addTokenValue.length < 1" [loading]="addTokenLoading" (click)="onAddTokenClick()" [faIcon]="faSave">Save</app-button-loadable>
             </form>
