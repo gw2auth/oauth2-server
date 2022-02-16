@@ -70,11 +70,11 @@
                                                             (click)="onSelectedGw2AccountChange(apiToken.gw2AccountId)">
 
                                                         <div class="container-fluid m-0 p-0">
-                                                            <div class="row row-cols-3 justify-content-between">
+                                                            <div class="row justify-content-between">
                                                                 <div class="col text-start">
                                                                     <fa-icon *ngIf="selectedGw2AccountIds.has(apiToken.gw2AccountId)" class="align-self-start" [icon]="faCheck"></fa-icon>
                                                                 </div>
-                                                                <div class="col">{{apiToken.displayName}}</div>
+                                                                <div class="col-auto">{{apiToken.displayName}}</div>
                                                                 <div class="col text-end">
                                                                     <span *ngIf="info.requestedVerifiedInformation" class="badge rounded-pill" [class]="apiToken.isVerified ? 'bg-success' : 'bg-danger'">{{apiToken.isVerified ? 'Verified' : 'Unverified'}}</span>
 
