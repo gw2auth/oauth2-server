@@ -35,7 +35,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <start-class>com.gw2auth.oauth2.server.Application</start-class>
 
-        <node.version>v16.13.2</node.version>
+        <node.version>v16.14.0</node.version>
     </properties>
 
     <dependencies>
@@ -98,13 +98,13 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.69</version>
+            <version>1.70</version>
         </dependency>
 
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-lambda</artifactId>
-            <version>1.12.146</version>
+            <version>1.12.150</version>
         </dependency>
 
         <dependency>
@@ -153,7 +153,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.12.0</version>
+                <version>1.12.1</version>
                 <configuration>
                     <nodeVersion>${node.version}</nodeVersion>
                 </configuration>
