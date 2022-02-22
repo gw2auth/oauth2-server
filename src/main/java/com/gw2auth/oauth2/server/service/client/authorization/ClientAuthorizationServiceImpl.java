@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -49,6 +50,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     private final RegisteredClientRepository registeredClientRepository;
     private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
     private final ObjectMapper objectMapper;
+    private Clock clock;
 
     public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
@@ -62,6 +64,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         this.registeredClientRepository = registeredClientRepository;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
         this.objectMapper = new ObjectMapper();
+        this.clock = Clock.systemUTC();
 
         final ClassLoader classLoader = ClientAuthorizationServiceImpl.class.getClassLoader();
         final List<Module> securityModules = SecurityJackson2Modules.getModules(classLoader);
@@ -79,6 +82,10 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                                           RegisteredClientRepository registeredClientRepository) {
 
         this(clientAuthorizationRepository, clientAuthorizationTokenRepository, clientConsentService, registeredClientRepository, AuthorizationCodeParamAccessor.DEFAULT);
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -160,11 +167,6 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final long accountId = Long.parseLong(authorization.getPrincipalName());
         final long clientRegistrationId = Long.parseLong(authorization.getRegisteredClientId());
 
-        if (authorization.getRefreshToken() != null && Boolean.TRUE.equals(authorization.getRefreshToken().getMetadata(OAuth2Authorization.Token.INVALIDATED_METADATA_NAME))) {
-            deleteClientAuthorization(accountId, authorization.getId());
-            return;
-        }
-
         this.clientConsentService.createEmptyClientConsentIfNotExists(accountId, clientRegistrationId);
 
         final Optional<OAuth2Authorization.Token<OAuth2AuthorizationCode>> authorizationCode = Optional.ofNullable(authorization.getToken(OAuth2AuthorizationCode.class));
@@ -189,7 +191,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
             name = null;
         }
 
-        final Instant now = Instant.now();
+        final Instant now = this.clock.instant();
 
         final ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
                 accountId,
@@ -204,17 +206,17 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                 authorization.getAttribute(OAuth2ParameterNames.STATE),
                 authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
                 authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
-                authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                authorizationCode.map(this::getTokenExpiresAt).orElse(null),
                 authorizationCode.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null),
                 accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
                 accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
-                accessToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                accessToken.map(this::getTokenExpiresAt).orElse(null),
                 accessToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null),
                 accessToken.map(OAuth2Authorization.Token::getToken).map((v) -> v.getTokenType().getValue()).orElse(null),
                 accessToken.map(OAuth2Authorization.Token::getToken).map(OAuth2AccessToken::getScopes).orElse(Set.of()),
                 refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
                 refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
-                refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getExpiresAt).orElse(null),
+                refreshToken.map(this::getTokenExpiresAt).orElse(null),
                 refreshToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null)
         ));
 
@@ -361,6 +363,25 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         return builder.build();
     }
 
+    private Instant getTokenExpiresAt(OAuth2Authorization.Token<?> token) {
+        final Instant expiresAt;
+
+        if (token.isInvalidated()) {
+            final Instant now = this.clock.instant();
+            final Instant issuedAt = token.getToken().getIssuedAt();
+
+            if (issuedAt == null || now.isAfter(issuedAt)) {
+                expiresAt = now;
+            } else {
+                expiresAt = issuedAt;
+            }
+        } else {
+            expiresAt = token.getToken().getExpiresAt();
+        }
+
+        return expiresAt;
+    }
+
     private String writeJson(Map<String, Object> object) {
         try {
             return this.objectMapper.writeValueAsString(object);
@@ -380,7 +401,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Scheduled(fixedRate = 1000L * 60L * 5L)
     public void deleteAllExpiredAuthorizations() {
-        final int deleted = this.clientAuthorizationRepository.deleteAllExpired();
+        final int deleted = this.clientAuthorizationRepository.deleteAllExpired(this.clock.instant());
         LOG.info("scheduled deletion of expired authorizations deleted {} rows", deleted);
     }
 }

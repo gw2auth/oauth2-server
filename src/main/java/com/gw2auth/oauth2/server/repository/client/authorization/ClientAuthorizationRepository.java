@@ -190,9 +190,7 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     @Modifying
     @Query("""
     DELETE FROM client_authorizations
-    WHERE (refresh_token_value IS NOT NULL AND refresh_token_expires_at < NOW())
-    OR (refresh_token_value IS NULL AND authorization_code_value IS NOT NULL AND authorization_code_expires_at < NOW())
-    OR (refresh_token_value IS NULL AND authorization_code_value IS NULL AND (last_update_time + INTERVAL '30 MINUTES') < NOW())
+    WHERE COALESCE(GREATEST(authorization_code_expires_at, access_token_expires_at, refresh_token_expires_at), to_timestamp(0)) <= :now
     """)
-    int deleteAllExpired();
+    int deleteAllExpired(@Param("now") Instant now);
 }

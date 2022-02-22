@@ -19,6 +19,7 @@ import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.OAuth2TokenCustomizerService;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationServiceImpl;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
@@ -124,6 +125,9 @@ public class OAuth2ServerTest {
     @Autowired
     @Qualifier("gw2-rest-server")
     private MockRestServiceServer gw2RestServer;
+
+    @Autowired
+    private ClientAuthorizationServiceImpl clientAuthorizationService;
     
     private UUID gw2AccountId1st;
     private UUID gw2AccountId2nd;
@@ -1089,9 +1093,10 @@ public class OAuth2ServerTest {
         final String tokenC = TestHelper.randomRootToken();
         result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
-        // set testing clock to token customizer
-        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        // set testing clock to token customizer & authorization service
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         this.oAuth2TokenCustomizerService.setClock(testingClock);
+        this.clientAuthorizationService.setClock(testingClock);
 
         // retrieve the initial access and refresh token
         final String dummySubtokenA = TestHelper.createSubtokenJWT(this.gw2AccountId1st, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
@@ -1121,8 +1126,20 @@ public class OAuth2ServerTest {
                 )
                 .andExpect(status().isOk());
 
+        // trigger deletion
+        this.clientAuthorizationService.deleteAllExpiredAuthorizations();
+
+        // database should still contain the authorization (access token is still valid)
+        List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        assertEquals(1, clientAuthorizationEntities.size());
+
+        // trigger deletion with current timestamp + 31min
+        testingClock = Clock.offset(testingClock, Duration.ofMinutes(31L));
+        this.clientAuthorizationService.setClock(testingClock);
+        this.clientAuthorizationService.deleteAllExpiredAuthorizations();
+
         // database should not contain the authorization anymore
-        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
+        clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
         assertEquals(0, clientAuthorizationEntities.size());
     }
 

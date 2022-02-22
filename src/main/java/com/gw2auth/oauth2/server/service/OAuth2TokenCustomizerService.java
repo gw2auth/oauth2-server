@@ -51,7 +51,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private final Gw2ApiService gw2APIService;
     private final ApiSubTokenRepository apiSubTokenRepository;
     private final ExecutorService gw2ApiClientExecutorService;
-    private volatile Clock clock;
+    private Clock clock;
 
     @Autowired
     public OAuth2TokenCustomizerService(ApiTokenService apiTokenService,
@@ -69,7 +69,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         this.gw2APIService = gw2APIService;
         this.apiSubTokenRepository = apiSubTokenRepository;
         this.gw2ApiClientExecutorService = gw2ApiClientExecutorService;
-        this.clock = Clock.systemDefaultZone();
+        this.clock = Clock.systemUTC();
     }
 
     public void setClock(Clock clock) {
