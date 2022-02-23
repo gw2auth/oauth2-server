@@ -190,7 +190,7 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     @Modifying
     @Query("""
     DELETE FROM client_authorizations
-    WHERE COALESCE(GREATEST(authorization_code_expires_at, access_token_expires_at, refresh_token_expires_at), to_timestamp(0)) <= :now
+    WHERE COALESCE(GREATEST(authorization_code_expires_at, access_token_expires_at, refresh_token_expires_at), (last_update_time + INTERVAL '1 DAY')) <= :now
     """)
     int deleteAllExpired(@Param("now") Instant now);
 }
