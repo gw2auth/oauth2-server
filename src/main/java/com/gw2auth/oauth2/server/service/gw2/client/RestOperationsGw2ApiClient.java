@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class RestOperationsGw2ApiClient implements Gw2ApiClient {
 
@@ -52,5 +53,10 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
         }
 
         return response;
+    }
+
+    @Override
+    public <T> ResponseEntity<T> get(long timeout, TimeUnit timeUnit, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
+        return get(path, query, headers, typeReference);
     }
 }

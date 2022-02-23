@@ -12,9 +12,12 @@ class BatchImpl<ACC> implements Batch<ACC> {
         this.tasksAndConsumers = List.copyOf(tasksAndConsumers);
     }
 
-    private <T> RunningTaskContextImpl<ACC, T> submit(ExecutorService executorService, TaskAndConsumer<ACC, T> taskAndConsumer, long startedAt, long timeoutNanos) {
-        final Future<? extends T> future = executorService.submit(taskAndConsumer.task());
-        return new RunningTaskContextImpl<>(future, taskAndConsumer.consumer(), startedAt, timeoutNanos);
+    private <T> RunningTaskContextImpl<ACC, T> submit(ExecutorService executorService, TaskAndConsumer<ACC, T> taskAndConsumer, long timeoutAt) {
+        return new RunningTaskContextImpl<>(
+                executorService.submit(new TaskCallable<>(taskAndConsumer.task(), timeoutAt)),
+                taskAndConsumer.consumer(),
+                timeoutAt
+        );
     }
 
     private ACC safeAccumulator(ACC accumulator, Supplier<? extends ACC> accumulatorSupplier) {
@@ -29,22 +32,21 @@ class BatchImpl<ACC> implements Batch<ACC> {
     public ACC execute(ExecutorService executorService, Supplier<? extends ACC> accumulatorSupplier, long timeout, TimeUnit timeUnit) {
         ACC accumulator = null;
 
-        final long startedAt = System.nanoTime();
-        final long timeoutNanos = timeUnit.toNanos(timeout);
+        final long timeoutAt = System.nanoTime() + timeUnit.toNanos(timeout);
         final Queue<RunningTaskContextImpl<ACC, ?>> runningTaskContexts = new ArrayDeque<>(this.tasksAndConsumers.size());
 
         RunningTaskContextImpl<ACC, ?> runningTaskContext;
 
         try {
             for (TaskAndConsumer<ACC, ?> taskAndConsumer : this.tasksAndConsumers) {
-                runningTaskContexts.offer(submit(executorService, taskAndConsumer, startedAt, timeoutNanos));
+                runningTaskContexts.offer(submit(executorService, taskAndConsumer, timeoutAt));
             }
 
-            long nanosLeft = timeoutNanos - (System.nanoTime() - startedAt);
+            long nanosLeft = timeoutAt- System.nanoTime();
 
             while (nanosLeft > 0L && (runningTaskContext = runningTaskContexts.poll()) != null) {
                 accumulator = runningTaskContext.consume(safeAccumulator(accumulator, accumulatorSupplier), false);
-                nanosLeft = timeoutNanos - (System.nanoTime() - startedAt);
+                nanosLeft = timeoutAt - System.nanoTime();
             }
         } finally {
             // try to get all results for already finished tasks and cancel all tasks that are still in the queue
@@ -57,21 +59,35 @@ class BatchImpl<ACC> implements Batch<ACC> {
         return safeAccumulator(accumulator, accumulatorSupplier);
     }
 
-    private record TaskAndConsumer<ACC, T>(Callable<? extends T> task, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {}
+    private record TaskAndConsumer<ACC, T>(Task<? extends T> task, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {}
+
+    private static class TaskCallable<T> implements Callable<T> {
+
+        private final Task<T> task;
+        private final long timeoutAt;
+
+        private TaskCallable(Task<T> task, long timeoutAt) {
+            this.task = task;
+            this.timeoutAt = timeoutAt;
+        }
+
+        @Override
+        public T call() throws Exception {
+            return this.task.call(this.timeoutAt - System.nanoTime(), TimeUnit.NANOSECONDS);
+        }
+    }
 
     private static class RunningTaskContextImpl<ACC, T> implements RunningTaskContext<T> {
 
         private final Future<? extends T> future;
         private final BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer;
-        private final long startedAt;
-        private final long timeoutNanos;
+        private final long timeoutAt;
         private boolean allowDirectOnly;
 
-        private RunningTaskContextImpl(Future<? extends T> future, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer, long startedAt, long timeoutNanos) {
+        private RunningTaskContextImpl(Future<? extends T> future, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer, long timeoutAt) {
             this.future = future;
             this.consumer = consumer;
-            this.startedAt = startedAt;
-            this.timeoutNanos = timeoutNanos;
+            this.timeoutAt = timeoutAt;
         }
 
         @Override
@@ -85,7 +101,7 @@ class BatchImpl<ACC> implements Batch<ACC> {
                     throw new TimeoutException();
                 }
             } else {
-                result = this.future.get(this.timeoutNanos - (System.nanoTime() - this.startedAt), TimeUnit.NANOSECONDS);
+                result = this.future.get(this.timeoutAt - System.nanoTime(), TimeUnit.NANOSECONDS);
             }
 
             return result;
@@ -106,8 +122,8 @@ class BatchImpl<ACC> implements Batch<ACC> {
         }
 
         @Override
-        public <T> Builder<ACC> add(Callable<? extends T> callable, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {
-            this.tasksAndConsumers.add(new TaskAndConsumer<>(callable, consumer));
+        public <T> Builder<ACC> add(Task<? extends T> task, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {
+            this.tasksAndConsumers.add(new TaskAndConsumer<>(task, consumer));
             return this;
         }
 

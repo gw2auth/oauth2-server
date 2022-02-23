@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.service.gw2;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.gw2.client.Gw2ApiClient;
+import com.gw2auth.oauth2.server.util.SupplierWithExc;
 import com.nimbusds.jose.Header;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jwt.JWT;
@@ -20,9 +21,8 @@ import org.springframework.util.MultiValueMap;
 
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -31,6 +31,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
     private static final Pattern ROOT_TOKEN_PATTERN = Pattern.compile("^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{20}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$");
+    private static final ThreadLocal<Deque<Long>> TIMEOUT_AT_TL = new ThreadLocal<>();
 
     private final Gw2ApiClient gw2ApiClient;
 
@@ -76,6 +77,25 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
         return getFromAPI("/v2/commerce/transactions/current/buys", token, new TypeReference<List<Gw2Transaction>>() {});
     }
 
+    @Override
+    public <T, EXC extends Exception> T withTimeout(long timeout, TimeUnit timeUnit, SupplierWithExc<T, EXC> supplierWithExc) throws EXC {
+        Deque<Long> timeoutAtStack = TIMEOUT_AT_TL.get();
+        if (timeoutAtStack == null) {
+            timeoutAtStack = new ArrayDeque<>();
+            TIMEOUT_AT_TL.set(timeoutAtStack);
+        }
+
+        timeoutAtStack.addLast(System.nanoTime() + timeUnit.toNanos(timeout));
+        try {
+            return supplierWithExc.get();
+        } finally {
+            timeoutAtStack.removeLast();
+            if (timeoutAtStack.isEmpty()) {
+                TIMEOUT_AT_TL.remove();
+            }
+        }
+    }
+
     private <T> T getFromAPI(String url, String token, TypeReference<T> typeReference) {
         return getFromAPI(url, HttpHeaders.EMPTY, token, typeReference);
     }
@@ -85,9 +105,15 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
             throw new Gw2ApiServiceException(Gw2ApiServiceException.INVALID_API_TOKEN, HttpStatus.BAD_REQUEST);
         }
 
+        final Long timeoutAt = Optional.ofNullable(TIMEOUT_AT_TL.get()).map(Deque::peekLast).orElse(null);
+
         ResponseEntity<T> response;
         try {
-            response = this.gw2ApiClient.get(url, query, buildRequestHeaders(token), typeReference);
+            if (timeoutAt == null) {
+                response = this.gw2ApiClient.get(url, query, buildRequestHeaders(token), typeReference);
+            } else {
+                response = this.gw2ApiClient.get(timeoutAt - System.nanoTime(), TimeUnit.NANOSECONDS, url, query, buildRequestHeaders(token), typeReference);
+            }
         } catch (Exception e) {
             LOG.warn("unexpected exception during GW2-API-Request for url={}", url, e);
             throw new Gw2ApiServiceException(Gw2ApiServiceException.UNEXPECTED_EXCEPTION, HttpStatus.BAD_GATEWAY);

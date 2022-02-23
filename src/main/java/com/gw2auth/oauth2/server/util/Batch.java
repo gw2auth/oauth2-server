@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 public interface Batch<ACC> {
 
-    static <ACC> Builder<ACC> builder() {
+    static <R> Builder<R> builder() {
         return new BatchImpl.BuilderImpl<>();
     }
 
@@ -16,12 +16,23 @@ public interface Batch<ACC> {
         return execute(ForkJoinPool.commonPool(), accumulatorSupplier, timeout, timeUnit);
     }
 
+    @FunctionalInterface
+    interface Task<T> {
+
+        T call(long timeout, TimeUnit timeUnit) throws Exception;
+    }
+
     interface Builder<ACC> {
 
-        <T> Builder<ACC> add(Callable<? extends T> callable, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer);
+        default <T> Builder<ACC> add(Callable<? extends T> callable, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {
+            return add((timeout, timeUnit) -> callable.call(), consumer);
+        }
+
+        <T> Builder<ACC> add(Task<? extends T> task, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer);
         Batch<ACC> build();
     }
 
+    @FunctionalInterface
     interface RunningTaskContext<T> {
 
         T get() throws ExecutionException, TimeoutException, InterruptedException;

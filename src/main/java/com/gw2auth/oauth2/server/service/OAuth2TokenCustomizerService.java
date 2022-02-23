@@ -187,18 +187,21 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
                         final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
 
-                        batch.add(() -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime), (accumulator, context) -> {
-                            try {
-                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
-                            } catch (ExecutionException | TimeoutException e) {
-                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                                accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
-                            }
+                        batch.add(
+                                (timeout, timeUnit) -> this.gw2APIService.withTimeout(timeout, timeUnit, () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime)),
+                                (accumulator, context) -> {
+                                    try {
+                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
+                                    } catch (ExecutionException | TimeoutException e) {
+                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
+                                    } catch (InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
+                                    }
 
-                            return accumulator;
-                        });
+                                    return accumulator;
+                                }
+                        );
                     } else {
                         logging.log("The Root-API-Token named '%s' has less permissions than the authorization", displayName);
                     }
