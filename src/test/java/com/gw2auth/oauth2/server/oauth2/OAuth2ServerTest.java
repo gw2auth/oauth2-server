@@ -141,6 +141,46 @@ public class OAuth2ServerTest {
     }
 
     @Test
+    public void oidcConfigurationIsNotAccessible() throws Exception {
+        this.mockMvc.perform(get("/.well-known/openid-configuration"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void oidcLoginIsNotAccessible() throws Exception {
+        this.mockMvc.perform(get("/connect/register"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void oidcUserinfoIsNotAccessible() throws Exception {
+        this.mockMvc.perform(get("/userinfo"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void oauth2Configuration() throws Exception {
+        this.mockMvc.perform(get("/.well-known/oauth-authorization-server"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.issuer").isString())
+                .andExpect(jsonPath("$.authorization_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/authorize")))
+                .andExpect(jsonPath("$.token_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/token")))
+                .andExpect(jsonPath("$.token_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt")))
+                .andExpect(jsonPath("$.jwks_uri").value(org.hamcrest.Matchers.endsWith("/oauth2/jwks")))
+                .andExpect(jsonPath("$.response_types_supported").value(containingAll("code")))
+                .andExpect(jsonPath("$.grant_types_supported").value(containingAll("authorization_code","client_credentials","refresh_token")))
+                .andExpect(jsonPath("$.revocation_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/revoke")))
+                .andExpect(jsonPath("$.revocation_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt")))
+                .andExpect(jsonPath("$.introspection_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/introspect")))
+                .andExpect(jsonPath("$.introspection_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt")))
+                .andExpect(jsonPath("$.code_challenge_methods_supported").value(containingAll("plain","S256")))
+                // oidc not expected
+                .andExpect(jsonPath("$.subject_types_supported").doesNotExist())
+                .andExpect(jsonPath("$.id_token_signing_alg_values_supported").doesNotExist())
+                .andExpect(jsonPath("$.scopes_supported").doesNotExist());
+    }
+
+    @Test
     public void authorizationCodeRequestUnknownClient() throws Exception {
         this.mockMvc.perform(
                 get("/oauth2/authorize")
