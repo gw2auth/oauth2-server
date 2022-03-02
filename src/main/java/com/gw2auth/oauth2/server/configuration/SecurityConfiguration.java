@@ -50,7 +50,7 @@ public class SecurityConfiguration {
                                     "connect-src 'self' https://api.guildwars2.com",
                                     "script-src 'self' 'unsafe-inline'",
                                     "style-src 'self' 'unsafe-inline'",
-                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.de/ data:"
+                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.com/ data:"
                             )));
                 })
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
