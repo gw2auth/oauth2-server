@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.util;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
@@ -73,7 +74,7 @@ class BatchImpl<ACC> implements Batch<ACC> {
 
         @Override
         public T call() throws Exception {
-            return this.task.call(this.timeoutAt - System.nanoTime(), TimeUnit.NANOSECONDS);
+            return this.task.call(Duration.ofNanos(this.timeoutAt - System.nanoTime()));
         }
     }
 

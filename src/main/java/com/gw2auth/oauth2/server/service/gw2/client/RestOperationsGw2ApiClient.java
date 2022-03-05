@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.service.gw2.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -10,10 +9,10 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class RestOperationsGw2ApiClient implements Gw2ApiClient {
 
@@ -24,7 +23,7 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public <T> ResponseEntity<T> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromPath(path);
         final Map<String, String> params = new HashMap<>(query.size());
         int i = 0;
@@ -39,13 +38,13 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
             }
         }
 
-        ResponseEntity<T> response;
+        ResponseEntity<Resource> response;
         try {
             response = this.restOperations.exchange(
                     uriComponentsBuilder.build().toUriString(),
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
-                    ParameterizedTypeReference.forType(typeReference.getType()),
+                    Resource.class,
                     params
             );
         } catch (RestClientResponseException e) {
@@ -56,7 +55,7 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public <T> ResponseEntity<T> get(long timeout, TimeUnit timeUnit, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
-        return get(path, query, headers, typeReference);
+    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+        return get(path, query, headers);
     }
 }

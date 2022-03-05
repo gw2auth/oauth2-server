@@ -1,8 +1,8 @@
 package com.gw2auth.oauth2.server.service.gw2.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class ChainedGw2ApiClient implements Gw2ApiClient {
 
@@ -39,16 +38,12 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public <T> ResponseEntity<T> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
-        return get(null, path, query, headers, typeReference);
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+        return get(null, path, query, headers);
     }
 
     @Override
-    public <T> ResponseEntity<T> get(long timeout, TimeUnit timeUnit, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
-        return get(Duration.ofNanos(timeUnit.toNanos(timeout)), path, query, headers, typeReference);
-    }
-
-    private <T> ResponseEntity<T> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
+    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         final Instant timeoutAt;
         if (timeout == null) {
             timeoutAt = Instant.MAX;
@@ -59,7 +54,7 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
         final Iterator<ClientAndMetadata> it = this.chain.iterator();
         Instant now;
         ClientAndMetadata clientAndMetadata;
-        ResponseEntity<T> response = null;
+        ResponseEntity<Resource> response = null;
 
         while (response == null && it.hasNext()) {
             now = Instant.now();
@@ -69,7 +64,11 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
                 response = ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(null);
             } else if (now.isAfter(clientAndMetadata.cooldownUntil)) {
                 try {
-                    response = clientAndMetadata.client.get(path, query, headers, typeReference);
+                    if (timeoutAt == Instant.MAX) {
+                        response = clientAndMetadata.client.get(path, query, headers);
+                    } else {
+                        response = clientAndMetadata.client.get(Duration.between(now, timeoutAt), path, query, headers);
+                    }
                 } catch (Exception e) {
                     LOG.warn("unexpected exception thrown in gw2 api request chain", e);
                 }

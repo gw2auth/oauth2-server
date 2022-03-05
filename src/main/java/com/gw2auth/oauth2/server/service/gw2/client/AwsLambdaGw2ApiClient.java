@@ -4,9 +4,10 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -14,10 +15,10 @@ import org.springframework.util.MultiValueMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
 
@@ -32,16 +33,16 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public <T> ResponseEntity<T> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
-        return get(buildInvokeRequest(null, buildPayloadJson(path, query, headers)), typeReference);
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+        return get(buildInvokeRequest(null, buildPayloadJson(path, query, headers)));
     }
 
     @Override
-    public <T> ResponseEntity<T> get(long timeout, TimeUnit timeUnit, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers, TypeReference<T> typeReference) {
-        return get(buildInvokeRequest(Duration.ofNanos(timeUnit.toNanos(timeout)),  buildPayloadJson(path, query, headers)), typeReference);
+    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+        return get(buildInvokeRequest(timeout, buildPayloadJson(path, query, headers)));
     }
 
-    private <T> ResponseEntity<T> get(InvokeRequest invokeRequest, TypeReference<T> typeReference) {
+    private ResponseEntity<Resource> get(InvokeRequest invokeRequest) {
         final InvokeResult result = this.awsLambda.invoke(invokeRequest);
 
         if (result.getFunctionError() != null) {
@@ -50,7 +51,7 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
 
         final int statusCode;
         final HttpHeaders responseHeaders;
-        final T body;
+        final byte[] body;
 
         try (InputStream in = new ByteBufferBackedInputStream(result.getPayload())) {
             final LambdaResponsePayload response = this.mapper.readValue(in, LambdaResponsePayload.class);
@@ -60,9 +61,9 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
             response.headers().forEach(responseHeaders::add);
 
             if (response.isBase64Encoded()) {
-                body = this.mapper.readValue(Base64.getDecoder().decode(response.body()), typeReference);
+                body = Base64.getDecoder().decode(response.body());
             } else {
-                body = this.mapper.readValue(response.body(), typeReference);
+                body = response.body().getBytes(StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -71,7 +72,7 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
         return ResponseEntity
                 .status(statusCode)
                 .headers(responseHeaders)
-                .body(body);
+                .body(new ByteArrayResource(body));
     }
 
     private byte[] buildPayloadJson(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {

@@ -707,7 +707,7 @@ class VerificationControllerTest {
     }
 
     private void prepareGw2RestServerForTransactionsRequest(String gw2ApiToken, int addDummyValues, int itemId, int quantity, long price, Instant created) {
-        this.gw2RestServer.expect(requestTo("/v2/commerce/transactions/current/buys"))
+        this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/commerce/transactions/current/buys")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
                 .andRespond((request) -> {

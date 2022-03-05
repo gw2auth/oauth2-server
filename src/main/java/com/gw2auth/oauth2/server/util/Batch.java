@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.util;
 
+import java.time.Duration;
 import java.util.concurrent.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -19,13 +20,13 @@ public interface Batch<ACC> {
     @FunctionalInterface
     interface Task<T> {
 
-        T call(long timeout, TimeUnit timeUnit) throws Exception;
+        T call(Duration timeout) throws Exception;
     }
 
     interface Builder<ACC> {
 
         default <T> Builder<ACC> add(Callable<? extends T> callable, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer) {
-            return add((timeout, timeUnit) -> callable.call(), consumer);
+            return add((timeout) -> callable.call(), consumer);
         }
 
         <T> Builder<ACC> add(Task<? extends T> task, BiFunction<? super ACC, RunningTaskContext<T>, ? extends ACC> consumer);

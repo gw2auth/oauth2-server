@@ -188,7 +188,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                         final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
 
                         batch.add(
-                                (timeout, timeUnit) -> this.gw2APIService.withTimeout(timeout, timeUnit, () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime)),
+                                (timeout) -> this.gw2APIService.withTimeout(timeout, () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime)),
                                 (accumulator, context) -> {
                                     try {
                                         accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
