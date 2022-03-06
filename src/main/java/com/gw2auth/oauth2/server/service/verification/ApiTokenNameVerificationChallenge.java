@@ -20,7 +20,7 @@ public class ApiTokenNameVerificationChallenge implements VerificationChallenge<
     private static final long ID = 1;
     private static final Set<Gw2ApiPermission> REQUIRED_GW2_API_PERMISSIONS = Collections.unmodifiableSet(EnumSet.of(Gw2ApiPermission.ACCOUNT));
     private static final Duration TIMEOUT = Duration.ofMinutes(90L);
-    private static final String API_TOKEN_VERIFICATION_PREFIX = "GW2Hub-";
+    private static final String API_TOKEN_VERIFICATION_PREFIX = "GW2Auth-";
 
     private final Gw2ApiService gw2ApiService;
 
