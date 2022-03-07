@@ -36,6 +36,6 @@ export class UnauthenticatedInterceptor implements HttpInterceptor {
       suffix = url.substring(this.document.location.origin.length);
     }
 
-    return suffix != null && suffix.startsWith('/api') && !suffix.startsWith('/api/authinfo');
+    return suffix != null && suffix.startsWith('/api') && !suffix.startsWith('/api/authinfo') && !suffix.startsWith('/api/oauth2/token');
   }
 }

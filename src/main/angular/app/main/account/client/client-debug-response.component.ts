@@ -3,7 +3,7 @@ import {ActivatedRoute} from '@angular/router';
 import {ClientRegistrationPrivate} from './client-registration.model';
 import {ClientRegistrationService} from './client-registration.service';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
-import {Oauth2ClientService} from './oauth2-client.service';
+import {Oauth2ClientService, GrantType} from './oauth2-client.service';
 import {HttpErrorResponse, HttpResponse} from '@angular/common/http';
 import {DOCUMENT} from "@angular/common";
 
@@ -17,12 +17,14 @@ export class ClientDebugResponseComponent implements OnInit {
   faCheck = faCheck;
 
   clientRegistration: ClientRegistrationPrivate | null = null;
-  code: string | null = null;
   error: string | null = null;
   errorDescription: string | null = null;
+  codeOrRefreshToken: string | null = null;
+  grantType: GrantType = 'authorization_code';
 
   clientSecret = '';
   codeRequestInProgress = false;
+  hasResponse = false;
   codeRequestResponseText: string | null = null;
   codeRequestResponseAccessToken: string | null = null;
   codeRequestResponseRefreshToken: string | null = null;
@@ -34,7 +36,9 @@ export class ClientDebugResponseComponent implements OnInit {
 
   ngOnInit(): void {
     this.activatedRoute.queryParamMap.subscribe((query) => {
-      this.code = query.get('code');
+      this.codeOrRefreshToken = query.get('code');
+      this.grantType = 'authorization_code';
+
       this.error = query.get('error');
       this.errorDescription = query.get('error_description');
 
@@ -58,7 +62,7 @@ export class ClientDebugResponseComponent implements OnInit {
       }
     }
 
-    this.oauth2ClientService.getToken(this.code!, this.clientRegistration!.clientId, this.clientSecret, correctRedirectUri).subscribe((response) => {
+    this.oauth2ClientService.getToken(this.grantType!, this.codeOrRefreshToken!, this.clientRegistration!.clientId, this.clientSecret, correctRedirectUri).subscribe((response) => {
       this.codeRequestResponseText = null;
       this.codeRequestResponseAccessToken = null;
       this.codeRequestResponseRefreshToken = null;
@@ -66,11 +70,9 @@ export class ClientDebugResponseComponent implements OnInit {
       this.codeRequestResponseScope = null;
       this.codeRequestResponseExpiresIn = null;
 
-      if ((<HttpErrorResponse> response).error) {
-        this.codeRequestResponseText = JSON.stringify((<HttpErrorResponse> response).error, null, '\n');
-      } else {
-        const tokenResponse = <HttpResponse<string>> response;
-        const json = JSON.parse(tokenResponse.body!);
+
+      if (response.status == 200) {
+        const json = JSON.parse((<HttpResponse<string>> response).body!);
 
         if (json.access_token != undefined) {
           this.codeRequestResponseAccessToken = ClientDebugResponseComponent.jwtToString(ClientDebugResponseComponent.parseJWT(json.access_token));
@@ -78,6 +80,9 @@ export class ClientDebugResponseComponent implements OnInit {
 
         if (json.refresh_token != undefined) {
           this.codeRequestResponseRefreshToken = json.refresh_token;
+
+          this.codeOrRefreshToken = this.codeRequestResponseRefreshToken;
+          this.grantType = 'refresh_token';
         }
 
         if (json.token_type != undefined) {
@@ -91,7 +96,18 @@ export class ClientDebugResponseComponent implements OnInit {
         if (json.expires_in != undefined) {
           this.codeRequestResponseExpiresIn = json.expires_in;
         }
+      } else if ((<HttpErrorResponse> response).name == 'HttpErrorResponse' && (<HttpErrorResponse> response).error == null) {
+        this.codeRequestResponseText = 'Unknown error: ' + response.status;
+      } else {
+        this.codeRequestResponseText = JSON.stringify(response, null, '\t');
       }
+
+      this.hasResponse = this.codeRequestResponseText != null
+          || this.codeRequestResponseAccessToken != null
+          || this.codeRequestResponseRefreshToken != null
+          || this.codeRequestResponseTokenType != null
+          || this.codeRequestResponseScope != null
+          || this.codeRequestResponseExpiresIn != null;
 
       this.codeRequestInProgress = false;
     });

@@ -5,26 +5,36 @@ import {catchError} from 'rxjs/operators';
 import {DOCUMENT} from '@angular/common';
 
 
+export type GrantType = 'authorization_code' | 'refresh_token';
+
 @Injectable()
 export class Oauth2ClientService {
 
     constructor(private readonly httpClient: HttpClient, @Inject(DOCUMENT) private readonly document: Document) {}
 
-    getToken(code: string, clientId: string, clientSecret: string, redirectUri: string): Observable<HttpResponse<string> | HttpErrorResponse> {
-        return this.httpClient.post<HttpResponse<string>>(
+    getToken(grantType: GrantType, codeOrRefreshToken: string, clientId: string, clientSecret: string, redirectUri: string | null): Observable<HttpResponse<string> | HttpErrorResponse> {
+        const params: {[_: string]: string} = {
+            'grant_type': grantType,
+            'client_id': clientId,
+            'client_secret': clientSecret
+        };
+
+        switch (grantType) {
+            case 'authorization_code': {
+                params['code'] = codeOrRefreshToken;
+                params['redirect_uri'] = redirectUri!;
+                break;
+            }
+            case 'refresh_token': {
+                params['refresh_token'] = codeOrRefreshToken;
+                break;
+            }
+        }
+
+        return this.httpClient.post<string>(
             '/api/oauth2/token',
             undefined,
-            {
-                params: {
-                    'grant_type': 'authorization_code',
-                    'code': code,
-                    'client_id': clientId,
-                    'client_secret': clientSecret,
-                    'redirect_uri': redirectUri
-                },
-                observe: 'response',
-                responseType: 'text' as 'json'
-            }
-        ).pipe(catchError((e) => of(e)));
+            {params: params, observe: 'response', responseType: 'text' as 'json'}
+        ).pipe(catchError((e) => of(e as HttpErrorResponse)));
     }
 }
