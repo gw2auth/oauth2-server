@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ public class VerificationController extends AbstractRestController {
     public List<VerificationChallengeResponse> getAvailableChallenges() {
         return this.verificationService.getAvailableChallenges().stream()
                 .map(VerificationChallengeResponse::create)
+                .sorted(Comparator.comparingLong(VerificationChallengeResponse::id))
                 .collect(Collectors.toList());
     }
 

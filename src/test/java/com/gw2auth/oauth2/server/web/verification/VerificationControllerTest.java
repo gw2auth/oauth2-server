@@ -129,10 +129,18 @@ class VerificationControllerTest {
         final JsonNode availableChallengesNode = responseNode.get("availableChallenges");
         assertTrue(availableChallengesNode.isArray());
 
+        long previousChallengeId = Long.MIN_VALUE;
+
         for (int i = 0; i < availableChallengesNode.size(); i++) {
             final JsonNode availableChallengeNode = availableChallengesNode.get(i);
             assertTrue(availableChallengeNode.get("id").isIntegralNumber());
+
+            final long challengeId = availableChallengeNode.get("id").longValue();
+
+            assertTrue(challengeId > previousChallengeId);
             assertTrue(availableChallengeNode.get("requiredGw2ApiPermissions").isArray());
+
+            previousChallengeId = challengeId;
         }
 
         final JsonNode startedChallengeNode = responseNode.get("startedChallenge");
