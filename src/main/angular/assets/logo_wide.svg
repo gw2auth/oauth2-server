@@ -1,23 +1,22 @@
-<nav class="navbar navbar-expand-md fixed-top navbar-light bg-accent">
-    <div class="container-fluid">
-        <a class="navbar-brand" [routerLink]="['/', '/']">
-            <svg
-                    version="1.1"
-                    id="svg924"
-                    xml:space="preserve"
-                    width="422.75601"
-                    height="274.67068"
-                    viewBox="0 0 422.75601 274.67068"
-                    xmlns="http://www.w3.org/2000/svg"
-                    xmlns:svg="http://www.w3.org/2000/svg"
-                    class="logo"><defs
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg924"
+   xml:space="preserve"
+   width="422.75601"
+   height="274.67068"
+   viewBox="0 0 422.75601 274.67068"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
      id="defs928"><clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath940"><path
          d="M 0,206.003 H 317.067 V 0 H 0 Z"
          id="path938" /></clipPath></defs><g
-                    id="g930"
-                    transform="matrix(1.3333333,0,0,-1.3333333,0,274.67067)"><g
+     id="g930"
+     transform="matrix(1.3333333,0,0,-1.3333333,0,274.67067)"><g
        id="g934"><g
          id="g936"
          clip-path="url(#clipPath940)"><g
@@ -26,108 +25,73 @@
              d="m 0,0 c -7.674,-18.915 -23.153,-35.01 -39.431,-46.766 -4.462,-3.216 -9.002,-6.118 -13.464,-8.668 -3.824,-2.177 -7.609,-4.109 -11.267,-5.756 -20.926,9.443 -46.971,28.438 -60.386,53.228 -1.402,2.59 -2.66,5.247 -3.764,7.962 h -9.465 c 1.492,-4.171 3.322,-8.223 5.443,-12.14 14.856,-27.457 43.834,-48.187 66.427,-57.944 l 1.745,-0.755 1.746,0.755 0.098,0.039 c 4.364,1.892 9.012,4.207 13.777,6.933 4.698,2.687 9.503,5.756 14.259,9.188 C -15.897,-40.644 1.554,-22.088 9.456,0 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:nonzero;stroke:none"
              id="path944" /></g><g
-                    id="g946"
-                    transform="translate(229.2849,179.1755)"><path
+           id="g946"
+           transform="translate(229.2849,179.1755)"><path
              d="M 0,0 C 0.382,-0.088 0.137,-0.04 0,-0.01 Z M -141.915,-31.899 V 0.706 c 31.841,6.109 67.81,7.737 101.984,4.893 7.159,-0.598 13.964,-1.353 20.348,-2.245 5.452,-0.765 10.806,-1.648 16.014,-2.648 V -31.899 H 5.285 V 4.324 7.953 L 1.726,8.668 c -0.099,0.02 -0.079,0.01 0,-0.009 C 1.902,8.61 2.353,8.512 1.804,8.629 l -0.078,0.02 c -6.59,1.343 -13.307,2.5 -20.103,3.452 -7.129,1 -14.081,1.784 -20.828,2.353 -36.116,3.01 -74.37,1.069 -108.015,-5.805 l -3.55,-0.726 V 4.324 -31.899 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:nonzero;stroke:none"
              id="path948" /></g><g
-                    id="g950"
-                    transform="translate(156.0032,34.1423)"><path
+           id="g950"
+           transform="translate(156.0032,34.1423)"><path
              d="M 0,0 0.54,-0.235 1.079,0 1.167,0.04 c 3.462,1.5 7.129,3.324 10.865,5.461 3.727,2.128 7.522,4.561 11.267,7.267 12.357,8.925 24.167,20.864 31.201,34.929 H 51.459 C 44.587,34.589 33.404,23.411 21.721,14.974 18.053,12.327 14.347,9.954 10.699,7.865 7.228,5.884 3.805,4.168 0.54,2.736 c -17.308,7.6 -39.235,23.388 -50.473,44.138 -0.148,0.272 -0.289,0.549 -0.433,0.823 h -3.053 c 0.354,-0.707 0.715,-1.411 1.094,-2.108 C -40.646,24.016 -17.817,7.688 0,0"
              style="fill:currentcolor;fill-opacity:1;fill-rule:nonzero;stroke:none"
              id="path952" /></g><g
-                    id="g954"
-                    transform="translate(215.4578,168.8791)"><path
+           id="g954"
+           transform="translate(215.4578,168.8791)"><path
              d="M 0,0 C 0.098,-0.02 0.03,-0.01 0,0 M 1.628,2.451 0.53,2.667 C 0.579,2.657 0.707,2.628 0.54,2.657 L 0.53,2.667 H 0.52 c -5.227,1.069 -10.581,1.981 -16.023,2.746 -5.541,0.784 -11.101,1.402 -16.631,1.863 -28.87,2.412 -59.406,0.872 -86.226,-4.609 l -1.088,-0.226 V 1.333 -21.603 h 2.726 V 0.225 c 26.261,5.247 56.091,6.688 84.362,4.325 5.658,-0.471 11.169,-1.079 16.484,-1.824 5.041,-0.706 9.973,-1.539 14.778,-2.501 V -21.603 H 1.628 V 1.333 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:nonzero;stroke:none"
              id="path956" /></g><g
-                    id="g958"
-                    transform="translate(40.4383,99.1672)"><path
+           id="g958"
+           transform="translate(40.4383,99.1672)"><path
              d="m 0,0 c 0.794,0 1.471,0.284 2.02,0.863 0.549,0.569 0.824,1.255 0.824,2.049 v 6.943 h -11.64 v 8.473 H 13.032 V 1.588 C 13.032,0.265 12.768,-1 12.238,-2.216 11.708,-3.432 10.993,-4.501 10.09,-5.423 9.188,-6.354 8.119,-7.09 6.884,-7.639 5.648,-8.188 4.324,-8.473 2.912,-8.473 h -22.23 c -1.324,0 -2.589,0.265 -3.805,0.795 -1.216,0.529 -2.295,1.245 -3.246,2.157 -0.942,0.902 -1.696,1.961 -2.246,3.177 -0.549,1.206 -0.823,2.52 -0.823,3.932 v 26.134 c 0,1.323 0.265,2.608 0.794,3.844 0.53,1.226 1.246,2.314 2.147,3.236 0.903,0.931 1.972,1.667 3.207,2.216 1.236,0.549 2.56,0.834 3.972,0.834 h 22.23 c 1.324,0 2.589,-0.265 3.805,-0.795 1.216,-0.529 2.295,-1.255 3.246,-2.157 0.941,-0.902 1.696,-1.971 2.245,-3.207 0.549,-1.235 0.824,-2.54 0.824,-3.902 v -3.57 H 2.912 v 2.314 c 0,0.795 -0.274,1.462 -0.824,2.02 -0.559,0.549 -1.225,0.824 -2.02,0.824 h -16.543 c -0.794,0 -1.47,-0.275 -2.02,-0.824 -0.549,-0.558 -0.823,-1.225 -0.823,-2.02 V 2.844 c 0,-0.795 0.274,-1.462 0.823,-2.02 0.55,-0.55 1.226,-0.824 2.02,-0.824 z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path960" /></g><g
-                    id="g962"
-                    transform="translate(223.0183,98.6374)"><path
+           id="g962"
+           transform="translate(223.0183,98.6374)"><path
              d="m 0,0 c 0.706,0 1.305,0.245 1.814,0.726 0.51,0.49 0.765,1.108 0.765,1.853 v 25.339 h 9.257 V -7.943 H 2.579 v 5.756 l -6.482,-5.756 h -9.992 c -1.196,0 -2.344,0.235 -3.442,0.696 -1.108,0.471 -2.079,1.118 -2.913,1.952 -0.843,0.843 -1.5,1.804 -1.98,2.883 -0.491,1.079 -0.736,2.255 -0.736,3.54 v 26.79 h 9.267 V 2.579 c 0,-0.745 0.245,-1.363 0.726,-1.853 C -12.483,0.245 -11.865,0 -11.12,0 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path964" /></g><g
-                    id="g966"
-                    transform="translate(266.1263,90.6945)"><path
+           id="g966"
+           transform="translate(266.1263,90.6945)"><path
              d="m 0,0 h -11.179 c -1.196,0 -2.343,0.235 -3.442,0.696 -1.108,0.471 -2.079,1.108 -2.912,1.922 -0.843,0.814 -1.501,1.775 -1.981,2.873 -0.49,1.109 -0.736,2.295 -0.736,3.58 v 18.857 h -6.217 v 7.933 h 6.217 v 7.874 h 9.267 V 35.861 H 0.069 V 27.928 H -10.983 V 10.522 c 0,-0.745 0.245,-1.363 0.726,-1.854 0.49,-0.48 1.108,-0.725 1.853,-0.725 H 0 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path968" /></g><g
-                    id="g970"
-                    transform="translate(280.198,90.6945)"><path
+           id="g970"
+           transform="translate(280.198,90.6945)"><path
              d="M 0,0 H -9.267 V 48.697 H 0 V 30.438 l 6.482,5.423 h 10.316 c 1.197,0 2.344,-0.225 3.442,-0.686 1.108,-0.471 2.079,-1.109 2.912,-1.923 0.844,-0.814 1.501,-1.774 1.991,-2.882 0.481,-1.099 0.726,-2.285 0.726,-3.57 V 0 h -9.267 v 25.349 c 0,0.745 -0.245,1.363 -0.726,1.853 -0.49,0.481 -1.108,0.726 -1.853,0.726 H 2.579 C 1.873,27.928 1.265,27.683 0.755,27.202 0.245,26.712 0,26.094 0,25.349 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path972" /></g><g
-                    id="g974"
-                    transform="translate(165.4075,109.1593)"><path
+           id="g974"
+           transform="translate(165.4075,109.1593)"><path
              d="M 0,0 H 14.023 L 7.08,17.131 H 7.011 Z M -8.816,27.859 H 12.042 L 31.625,-18.465 H 21.574 L 17.347,-8.286 H -3.305 -32.36 v 4.256 c 0,0.745 0.245,1.373 0.735,1.883 0.491,0.509 1.128,0.765 1.922,0.765 h 15.925 c 1.393,0 2.726,0.284 4.011,0.843 1.285,0.559 2.413,1.314 3.383,2.265 0.981,0.961 1.765,2.089 2.344,3.393 0.579,1.304 0.873,2.696 0.873,4.187 v 9.149 c 0,1.393 -0.285,2.746 -0.844,4.05 -0.549,1.305 -1.314,2.442 -2.265,3.423 -0.745,0.764 -1.589,1.402 -2.54,1.931 m -58.101,-46.324 -8.669,32.292 -8.668,-32.292 h -10.65 l -14.954,46.324 h 10.65 l 9.658,-34.145 9.198,34.145 h 9.532 l 9.198,-34.145 9.659,34.145 h 12.023 c -0.913,-0.5 -1.746,-1.108 -2.511,-1.834 -1,-0.951 -1.784,-2.068 -2.373,-3.343 -0.578,-1.285 -0.873,-2.667 -0.873,-4.158 v -5.031 h 13.484 v 1.609 c 0,0.794 0.225,1.421 0.696,1.882 0.461,0.471 1.069,0.706 1.814,0.706 h 10.61 c 0.706,0 1.295,-0.235 1.785,-0.706 0.491,-0.461 0.736,-1.088 0.736,-1.882 v -2.933 c 0,-0.745 -0.245,-1.353 -0.736,-1.814 -0.49,-0.47 -1.079,-0.696 -1.785,-0.696 h -15.915 c -1.402,0 -2.736,-0.284 -4.02,-0.843 -1.275,-0.559 -2.423,-1.314 -3.423,-2.265 -1,-0.961 -1.784,-2.079 -2.373,-3.354 -0.578,-1.285 -0.873,-2.667 -0.873,-4.158 v -17.504 z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path976" /></g><g
-                    id="g978"
-                    transform="translate(156.5428,168.5456)"><path
+           id="g978"
+           transform="translate(156.5428,168.5456)"><path
              d="m 0,0 2.432,-7.462 h 7.845 l -6.355,-4.619 2.432,-7.463 -6.354,4.619 -6.345,-4.619 2.423,7.463 -6.345,4.619 h 7.845 z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path980" /></g><g
-                    id="g982"
-                    transform="translate(177.6653,164.5739)"><path
+           id="g982"
+           transform="translate(177.6653,164.5739)"><path
              d="M 0,0 1.785,-5.491 H 7.561 L 2.893,-8.884 4.677,-14.366 0,-10.973 l -4.668,-3.393 1.785,5.482 -4.668,3.393 h 5.766 z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path984" /></g><g
-                    id="g986"
-                    transform="translate(195.5222,161.9948)"><path
+           id="g986"
+           transform="translate(195.5222,161.9948)"><path
              d="M 0,0 1.402,-4.305 H 5.933 L 2.265,-6.962 3.667,-11.267 0,-8.61 l -3.658,-2.657 1.403,4.305 -3.668,2.657 h 4.53 z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path988" /></g><g
-                    id="g990"
-                    transform="translate(135.4202,164.5739)"><path
+           id="g990"
+           transform="translate(135.4202,164.5739)"><path
              d="m 0,0 -1.785,-5.491 h -5.776 l 4.678,-3.393 -1.784,-5.482 4.667,3.393 4.668,-3.393 -1.785,5.482 4.678,3.393 H 1.785 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path992" /></g><g
-                    id="g994"
-                    transform="translate(117.5633,161.9948)"><path
+           id="g994"
+           transform="translate(117.5633,161.9948)"><path
              d="m 0,0 -1.393,-4.305 h -4.53 L -2.265,-6.962 -3.658,-11.267 0,-8.61 3.658,-11.267 2.265,-6.962 5.923,-4.305 H 1.402 Z"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path996" /></g><g
-                    id="g998"
-                    transform="translate(141.2552,61.6584)"><path
+           id="g998"
+           transform="translate(141.2552,61.6584)"><path
              d="M 0,0 C 4.991,-1.843 9.668,-3.805 13.983,-5.903 23.23,4.56 34.616,13.562 49.138,20.417 34.871,9.424 23.26,-2.687 15.552,-16.416 10.983,-10.806 5.648,-5.364 0,0"
              style="fill:currentcolor;fill-opacity:1;fill-rule:evenodd;stroke:none"
              id="path1000" /></g></g></g></g></svg>
-        </a>
-
-        <button class="navbar-toggler" type="button" (click)="navbarCollapse.toggle()" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" #navbarCollapse="ngbCollapse" [ngbCollapse]="true">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" [routerLink]="['/', '/']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="toggleIfShown(navbarCollapse)">Home</a>
-                </li>
-
-                <li *ngIf="isAuthenticated" class="nav-item">
-                    <a class="nav-link" [routerLink]="['/', 'account']" routerLinkActive="active" (click)="toggleIfShown(navbarCollapse)">Account</a>
-                </li>
-            </ul>
-
-            <ul class="navbar-nav me-1">
-                <li class="nav-item dropdown" ngbDropdown>
-                    <a class="nav-link dropdown-toggle" role="button" [id]="'appearanceDropdown'" ngbDropdownToggle>Appearance</a>
-                    <ul class="dropdown-menu dropdown-menu-dark" [attr.aria-labelledby]="'appearanceDropdown'" ngbDropdownMenu>
-                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == SYSTEM ? 'active' : ''" (click)="onAppearanceClick(SYSTEM); toggleIfShown(navbarCollapse)">System</a></li>
-                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == LIGHT ? 'active' : ''" (click)="onAppearanceClick(LIGHT); toggleIfShown(navbarCollapse)">Light</a></li>
-                        <li><a ngbDropdownItem class="dropdown-item" role="button" [ngClass]="activeColorScheme == DARK ? 'active' : ''" (click)="onAppearanceClick(DARK); toggleIfShown(navbarCollapse)">Dark</a></li>
-                    </ul>
-                </li>
-            </ul>
-
-            <div class="form-inline" [ngSwitch]="isAuthenticated">
-                <a *ngSwitchCase="false" class="btn btn-primary" role="button" (click)="onLoginClick($event)">Login</a>
-                <a *ngSwitchCase="true" class="btn btn-danger" role="button" (click)="onLogoutClick()">Logout</a>
-            </div>
-        </div>
-    </div>
-</nav>
