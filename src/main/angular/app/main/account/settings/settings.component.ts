@@ -1,6 +1,6 @@
 import {Component, OnInit} from '@angular/core';
 import {faGithub, faGoogle} from '@fortawesome/free-brands-svg-icons';
-import {faQuestion, faTrashAlt, faUserShield} from '@fortawesome/free-solid-svg-icons';
+import {faQuestion, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
 import {AccountFederation, AccountFederations} from './account.model';
 import {AccountService} from './account.service';
 import {IconProp} from '@fortawesome/fontawesome-svg-core';
@@ -19,7 +19,6 @@ export class SettingsComponent implements OnInit {
 
   faGithub = faGithub;
   faGoogle = faGoogle;
-  faUserShield = faUserShield;
   faQuestion = faQuestion;
   faTrashAlt = faTrashAlt;
 
@@ -44,7 +43,6 @@ export class SettingsComponent implements OnInit {
     switch (issuer) {
       case 'github': return this.faGithub;
       case 'google': return this.faGoogle;
-      case 'cognito': return this.faUserShield;
       default: return this.faQuestion;
     }
   }

@@ -23,7 +23,10 @@
                         <tbody>
                         <tr *ngFor="let federation of federations!.accountFederations">
                             <td>
-                                <fa-icon [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
+                                <ng-container [ngSwitch]="federation.issuer">
+                                    <app-logo-small *ngSwitchCase="'cognito'"></app-logo-small>
+                                    <fa-icon *ngSwitchDefault [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
+                                </ng-container>
                                 <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
                             </td>
                             <td>
@@ -62,7 +65,7 @@
                         <a href="/api/account/federation/google" role="button" class="btn btn-secondary w-100"><fa-icon [icon]="faGoogle"></fa-icon> Google</a>
                     </div>
                     <div class="col">
-                        <a href="/api/account/federation/cognito" role="button" class="btn btn-primary w-100"><fa-icon [icon]="faUserShield"></fa-icon> GW2Auth</a>
+                        <a href="/api/account/federation/cognito" role="button" class="btn btn-primary w-100"><app-logo-small></app-logo-small> GW2Auth</a>
                     </div>
                 </div>
             </div>
