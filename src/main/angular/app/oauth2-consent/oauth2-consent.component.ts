@@ -41,12 +41,10 @@ export class OAuth2ConsentComponent implements OnInit {
         .pipe(catchError((e) => of(null)))
         .subscribe((oauth2ConsentInformation: OAuth2ConsentInformation | null) => {
           if (oauth2ConsentInformation != null) {
-            for (let token of oauth2ConsentInformation.apiTokensWithSufficientPermissions) {
-              this.updateApiTokenValidStatus(token);
-            }
+            const autoSelectGw2AccountIds = new Set<string>(oauth2ConsentInformation.previouslyConsentedGw2AccountIds);
 
-            for (let gw2AccountId of oauth2ConsentInformation.previouslyConsentedGw2AccountIds) {
-              this.selectedGw2AccountIds.add(gw2AccountId);
+            for (let token of oauth2ConsentInformation.apiTokensWithSufficientPermissions) {
+              this.updateApiTokenValidStatus(token, autoSelectGw2AccountIds.has(token.gw2AccountId));
             }
 
             this.oauth2ConsentInformation = oauth2ConsentInformation;
@@ -54,13 +52,19 @@ export class OAuth2ConsentComponent implements OnInit {
         });
   }
 
-  private updateApiTokenValidStatus(token: MinimalToken): void {
+  private updateApiTokenValidStatus(token: MinimalToken, autoSelect: boolean): void {
     if (!this.gw2ApiTokenValidStatus.has(token.gw2ApiToken)) {
       this.gw2ApiTokenValidStatus.set(token.gw2ApiToken, -1);
 
       this.gw2ApiService.getTokenInfo(token.gw2ApiToken)
           .pipe(catchError((e) => of(null)))
-          .subscribe((gw2TokenInfo) => this.gw2ApiTokenValidStatus.set(token.gw2ApiToken, gw2TokenInfo == null ? 0 : 1));
+          .subscribe((gw2TokenInfo) => {
+            this.gw2ApiTokenValidStatus.set(token.gw2ApiToken, gw2TokenInfo == null ? 0 : 1);
+
+            if (gw2TokenInfo != null && autoSelect) {
+              this.selectedGw2AccountIds.add(token.gw2AccountId);
+            }
+          });
     }
   }
 
