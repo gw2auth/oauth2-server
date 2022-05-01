@@ -33,4 +33,5 @@ export interface OAuth2ConsentInformation {
     cancelUri: string;
     apiTokensWithSufficientPermissions: MinimalToken[];
     apiTokensWithInsufficientPermissions: MinimalToken[];
+    previouslyConsentedGw2AccountIds: string[];
 }

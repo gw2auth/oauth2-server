@@ -45,6 +45,10 @@ export class OAuth2ConsentComponent implements OnInit {
               this.updateApiTokenValidStatus(token);
             }
 
+            for (let gw2AccountId of oauth2ConsentInformation.previouslyConsentedGw2AccountIds) {
+              this.selectedGw2AccountIds.add(gw2AccountId);
+            }
+
             this.oauth2ConsentInformation = oauth2ConsentInformation;
           }
         });

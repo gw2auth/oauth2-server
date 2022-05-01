@@ -3,6 +3,8 @@ package com.gw2auth.oauth2.server.web.oauth2.consent;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
+import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
@@ -40,13 +42,15 @@ import java.util.stream.Collectors;
 public class OAuth2ConsentController extends AbstractRestController {
 
     private final ClientRegistrationService clientRegistrationService;
+    private final ClientAuthorizationService clientAuthorizationService;
     private final OAuth2AuthorizationService auth2AuthorizationService;
     private final ApiTokenService apiTokenService;
     private final VerificationService verificationService;
 
     @Autowired
-    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, OAuth2AuthorizationService auth2AuthorizationService, ApiTokenService apiTokenService, VerificationService verificationService) {
+    public OAuth2ConsentController(ClientRegistrationService clientRegistrationService, ClientAuthorizationService clientAuthorizationService, OAuth2AuthorizationService auth2AuthorizationService, ApiTokenService apiTokenService, VerificationService verificationService) {
         this.clientRegistrationService = clientRegistrationService;
+        this.clientAuthorizationService = clientAuthorizationService;
         this.auth2AuthorizationService = auth2AuthorizationService;
         this.apiTokenService = apiTokenService;
         this.verificationService = verificationService;
@@ -86,6 +90,10 @@ public class OAuth2ConsentController extends AbstractRestController {
             }
         }
 
+        final Set<UUID> previouslyConsentedGw2AccountIds = this.clientAuthorizationService.getLatestClientAuthorization(user.getAccountId(), clientRegistration.id(), requestedScopes)
+                .map(ClientAuthorization::gw2AccountIds)
+                .orElseGet(Set::of);
+
         final MultiValueMap<String, String> submitFormParameters = new LinkedMultiValueMap<>();
         submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId.toString());
         submitFormParameters.set(OAuth2ParameterNames.STATE, state);
@@ -105,7 +113,8 @@ public class OAuth2ConsentController extends AbstractRestController {
                 submitFormParameters,
                 cancelUri,
                 apiTokensWithSufficientPermissionResponses,
-                apiTokensWithInsufficientPermissionResponses
+                apiTokensWithInsufficientPermissionResponses,
+                previouslyConsentedGw2AccountIds
         );
     }
 

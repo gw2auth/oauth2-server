@@ -17,7 +17,8 @@ public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") Clie
                                         @JsonProperty("submitFormParameters") MultiValueMap<String, String> submitFormParameters,
                                         @JsonProperty("cancelUri") String cancelUri,
                                         @JsonProperty("apiTokensWithSufficientPermissions") List<MinimalApiToken> apiTokensWithSufficientPermissionResponses,
-                                        @JsonProperty("apiTokensWithInsufficientPermissions") List<MinimalApiToken> apiTokensWithInsufficientPermissionResponses) {
+                                        @JsonProperty("apiTokensWithInsufficientPermissions") List<MinimalApiToken> apiTokensWithInsufficientPermissionResponses,
+                                        @JsonProperty("previouslyConsentedGw2AccountIds") Set<UUID> previouslyConsentedGw2AccountIds) {
 
     public record MinimalApiToken(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                   @JsonProperty("gw2ApiToken") String gw2ApiToken,

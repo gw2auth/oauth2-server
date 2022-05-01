@@ -92,15 +92,24 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     public Optional<ClientAuthorization> getClientAuthorization(long accountId, String id) {
         return this.clientAuthorizationRepository.findByAccountIdAndId(accountId, id)
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
-                .flatMap((entity) -> {
-                    final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(entity.accountId(), entity.id());
+                .flatMap(this::flatMapEntityToBusinessObject);
+    }
 
-                    if (clientAuthorizationTokenEntities.isEmpty()) {
-                        return Optional.empty();
-                    } else {
-                        return Optional.of(ClientAuthorization.fromEntity(entity, clientAuthorizationTokenEntities));
-                    }
-                });
+    @Override
+    public Optional<ClientAuthorization> getLatestClientAuthorization(long accountId, long clientRegistrationId, Set<String> scopes) {
+        return this.clientAuthorizationRepository.findLatestByAccountIdAndClientRegistrationIdAndHavingScopes(accountId, clientRegistrationId, scopes)
+                .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
+                .flatMap(this::flatMapEntityToBusinessObject);
+    }
+
+    private Optional<ClientAuthorization> flatMapEntityToBusinessObject(ClientAuthorizationEntity entity) {
+        final List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(entity.accountId(), entity.id());
+
+        if (clientAuthorizationTokenEntities.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(ClientAuthorization.fromEntity(entity, clientAuthorizationTokenEntities));
+        }
     }
 
     @Override

@@ -11,6 +11,8 @@ public interface ClientAuthorizationService {
 
     Optional<ClientAuthorization> getClientAuthorization(long accountId, String id);
 
+    Optional<ClientAuthorization> getLatestClientAuthorization(long accountId, long clientRegistrationId, Set<String> scopes);
+
     List<ClientAuthorization> getClientAuthorizations(long accountId, UUID clientId);
 
     List<ClientAuthorization> getClientAuthorizations(long accountId, Set<UUID> gw2AccountIds);
