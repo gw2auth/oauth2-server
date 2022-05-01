@@ -21,7 +21,7 @@ jobs:
       - name: "Build Docker"
         env:
           VERSION_TAG: "${{ github.ref_name }}"
-        run: "docker build -t \"gw2auth/oauth2-server:latest\" -t \"gw2auth/$VERSION_TAG\" ."
+        run: "docker build -t \"gw2auth/oauth2-server:latest\" -t \"gw2auth/oauth2-server:$VERSION_TAG\" ."
       - name: "Login Docker"
         env:
           DOCKER_LOGIN: "${{ secrets.DOCKER_LOGIN }}"
