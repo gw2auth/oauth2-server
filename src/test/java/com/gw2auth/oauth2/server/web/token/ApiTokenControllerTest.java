@@ -625,6 +625,7 @@ class ApiTokenControllerTest {
         assertInstantEquals(expectedApiToken.apiToken().creationTime(), apiTokenNode.get("creationTime").textValue());
         assertEquals(expectedGw2ApiToken, apiTokenNode.get("gw2ApiToken").textValue());
         assertEquals(expectedDisplayName, apiTokenNode.get("displayName").textValue());
+        assertTrue(apiTokenNode.get("isValid").booleanValue());
         assertEquals(expectedApiToken.isVerified(), apiTokenNode.get("isVerified").booleanValue());
 
         // gw2 api permissions

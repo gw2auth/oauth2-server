@@ -68,6 +68,7 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -128,6 +129,9 @@ public class OAuth2ServerTest {
 
     @Autowired
     private ClientAuthorizationServiceImpl clientAuthorizationService;
+
+    @Autowired
+    private TestHelper testHelper;
     
     private UUID gw2AccountId1st;
     private UUID gw2AccountId2nd;
@@ -344,6 +348,14 @@ public class OAuth2ServerTest {
         assertTrue(subTokens.contains(dummySubtokenA));
         assertTrue(subTokens.contains(dummySubtokenB));
 
+        // verify the validity status has been saved
+        final List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
+
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
@@ -423,6 +435,14 @@ public class OAuth2ServerTest {
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
 
+        // verify the validity status has been saved
+        List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
+
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
@@ -455,6 +475,14 @@ public class OAuth2ServerTest {
         assertEquals(2, savedSubtokens.size());
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
+
+        // verify the validity status has been saved
+        apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
 
         // verify the new response
         tokenResponse = assertTokenResponse(result, () -> Map.of(
@@ -523,6 +551,14 @@ public class OAuth2ServerTest {
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
 
+        // verify the validity status has been saved
+        List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
+
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
@@ -553,6 +589,20 @@ public class OAuth2ServerTest {
         assertEquals(2, savedSubtokens.size());
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
+
+        // verify the validity status has been saved, but only for the first one
+        apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+
+        for (ApiTokenEntity apiTokenEntity : apiTokenEntities) {
+            if (apiTokenEntity.gw2AccountId().equals(this.gw2AccountId1st)) {
+                assertTrue(apiTokenEntity.isValid());
+                assertInstantEquals(testingClock.instant(), apiTokenEntity.lastValidCheckTime());
+            } else {
+                assertTrue(apiTokenEntity.isValid());
+                assertTrue(testingClock.instant().isAfter(apiTokenEntity.lastValidCheckTime()));
+            }
+        }
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
@@ -663,6 +713,20 @@ public class OAuth2ServerTest {
         assertEquals(1, savedSubtokens.size());
         assertTrue(savedSubtokens.contains(dummySubtokenA));
 
+        // verify the validity status has been saved
+        final List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+
+        for (ApiTokenEntity apiTokenEntity : apiTokenEntities) {
+            if (apiTokenEntity.gw2AccountId().equals(this.gw2AccountId1st)) {
+                assertTrue(apiTokenEntity.isValid());
+                assertInstantEquals(testingClock.instant(), apiTokenEntity.lastValidCheckTime());
+            } else {
+                assertTrue(apiTokenEntity.isValid());
+                assertTrue(testingClock.instant().isAfter(apiTokenEntity.lastValidCheckTime()));
+            }
+        }
+
         // verify the access token
         assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
@@ -731,6 +795,14 @@ public class OAuth2ServerTest {
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
 
+        // verify the validity status has been saved
+        final List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
+
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
                 this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
@@ -773,7 +845,7 @@ public class OAuth2ServerTest {
         assertTrue(params.containsKey(OAuth2ParameterNames.SCOPE));
 
         // insert a dummy api token
-        this.apiTokenRepository.save(new ApiTokenEntity(accountId, this.gw2AccountId1st, Instant.now(), "TokenA", Set.of(Gw2ApiPermission.ACCOUNT.gw2(), Gw2ApiPermission.TRADINGPOST.gw2()), "First"));
+        this.testHelper.createApiToken(accountId, this.gw2AccountId1st, "TokenA", Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.TRADINGPOST), "First");
 
         // lookup the consent info (containing the submit uri and parameters that should be submitted)
         result = this.mockMvc.perform(
@@ -893,6 +965,14 @@ public class OAuth2ServerTest {
         assertEquals(2, savedSubtokens.size());
         assertTrue(savedSubtokens.contains(dummySubtokenA[0]));
         assertTrue(savedSubtokens.contains(dummySubtokenB[0]));
+
+        // verify the validity status has been saved
+        final List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
@@ -1323,11 +1403,10 @@ public class OAuth2ServerTest {
 
         // insert some dummy api tokens
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final Set<String> gw2ApiPermissionsSufficient = requestedGw2ApiPermissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet());
 
-        this.apiTokenRepository.save(new ApiTokenEntity(accountId, this.gw2AccountId1st, Instant.now(), tokenA, gw2ApiPermissionsSufficient, "First"));
-        this.apiTokenRepository.save(new ApiTokenEntity(accountId, this.gw2AccountId2nd, Instant.now(), tokenB, gw2ApiPermissionsSufficient, "Second"));
-        this.apiTokenRepository.save(new ApiTokenEntity(accountId, this.gw2AccountId3rd, Instant.now(), tokenC, Set.of(), "Third"));
+        this.testHelper.createApiToken(accountId, this.gw2AccountId1st, tokenA, requestedGw2ApiPermissions, "First");
+        this.testHelper.createApiToken(accountId, this.gw2AccountId2nd, tokenB, requestedGw2ApiPermissions, "Second");
+        this.testHelper.createApiToken(accountId, this.gw2AccountId3rd, tokenC, Set.of(), "Third");
 
         // lookup the consent info (containing the submit uri and parameters that should be submitted)
         MvcResult result = this.mockMvc.perform(

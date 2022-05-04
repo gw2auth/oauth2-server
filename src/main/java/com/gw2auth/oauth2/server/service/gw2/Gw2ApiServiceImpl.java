@@ -121,7 +121,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     private <T> T getFromAPI(String url, MultiValueMap<String, String> query, String token, FunctionWithExc<? super InputStream, ? extends T, IOException> function) {
         if (token != null && !validateToken(token)) {
-            throw new Gw2ApiServiceException(Gw2ApiServiceException.INVALID_API_TOKEN, HttpStatus.BAD_REQUEST);
+            throw new InvalidApiTokenException();
         }
 
         query = new LinkedMultiValueMap<>(query);
@@ -142,7 +142,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
         }
 
         if (response.getStatusCode().equals(HttpStatus.UNAUTHORIZED)) {
-            throw new Gw2ApiServiceException(Gw2ApiServiceException.INVALID_API_TOKEN, HttpStatus.BAD_REQUEST);
+            throw new InvalidApiTokenException();
         } else if (!response.getStatusCode().is2xxSuccessful() || !response.hasBody()) {
             throw new Gw2ApiServiceException(Gw2ApiServiceException.BAD_RESPONSE, HttpStatus.BAD_GATEWAY);
         }

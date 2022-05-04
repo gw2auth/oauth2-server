@@ -13,17 +13,23 @@ public record ApiTokenEntity(@Column("account_id") long accountId,
                              @Column("creation_time") Instant creationTime,
                              @Column("gw2_api_token") String gw2ApiToken,
                              @Column("gw2_api_permissions") Set<String> gw2ApiPermissions,
+                             @Column("last_valid_check_time") Instant lastValidCheckTime,
+                             @Column("is_valid") boolean isValid,
                              @Column("display_name") String displayName) {
 
     public ApiTokenEntity withGw2ApiToken(String gw2ApiToken) {
-        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, gw2ApiToken, this.gw2ApiPermissions, this.displayName);
+        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, gw2ApiToken, this.gw2ApiPermissions, this.lastValidCheckTime, this.isValid, this.displayName);
     }
 
     public ApiTokenEntity withGw2ApiPermissions(Set<String> gw2ApiPermissions) {
-        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, this.gw2ApiToken, gw2ApiPermissions, this.displayName);
+        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, this.gw2ApiToken, gw2ApiPermissions, this.lastValidCheckTime, this.isValid, this.displayName);
+    }
+
+    public ApiTokenEntity withLastValidCheckTime(Instant lastValidCheckTime, boolean isValid) {
+        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, this.gw2ApiToken, this.gw2ApiPermissions, lastValidCheckTime, isValid, this.displayName);
     }
 
     public ApiTokenEntity withDisplayName(String displayName) {
-        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, this.gw2ApiToken, this.gw2ApiPermissions, displayName);
+        return new ApiTokenEntity(this.accountId, this.gw2AccountId, this.creationTime, this.gw2ApiToken, this.gw2ApiPermissions, this.lastValidCheckTime, this.isValid, displayName);
     }
 }

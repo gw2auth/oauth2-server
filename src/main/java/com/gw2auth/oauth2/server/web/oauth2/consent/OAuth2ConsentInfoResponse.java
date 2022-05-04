@@ -23,10 +23,11 @@ public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") Clie
     public record MinimalApiToken(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                   @JsonProperty("gw2ApiToken") String gw2ApiToken,
                                   @JsonProperty("displayName") String displayName,
+                                  @JsonProperty("isValid") boolean isValid,
                                   @JsonProperty("isVerified") boolean isVerified) {
 
         public static MinimalApiToken create(ApiToken value, boolean isVerified) {
-            return new MinimalApiToken(value.gw2AccountId(), value.gw2ApiToken(), value.displayName(), isVerified);
+            return new MinimalApiToken(value.gw2AccountId(), value.gw2ApiToken(), value.displayName(), value.isValid(), isVerified);
         }
     }
 }

@@ -11,11 +11,13 @@
                             <colgroup>
                                 <col class="w-100" />
                                 <col class="w-auto" />
+                                <col class="w-auto" />
                                 <col class="w-auto "/>
                             </colgroup>
                             <thead>
                             <tr>
                                 <th scope="col">Name</th>
+                                <th scope="col">Valid</th>
                                 <th scope="col">Verified</th>
                                 <th scope="col">Actions</th>
                             </tr>
@@ -24,6 +26,11 @@
                             <ng-container *ngFor="let token of tokens">
                                 <tr>
                                     <td>{{token.displayName}}</td>
+                                    <td>
+                                        <span class="badge rounded-pill p-2" [ngClass]="token.isValid ? 'bg-success' : 'bg-danger'" ngbTooltip="GW2Auth periodically checks whether your API-Token still works or not">
+                                            <fa-icon [icon]="token.isValid ? faCheck : faBan"></fa-icon>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge rounded-pill p-2" [ngClass]="token.isVerified ? 'bg-success' : 'bg-danger'" ngbTooltip="By verifying your GuildWars 2 Accounts at GW2Auth, we make sure no one else can add API-Tokens belonging to you to their GW2Auth Account">
                                             <fa-icon [icon]="token.isVerified ? faCheck : faBan"></fa-icon>

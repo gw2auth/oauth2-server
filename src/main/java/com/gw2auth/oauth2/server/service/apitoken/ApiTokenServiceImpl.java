@@ -2,36 +2,48 @@ package com.gw2auth.oauth2.server.service.apitoken;
 
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
+import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenValidityUpdateEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.gw2.Gw2Account;
-import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
-import com.gw2auth.oauth2.server.service.gw2.Gw2TokenInfo;
+import com.gw2auth.oauth2.server.service.gw2.*;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@EnableScheduling
 public class ApiTokenServiceImpl implements ApiTokenService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ApiTokenServiceImpl.class);
+    private static final Duration VALIDITY_CHECK_INTERVAL = Duration.ofMinutes(45L);
+    private static final int VALIDITY_CHECK_BATCH_SIZE = 50;
 
     private final ApiTokenRepository apiTokenRepository;
     private final Gw2ApiService gw2ApiService;
     private final VerificationService verificationService;
+    private Clock clock;
 
     @Autowired
     public ApiTokenServiceImpl(ApiTokenRepository apiTokenRepository, Gw2ApiService gw2ApiService, VerificationService verificationService) {
         this.apiTokenRepository = apiTokenRepository;
         this.gw2ApiService = gw2ApiService;
         this.verificationService = verificationService;
+        this.clock = Clock.systemUTC();
+    }
+
+    public void setClock(Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -77,7 +89,8 @@ public class ApiTokenServiceImpl implements ApiTokenService {
 
             apiTokenEntity = apiTokenEntity
                     .withGw2ApiToken(gw2ApiToken)
-                    .withGw2ApiPermissions(gw2TokenInfo.permissions().stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()));
+                    .withGw2ApiPermissions(gw2TokenInfo.permissions().stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()))
+                    .withLastValidCheckTime(this.clock.instant(), true);
         }
 
         if (displayName != null) {
@@ -110,8 +123,9 @@ public class ApiTokenServiceImpl implements ApiTokenService {
             throw new ApiTokenOwnershipMismatchException();
         }
 
+        final Instant now = this.clock.instant();
         return ApiToken.fromEntity(this.apiTokenRepository.save(
-                new ApiTokenEntity(accountId, gw2Account.id(), Instant.now(), gw2ApiToken, gw2TokenInfo.permissions().stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), gw2Account.name())
+                new ApiTokenEntity(accountId, gw2Account.id(), now, gw2ApiToken, gw2TokenInfo.permissions().stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()), now, true, gw2Account.name())
         ));
     }
 
@@ -124,5 +138,46 @@ public class ApiTokenServiceImpl implements ApiTokenService {
         } else if (deletedCount != 1) {
             LOG.warn("deleted ApiToken for specific accountId and gw2AccountId, deleted more than 1: {}", deletedCount);
         }
+    }
+
+    @Override
+    public void updateApiTokensValid(Instant lastValidCheckTime, Collection<ApiTokenValidityUpdate> updates) {
+        final List<ApiTokenValidityUpdateEntity> updateEntities = updates.stream()
+                .map((v) -> new ApiTokenValidityUpdateEntity(v.accountId(), v.gw2AccountId(), v.isValid()))
+                .collect(Collectors.toList());
+
+        this.apiTokenRepository.updateApiTokensValid(lastValidCheckTime, updateEntities);
+    }
+
+    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    public void checkTokenValidity() {
+        final Instant now = this.clock.instant();
+        final Instant offset = now.minus(VALIDITY_CHECK_INTERVAL);
+
+        final List<ApiTokenEntity> tokensToCheck = this.apiTokenRepository.findAllByLastValidCheckTimeLTE(offset, VALIDITY_CHECK_BATCH_SIZE);
+        final List<ApiTokenValidityUpdateEntity> updateEntities = new ArrayList<>(tokensToCheck.size());
+        final int[] counts = new int[3];
+
+        for (ApiTokenEntity apiTokenEntity : tokensToCheck) {
+            Boolean isValidState;
+            try {
+                this.gw2ApiService.getTokenInfo(apiTokenEntity.gw2ApiToken());
+                isValidState = true;
+                counts[0]++;
+            } catch (InvalidApiTokenException e) {
+                isValidState = false;
+                counts[1]++;
+            } catch (Gw2ApiServiceException e) {
+                isValidState = null;
+                counts[2]++;
+            }
+
+            if (isValidState != null) {
+                updateEntities.add(new ApiTokenValidityUpdateEntity(apiTokenEntity.accountId(), apiTokenEntity.gw2AccountId(), isValidState));
+            }
+        }
+
+        this.apiTokenRepository.updateApiTokensValid(now, updateEntities);
+        LOG.info("updated API-Token validity for {} API-Tokens; valid={} invalid={} unknown={}", tokensToCheck.size(), counts[0], counts[1], counts[2]);
     }
 }

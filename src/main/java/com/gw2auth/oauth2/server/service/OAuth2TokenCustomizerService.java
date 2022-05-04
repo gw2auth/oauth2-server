@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.repository.apisubtoken.ApiSubTokenEntity;
 import com.gw2auth.oauth2.server.repository.apisubtoken.ApiSubTokenRepository;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
+import com.gw2auth.oauth2.server.service.apitoken.ApiTokenValidityUpdate;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsent;
@@ -218,6 +219,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
 
             final Map<UUID, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+            final List<ApiTokenValidityUpdate> apiTokenValidityUpdates = new ArrayList<>(result.size());
             final List<ApiSubTokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(result.size());
 
             for (Map.Entry<UUID, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
@@ -236,12 +238,15 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                         tokenForJWT.put("error", "Failed to obtain new subtoken");
                         logging.log("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName);
                     }
+
+                    apiTokenValidityUpdates.add(new ApiTokenValidityUpdate(accountId, gw2AccountId, true));
                 } else {
                     tokenForJWT.put("error", "Failed to obtain new subtoken");
                     logging.log("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName);
                 }
             }
 
+            this.apiTokenService.updateApiTokensValid(this.clock.instant(), apiTokenValidityUpdates);
             this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave);
 
             customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);

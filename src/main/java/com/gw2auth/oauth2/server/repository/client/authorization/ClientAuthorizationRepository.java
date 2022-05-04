@@ -153,12 +153,18 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     List<ClientAuthorizationEntity> findAllByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
 
     @Query("""
-    SELECT *
-    FROM client_authorizations
-    WHERE account_id = :account_id
-    AND client_registration_id = :client_registration_id
-    AND authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
-    ORDER BY creation_time DESC
+    SELECT auth.*
+    FROM client_authorizations auth
+    INNER JOIN client_authorization_tokens auth_tk
+    ON auth.account_id = auth_tk.account_id AND auth.id = auth_tk.client_authorization_id
+    INNER JOIN gw2_api_tokens tk
+    ON auth_tk.account_id = tk.account_id AND auth_tk.gw2_account_id = tk.gw2_account_id
+    WHERE auth.account_id = :account_id
+    AND auth.client_registration_id = :client_registration_id
+    AND auth.authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
+    GROUP BY auth.account_id, auth.id
+    HAVING BOOL_AND(tk.is_valid)
+    ORDER BY auth.creation_time DESC
     LIMIT 1
     """)
     Optional<ClientAuthorizationEntity> findLatestByAccountIdAndClientRegistrationIdAndHavingScopes(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId, @Param("authorized_scopes") Set<String> scopes);

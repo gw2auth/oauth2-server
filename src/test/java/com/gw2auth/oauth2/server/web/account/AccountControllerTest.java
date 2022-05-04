@@ -1,14 +1,10 @@
 package com.gw2auth.oauth2.server.web.account;
 
-import com.gw2auth.oauth2.server.Gw2AuthLoginExtension;
-import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
-import com.gw2auth.oauth2.server.TruncateTablesExtension;
-import com.gw2auth.oauth2.server.WithGw2AuthLogin;
+import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
@@ -70,6 +66,9 @@ class AccountControllerTest {
     @Autowired
     private AccountFederationRepository accountFederationRepository;
 
+    @Autowired
+    private TestHelper testHelper;
+
     @Test
     public void getAccountSummaryUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/summary"))
@@ -87,7 +86,7 @@ class AccountControllerTest {
         final int accountFederations = 2;
 
         for (int i = 0; i < apiTokens; i++) {
-            this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID(), Instant.now(), "", Set.of(), "Name"));
+            this.testHelper.createApiToken(accountId, UUID.randomUUID(), "", Set.of(), "Name");
         }
 
         for (int i = 0; i < verifiedGw2Accounts; i++) {

@@ -11,6 +11,7 @@ export interface Token {
     gw2ApiToken: string;
     displayName: string;
     gw2ApiPermissions: Gw2ApiPermission[];
+    isValid: boolean;
     isVerified: boolean;
     authorizations: TokenAuthorization[];
 }

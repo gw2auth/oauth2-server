@@ -450,7 +450,7 @@ class VerificationControllerTest {
 
         // insert an api token for another account but for the same gw2 account id
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        this.apiTokenRepository.save(new ApiTokenEntity(otherUserAccountId, gw2AccountId, Instant.now(), UUID.randomUUID().toString(), Set.of(), "Name"));
+        this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
 

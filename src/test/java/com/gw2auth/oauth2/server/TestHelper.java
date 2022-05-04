@@ -87,12 +87,19 @@ public class TestHelper {
     }
 
     public ApiTokenEntity createApiToken(long accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+        return createApiToken(accountId, gw2AccountId, randomRootToken(), gw2ApiPermissions, name);
+    }
+
+    public ApiTokenEntity createApiToken(long accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+        final Instant now = Instant.now();
         return this.apiTokenRepository.save(new ApiTokenEntity(
                 accountId,
                 gw2AccountId,
-                Instant.now(),
-                randomRootToken(),
+                now,
+                gw2ApiToken,
                 gw2ApiPermissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toSet()),
+                now,
+                true,
                 name
         ));
     }

@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.web.application;
 
 import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
+import com.gw2auth.oauth2.server.TestHelper;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
@@ -56,6 +57,9 @@ class ApplicationControllerTest {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private TestHelper testHelper;
+
     @Test
     public void getApplicationSummary() throws Exception {
         final long accountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
@@ -71,7 +75,7 @@ class ApplicationControllerTest {
         }
 
         for (int i = 0; i < apiTokens; i++) {
-            this.apiTokenRepository.save(new ApiTokenEntity(accountId, UUID.randomUUID(), Instant.now(), "", Set.of(), "Name"));
+            this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(), "Name");
         }
 
         for (int i = 0; i < verifiedGw2Accounts; i++) {
