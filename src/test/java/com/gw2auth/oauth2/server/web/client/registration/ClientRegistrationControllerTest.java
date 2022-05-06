@@ -86,6 +86,8 @@ class ClientRegistrationControllerTest {
         final JsonNode responseNode = mapper.readTree(responseJson);
         assertTrue(responseNode.isArray());
 
+        Instant previousCreationTime = Instant.MIN;
+
         boolean foundA = false;
         boolean foundB = false;
 
@@ -116,6 +118,10 @@ class ClientRegistrationControllerTest {
             }
 
             assertClientRegistrationEquals(clientRegistration, clientRegistrationNode);
+
+            final Instant creationTime = Instant.parse(clientRegistrationNode.get("creationTime").textValue());
+            assertTrue(previousCreationTime.isBefore(creationTime));
+            previousCreationTime = creationTime;
         }
     }
 

@@ -10,9 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 public class ClientRegistrationController extends AbstractRestController {
@@ -28,7 +28,8 @@ public class ClientRegistrationController extends AbstractRestController {
     public List<ClientRegistrationPrivateResponse> getClientRegistrations(@AuthenticationPrincipal Gw2AuthUser user) {
         return this.clientRegistrationService.getClientRegistrations(user.getAccountId()).stream()
                 .map(ClientRegistrationPrivateResponse::create)
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(ClientRegistrationPrivateResponse::creationTime))
+                .toList();
     }
 
     @GetMapping(value = "/api/client/registration/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -57,10 +57,17 @@ public class ClientAuthorizationController extends AbstractRestController {
                 }
             }
 
-            result.add(ClientAuthorizationResponse.create(clientAuthorization, tokens));
+            result.add(ClientAuthorizationResponse.create(
+                    clientAuthorization,
+                    tokens.stream()
+                            .sorted(Comparator.comparing(ClientAuthorizationResponse.Token::displayName))
+                            .toList()
+            ));
         }
 
-        return result;
+        return result.stream()
+                .sorted(Comparator.comparing(ClientAuthorizationResponse::creationTime))
+                .toList();
     }
 
     @DeleteMapping(value = "/api/client/authorization/_/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

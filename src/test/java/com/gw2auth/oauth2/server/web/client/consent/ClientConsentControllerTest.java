@@ -100,6 +100,7 @@ class ClientConsentControllerTest {
 
         assertTrue(node.isArray());
 
+        String previousRegistrationDisplayName = null;
         boolean foundAuthorizationA = false;
         boolean foundAuthorizationC = false;
 
@@ -136,8 +137,15 @@ class ClientConsentControllerTest {
             }
 
             // registration
-            assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
+            final String registrationDisplayName = clientRegistrationNode.get("creationTime").textValue();
+            assertInstantEquals(clientRegistration.creationTime(), registrationDisplayName);
             assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
+
+            if (previousRegistrationDisplayName != null) {
+                assertTrue(previousRegistrationDisplayName.compareTo(registrationDisplayName) <= 0);
+            }
+
+            previousRegistrationDisplayName = registrationDisplayName;
 
             // accountsub
             assertEquals(clientConsent.accountSub().toString(), element.get("accountSub").textValue());

@@ -32,10 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -69,7 +66,9 @@ public class OAuth2ConsentController extends AbstractRestController {
                 .collect(Collectors.toSet());
         final boolean requestedVerifiedInformation = requestedScopes.contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
 
-        final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
+        final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId()).stream()
+                .sorted(Comparator.comparing(ApiToken::creationTime))
+                .toList();
 
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();

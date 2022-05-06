@@ -62,7 +62,9 @@ public class ClientConsentController extends AbstractRestController {
             }
         }
 
-        return result;
+        return result.stream()
+                .sorted(Comparator.comparing((v) -> v.clientRegistration().displayName()))
+                .toList();
     }
 
     @GetMapping(value = "/api/client/consent/{clientId}/logs", produces = MediaType.APPLICATION_JSON_VALUE)

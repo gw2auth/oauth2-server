@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 public class VerificationController extends AbstractRestController {
@@ -42,7 +41,7 @@ public class VerificationController extends AbstractRestController {
         return this.verificationService.getAvailableChallenges().stream()
                 .map(VerificationChallengeResponse::create)
                 .sorted(Comparator.comparingLong(VerificationChallengeResponse::id))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @GetMapping(value = "/api/verification", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -59,7 +58,8 @@ public class VerificationController extends AbstractRestController {
     public List<VerificationChallengePendingResponse> getPendingChallenges(@AuthenticationPrincipal Gw2AuthUser user) {
         return this.verificationService.getPendingChallenges(user.getAccountId()).stream()
                 .map(VerificationChallengePendingResponse::create)
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(VerificationChallengePendingResponse::startedAt))
+                .toList();
     }
 
     @PostMapping(value = "/api/verification", produces = MediaType.APPLICATION_JSON_VALUE)

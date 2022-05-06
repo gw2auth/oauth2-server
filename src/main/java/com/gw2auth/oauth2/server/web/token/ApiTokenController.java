@@ -86,7 +86,9 @@ public class ApiTokenController extends AbstractRestController {
             response.add(ApiTokenResponse.create(apiToken, verifiedGw2AccountIds.contains(apiToken.gw2AccountId()), authorizations));
         }
 
-        return response;
+        return response.stream()
+                .sorted(Comparator.comparing(ApiTokenResponse::creationTime))
+                .toList();
     }
 
     @PostMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)

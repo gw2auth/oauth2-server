@@ -142,12 +142,18 @@ class ApiTokenControllerTest {
                 apiTokenC.gw2AccountId(), new ExpectedApiToken(apiTokenC, false, List.of(clientRegistrationA, clientRegistrationB))
         ));
 
+        Instant previousCreationTime = Instant.MIN;
+
         for (int i = 0; i < responseNode.size(); i++) {
             final JsonNode tokenNode = responseNode.get(i);
             final UUID gw2AccountId = UUID.fromString(tokenNode.get("gw2AccountId").textValue());
             final ExpectedApiToken expectedApiToken = expectedApiTokens.remove(gw2AccountId);
 
             assertExpectedApiToken(expectedApiToken, tokenNode);
+
+            final Instant creationTime = Instant.parse(tokenNode.get("creationTime").textValue());
+            assertTrue(previousCreationTime.isBefore(creationTime));
+            previousCreationTime = creationTime;
         }
 
         assertTrue(expectedApiTokens.isEmpty());

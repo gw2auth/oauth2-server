@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.*;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
@@ -91,6 +92,8 @@ class ClientAuthorizationControllerTest {
         assertTrue(node.isArray());
         assertEquals(2, node.size());
 
+        Instant previousCreationTime = Instant.MIN;
+
         for (int i = 0; i < node.size(); i++) {
             final JsonNode authorizationNode = node.get(i);
             final String id = authorizationNode.get("id").textValue();
@@ -111,6 +114,10 @@ class ClientAuthorizationControllerTest {
             assertInstantEquals(authorization.creationTime(), authorizationNode.get("creationTime").textValue());
             assertInstantEquals(authorization.lastUpdateTime(), authorizationNode.get("lastUpdateTime").textValue());
             assertEquals(authorization.displayName(), authorizationNode.get("displayName").textValue());
+
+            final Instant creationTime = Instant.parse(authorizationNode.get("creationTime").textValue());
+            assertTrue(previousCreationTime.isBefore(creationTime));
+            previousCreationTime = creationTime;
 
             // authorized scopes
             final Set<String> expectedAuthorizedScopes = new HashSet<>(authorization.authorizedScopes());
@@ -139,12 +146,21 @@ class ClientAuthorizationControllerTest {
             final JsonNode tokensNode = authorizationNode.get("tokens");
             assertTrue(tokensNode.isArray());
 
+            String previousDisplayName = null;
+
             for (int j = 0; j < tokensNode.size(); j++) {
                 final JsonNode tokenNode = tokensNode.get(j);
                 final ApiTokenEntity expectedApiToken = expectedApiTokens.remove(UUID.fromString(tokenNode.get("gw2AccountId").textValue()));
+                final String displayName = tokenNode.get("displayName").textValue();
 
                 assertNotNull(expectedApiToken);
-                assertEquals(expectedApiToken.displayName(), tokenNode.get("displayName").textValue());
+                assertEquals(expectedApiToken.displayName(), displayName);
+
+                if (previousDisplayName != null) {
+                    assertTrue(previousDisplayName.compareTo(displayName) <= 0);
+                }
+
+                previousDisplayName = displayName;
             }
 
             assertTrue(expectedApiTokens.isEmpty());
