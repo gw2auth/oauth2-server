@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.gw2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.gw2.client.Gw2ApiClient;
@@ -141,15 +142,28 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
             throw new Gw2ApiServiceException(Gw2ApiServiceException.UNEXPECTED_EXCEPTION, HttpStatus.BAD_GATEWAY);
         }
 
-        if (response.getStatusCode().equals(HttpStatus.UNAUTHORIZED)) {
-            throw new InvalidApiTokenException();
-        } else if (!response.getStatusCode().is2xxSuccessful() || !response.hasBody()) {
-            throw new Gw2ApiServiceException(Gw2ApiServiceException.BAD_RESPONSE, HttpStatus.BAD_GATEWAY);
-        }
-
         final Resource body = response.getBody();
-        if (body == null) {
-            return null;
+
+        if (!response.getStatusCode().is2xxSuccessful() || body == null) {
+            if (body != null) {
+                JsonNode json;
+
+                try (InputStream in = body.getInputStream()) {
+                    json = this.mapper.readTree(in);
+                } catch (IOException e) {
+                    json = null;
+                }
+
+                if (json != null && json.has("text") && json.get("text").asText().equals("invalid key")) {
+                    throw new InvalidApiTokenException();
+                }
+            }
+
+            if (response.getStatusCode().equals(HttpStatus.UNAUTHORIZED) || response.getStatusCode().equals(HttpStatus.FORBIDDEN)) {
+                throw new InvalidApiTokenException();
+            } else {
+                throw new Gw2ApiServiceException(Gw2ApiServiceException.BAD_RESPONSE, HttpStatus.BAD_GATEWAY);
+            }
         }
 
         try (InputStream in = body.getInputStream()) {
