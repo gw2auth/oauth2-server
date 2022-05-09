@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.service.gw2.client;
 
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -48,7 +49,9 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
                     params
             );
         } catch (RestClientResponseException e) {
-            response = ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders()).build();
+            response = ResponseEntity.status(e.getRawStatusCode())
+                    .headers(e.getResponseHeaders())
+                    .body(new ByteArrayResource(e.getResponseBodyAsByteArray()));
         }
 
         return response;
