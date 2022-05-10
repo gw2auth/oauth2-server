@@ -35,7 +35,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <start-class>com.gw2auth.oauth2.server.Application</start-class>
 
-        <node.version>v16.14.2</node.version>
+        <node.version>v16.15.0</node.version>
     </properties>
 
     <dependencies>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-lambda</artifactId>
-            <version>1.12.205</version>
+            <version>1.12.215</version>
         </dependency>
 
         <dependency>
