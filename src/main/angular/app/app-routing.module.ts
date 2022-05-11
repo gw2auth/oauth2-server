@@ -19,6 +19,9 @@ import {ClientDebugComponent} from './main/account/client/client-debug.component
 import {ClientDebugResponseComponent} from './main/account/client/client-debug-response.component';
 import {OverviewComponent} from './main/account/overview/overview.component';
 import {FaqComponent} from './main/faq/faq.component';
+import {VerificationSetupSelectComponent} from './main/account/verification/verification-setup-select.component';
+import {VerificationSetupInstructionsComponent} from './main/account/verification/verification-setup-instructions.component';
+import {VerificationSetupSubmitComponent} from './main/account/verification/verification-setup-submit.component';
 
 const routes: Routes = [
   {
@@ -43,6 +46,9 @@ const routes: Routes = [
           { path: 'client/debug', component: ClientDebugResponseComponent, data: { title: 'Debug Client' } },
           { path: 'client/:clientId/debug', component: ClientDebugComponent, data: { title: 'Debug Client' } },
           { path: 'verification', component: VerificationComponent, data: { title: 'Verification' } },
+          { path: 'verification/setup/select', component: VerificationSetupSelectComponent, data: { title: 'Verification' } },
+          { path: 'verification/setup/instructions', component: VerificationSetupInstructionsComponent, data: { title: 'Verification' } },
+          { path: 'verification/setup/submit', component: VerificationSetupSubmitComponent, data: { title: 'Verification' } },
           { path: 'settings', component: SettingsComponent, data: { title: 'Settings' } },
         ]
       },

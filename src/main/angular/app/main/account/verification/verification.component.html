@@ -1,128 +1,38 @@
 <div class="container">
-    <div class="row row-cols-1 gy-5">
-        <div *ngIf="startedChallenge != null" class="col">
-            <h3 class="mb-3">Started challenge</h3>
-            <div class="card bg-accent">
-                <div class="card-header">
-                    <h5>{{getChallengeName(startedChallenge.challengeId)}}</h5>
-                </div>
-                <div class="card-body">
-                    <div class="border border-accent-inner rounded-2 p-3 mb-3">
-                        <div class="card-title mb-3">Verification task</div>
-                        <ng-container [ngSwitch]="startedChallenge.challengeId">
-                            <ng-container *ngSwitchCase="1">
-                                <div *ngIf="asApiTokenMessage(startedChallenge.message) as apiTokenName">
-                                    <p class="mb-1">Create a new API-Token or update the name of a existing and linked one <a href="https://account.arena.net/applications" target="_blank">on the Website of ArenaNet</a></p>
-                                    <p class="mb-0">The name of the API-Token must start with <strong>{{apiTokenName}}</strong></p>
-                                </div>
-                            </ng-container>
-                            <ng-container *ngSwitchCase="2">
-                                <div *ngIf="asTpBuyOrderMessage(startedChallenge.message) | async; let message">
-                                    <p class="mb-1">Use the ingame Trading-Post to place a <strong>buy-order</strong> for the following item and price:</p>
-                                    <p class="mb-0 text-center display-6">
-                                        <img [src]="message.icon" class="img-fluid rounded-3 img-text" />
-                                        {{message.name}} at
-                                        <span>{{message.gold}}<img src="/assets/gold_coin.png" class="img-fluid img-text" /></span>
-                                        <span>{{message.silver}}<img src="/assets/silver_coin.png" class="img-fluid img-text" /></span>
-                                        <span>{{message.copper}}<img src="/assets/copper_coin.png" class="img-fluid img-text" /></span>
-                                    </p>
-                                </div>
-                            </ng-container>
-                        </ng-container>
-                    </div>
+    <div class="row row-cols-1 g-3">
+        <div class="col">
+            <h3 class="mb-3">Account verification</h3>
+            <p>
+                GW2Auth offers you to verify the ownership of your GuildWars2 accounts by performing a so called "challenge".<br/>
+                Once you successfully verified your account we block other GW2Auth accounts to add an API-Token belonging to a verified GuildWars2 account.<br/>
+                External applications may ask to read the verification status of your GuildWars2 accounts. You will always be asked for consent before we share this information with any external application.
+            </p>
 
-                    <div class="border border-accent-inner rounded-2 p-3">
-                        <div class="mb-3">API-Token selection</div>
-
-                        <div *ngIf="tokens.length > 0" class="text-center">
-                            <div class="mb-3">Select the API-Token for the GW2Account you performed the verification with</div>
-                            <div class="list-group mb-3">
-                                <button *ngFor="let token of tokens"
-                                        type="button"
-                                        class="list-group-item list-group-item-action"
-                                        [ngClass]="token.gw2ApiToken == selectedGw2ApiToken ? 'active' : ''"
-                                        (click)="onTokenSelectClick(token)">
-
-                                    <fa-icon *ngIf="token.gw2ApiToken == selectedGw2ApiToken" [icon]="faCheck"></fa-icon> {{token.displayName}}
-                                </button>
-                            </div>
-
-                            <div class="divider mb-3">OR</div>
-
-                            <div class="mb-3">Use a new API-Token for the verification process</div>
-                        </div>
-
-                        <form>
-                            <label [htmlFor]="'verificationNewApiToken'" class="form-label">API-Token</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" [id]="'verificationNewApiToken'" [attr.aria-describedby]="'verificationNewApiTokenDescription'" [(ngModel)]="verificationNewApiToken" />
-                                <button class="btn btn-accent-inner" [disabled]="verificationNewApiToken.length < 1" (click)="onUseNewApiTokenClick()"><fa-icon [icon]="faCheck"></fa-icon></button>
-                            </div>
-                            <div [id]="'verificationNewApiTokenDescription'" class="form-text">The API-Token added here will only be used for the verification process</div>
-                        </form>
-                    </div>
-                </div>
-                <div class="card-footer text-center">
-                    <div [ngSwitch]="selectedGw2ApiToken" class="mb-3">
-                        <p *ngSwitchCase="null"><small>You have to select a GW2-Account or paste a API-Token to continue</small></p>
-                        <p *ngSwitchDefault><small>Using '{{selectedTokenName}}'</small></p>
-                    </div>
-
-                    <app-button-loadable [class]="'btn-primary'" [disabled]="selectedGw2ApiToken == null" [loading]="verificationSubmitInProgress" (click)="onSubmitChallengeClick(startedChallenge)">Submit</app-button-loadable>
-                </div>
-            </div>
+            <button *ngIf="startedChallenge == null" type="button" class="btn btn-primary" [routerLink]="['/', 'account', 'verification', 'setup', 'select']">Start verification</button>
         </div>
 
-        <div class="col">
-            <h3 class="mb-3">Available verification challenges</h3>
-            <div class="container">
-                <div class="row row-cols-1 row-cols-lg-2 g-3">
-                    <div *ngFor="let challenge of availableChallenges" class="col">
-                        <div class="card bg-accent">
-                            <div class="card-header">
-                                <h5>{{getChallengeName(challenge.id)}}</h5>
+        <div *ngIf="startedChallenge != null" class="col">
+            <div class="card bg-accent">
+                <div class="card-header">
+                    <h4>Verification challenge</h4>
+                </div>
+                <div class="card-body">
+                    <p>You previously started a verification challenge.</p>
+                    <p class="mb-0">If you want to verify your GuildWars2 account you may proceed with the started challenge or choose to start a different challenge.</p>
+                </div>
+                <div class="card-footer">
+                    <div class="container-fluid">
+                        <div class="row row-cols-1 row-cols-md-2 g-2">
+                            <div class="col">
+                                <button type="button" class="btn btn-primary w-100" [routerLink]="['/', 'account', 'verification', 'setup', 'instructions']">Proceed</button>
                             </div>
-                            <div class="card-body">
-                                <div class="border border-accent-inner rounded-2 p-3 mb-3">
-                                    <div class="card-title mb-3">Description</div>
-                                    <ng-container [ngSwitch]="challenge.id">
-                                        <ng-container *ngSwitchCase="1">
-                                            <p class="mb-1">When choosing this verification challenge, we will randomly generate a name that you should use to either change the name of a existing API-Token or create a new one with</p>
-                                            <p class="mb-0">The verification process can take up to 90 minutes due to the refresh interval of the GW2-API</p>
-                                        </ng-container>
-                                        <ng-container *ngSwitchCase="2">
-                                            <p class="mb-1">This verification method works by putting a low priced (below 30 Gold) buy-order for very expensive item (for example, Legendaries) in the Trading-Post</p>
-                                            <p class="mb-1">The verification process for this method takes about 15 minutes for finish.</p>
-                                            <p class="mb-0">After the verification process finished, you can remove the buy-order and will receive your placed gold back.</p>
-                                        </ng-container>
+                            <div class="col">
+                                <button type="button" class="btn btn-accent-inner w-100" [routerLink]="['/', 'account', 'verification', 'setup', 'select']" [disabled]="!canStartNewChallenge()">
+                                    <ng-container [ngSwitch]="canStartNewChallenge()">
+                                        <div *ngSwitchCase="true">Start a different challenge</div>
+                                        <div *ngSwitchDefault>Available at {{startedChallenge!.nextAllowedStartTime.toLocaleString()}}</div>
                                     </ng-container>
-                                </div>
-
-                                <div class="border border-accent-inner rounded-2 p-3">
-                                    <div class="mb-3">Required permissions</div>
-                                    <div class="container-fluid" [id]="'challengeRequiredGw2ApiPermissions-' + challenge.id">
-                                        <div class="row row-cols-1 row-cols-sm-3 row-cols-md-4 row-cols-lg-2 row-cols-xxl-3 g-2">
-                                            <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
-                                                <div class="col">
-                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="challenge.requiredGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
-                                                </div>
-                                            </ng-container>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer text-center">
-                                <div *ngIf="startedChallenge != null" class="mb-3">
-                                    <small>Starting this challenge will discard your active challenge</small>
-                                </div>
-
-                                <app-button-loadable [class]="'btn-primary'" [loading]="startChallengeInProgress" [disabled]="canStartChallengeState(challenge) != 0" (click)="onStartChallengeClick(challenge)">
-                                    <ng-container [ngSwitch]="canStartChallengeState(challenge)">
-                                        <ng-container *ngSwitchCase="1">This challenge has already been started</ng-container>
-                                        <ng-container *ngSwitchCase="2">You can start a new challenge at {{startedChallenge!.nextAllowedStartTime.toLocaleString()}}</ng-container>
-                                        <ng-container *ngSwitchDefault>Start this challenge</ng-container>
-                                    </ng-container>
-                                </app-button-loadable>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -131,12 +41,24 @@
         </div>
 
         <div *ngIf="pendingChallenges.length > 0" class="col">
-            <h3 class="mb-3">Pending challenges</h3>
-            <div class="list-group">
-                <div *ngFor="let pendingChallenge of pendingChallenges" class="list-group-item">
-                    <h5 class="mb-1">{{getChallengeName(pendingChallenge.challengeId)}}</h5>
-                    <p class="mb-1">For GW2-Account-ID {{pendingChallenge.gw2AccountId}}</p>
-                    <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
+            <div class="card bg-accent">
+                <div class="card-header">
+                    <h4>Pending challenges<span class="badge rounded-pill bg-success ms-2">{{pendingChallenges.length}}</span></h4>
+                </div>
+                <div class="card-body">
+                    <p>
+                        The following challenges are in progress. This means you previously submitted a challenge and it could not yet be completed.<br/>
+                        Don't panic! The API may take some time to reflect the actions you took to verify your account.
+                    </p>
+                    <p>For TP buy-order challenges: please do not remove the buy-order until the challenge completed.</p>
+
+                    <div class="list-group">
+                        <div *ngFor="let pendingChallenge of pendingChallenges" class="list-group-item">
+                            <h5 class="mb-1">{{getChallengeName(pendingChallenge.challengeId)}}</h5>
+                            <p class="mb-1">for {{tryGetGw2AccountIdDisplayName(pendingChallenge.gw2AccountId)}}</p>
+                            <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

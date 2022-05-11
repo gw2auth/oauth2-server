@@ -76,6 +76,20 @@ export class VerificationComponent implements OnInit {
     return 0;
   }
 
+  canStartNewChallenge(): boolean {
+    return this.startedChallenge == null || this.startedChallenge.nextAllowedStartTime.getTime() < Date.now();
+  }
+
+  tryGetGw2AccountIdDisplayName(gw2AccountId: string): string {
+    for (let token of this.tokens) {
+      if (token.gw2AccountId == gw2AccountId) {
+        return token.displayName;
+      }
+    }
+
+    return gw2AccountId;
+  }
+
   asApiTokenMessage(message: Map<string, any>): string {
     return (<ApiTokenNameMessage><unknown>message).apiTokenName;
   }

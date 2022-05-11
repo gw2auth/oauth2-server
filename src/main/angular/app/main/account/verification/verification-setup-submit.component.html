@@ -1,0 +1,95 @@
+<div *ngIf="startedChallenge == null">Loading...</div>
+<div *ngIf="startedChallenge != null">
+    <div class="container">
+        <div class="row row-cols-1 g-3">
+            <div class="col">
+                <h3 class="mb-3">Account verification</h3>
+                <p>Finish the verification by submitting an API token belonging to the GuildWars2 account you performed the previous steps with</p>
+            </div>
+
+            <div class="col">
+                <div class="card bg-accent">
+                    <div class="card-header">
+                        <h4>{{getChallengeName(startedChallenge.challengeId)}}</h4>
+                    </div>
+
+                    <div class="card-body">
+                        <ngb-accordion #accApiTokens [type]="'accent'" [activeIds]="['acc-panel-new-token']" [closeOthers]="true">
+                            <ngb-panel [id]="'acc-panel-new-token'">
+                                <ng-template ngbPanelTitle>Use a new API-Token</ng-template>
+                                <ng-template ngbPanelContent>
+                                    <form>
+                                        <label for="verificationNewApiToken" class="form-label">API-Token</label>
+                                        <input type="text" class="form-control" id="verificationNewApiToken" name="verificationNewApiToken" aria-describedby="verificationNewApiTokenDescription" [(ngModel)]="verificationNewApiToken" (ngModelChange)="onNewTokenChange($event)" />
+                                        <div id="verificationNewApiTokenDescription" class="form-text">The API-Token added here will only be used for the verification process</div>
+                                    </form>
+                                </ng-template>
+                            </ngb-panel>
+                            <ngb-panel [id]="'acc-panel-existing-token'" [disabled]="tokens.length < 1">
+                                <ng-template ngbPanelTitle>
+                                    <span>Use an existing API-Token</span>
+                                    <span *ngIf="tokens.length > 0" class="badge rounded-pill bg-success ms-2">{{tokens.length}}</span>
+                                    <span *ngIf="tokens.length < 1" class="badge rounded-pill bg-danger ms-2">0</span>
+                                </ng-template>
+                                <ng-template ngbPanelContent>
+                                    <div class="list-group">
+                                        <button *ngFor="let token of tokens"
+                                                type="button"
+                                                class="list-group-item list-group-item-action"
+                                                [ngClass]="token.gw2ApiToken == verificationApiTokenInUse ? 'active' : ''"
+                                                (click)="onExistingTokenClick(token)">
+
+                                            <fa-icon *ngIf="token.gw2ApiToken == verificationApiTokenInUse" [icon]="faCheck"></fa-icon> {{token.displayName}}
+                                        </button>
+                                    </div>
+                                </ng-template>
+                            </ngb-panel>
+                        </ngb-accordion>
+
+                        <div class="container-fluid mt-4">
+                            <div class="row row-cols-1 g-2">
+                                <div class="col">
+                                    <h5>Token checklist</h5>
+                                </div>
+                                <div class="col">
+                                    <ol class="list-group list-group-numbered">
+                                        <li class="list-group-item">Type: {{verificationTokenType}}</li>
+                                        <li class="list-group-item">Name: {{verificationTokenName}}</li>
+                                        <li class="list-group-item">
+                                            <span>Has all required API permissions?</span>
+                                            <div class="container-fluid mt-3">
+                                                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xxl-5 g-2">
+                                                    <ng-container *ngFor="let gw2ApiPermission of requiredGw2ApiPermissions">
+                                                        <div class="col">
+                                                            <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="verificationTokenGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                        </div>
+                                                    </ng-container>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ol>
+                                </div>
+                                <div class="col">
+                                    <app-button-loadable [class]="['btn-primary']" [disabled]="!verificationTokenCheckAvailable || verificationApiTokenInUse == tokenCheckCheckedToken" [loading]="tokenCheckInProgress" (click)="onTokenCheckClick()">Check token</app-button-loadable>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer text-center">
+                        <div class="container-fluid">
+                            <div class="row row-cols-1 row-cols-md-2 g-2">
+                                <div class="col">
+                                    <button type="button" class="btn btn-accent-inner w-100" (click)="onBackToInstructionsClick()">Back to instructions</button>
+                                </div>
+                                <div class="col">
+                                    <app-button-loadable [class]="['btn-primary', 'w-100']" [disabled]="verificationApiTokenInUse != tokenCheckCheckedToken" [loading]="submitInProgress" (click)="onChallengeSubmitClick()">Submit</app-button-loadable>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
