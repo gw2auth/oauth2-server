@@ -20,12 +20,23 @@
                                     <h5 class="mb-3">Description</h5>
                                     <div [ngSwitch]="challenge.id" class="ms-0 ms-md-3">
                                         <ng-container *ngSwitchCase="1">
+                                            <iframe class="yt-embed mb-2" src="https://www.youtube.com/embed/xgaG9ysH3is" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                             <p>
                                                 You will have to login on the official website of GuildWars2 using the account you wish to verify.<br/>
                                                 Once logged in, you will have to create a new API token using a name which will be generated in the next step.
                                             </p>
                                         </ng-container>
                                         <div *ngSwitchCase="2">
+                                            <div class="container-fluid mb-2">
+                                                <div class="row row-cols-1 row-cols-lg-2">
+                                                    <div class="col">
+                                                        <iframe class="yt-embed" src="https://www.youtube.com/embed/Lt50s84D2b4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                                    </div>
+                                                    <div class="col">
+                                                        <iframe class="yt-embed" src="https://www.youtube.com/embed/W1Gu4kCLx0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <p>
                                                 You will have to place a buy-order using the ingame tradingpost.<br/>
                                                 The item and exact price you should place a buy-order for will be generated in the next step.<br/>

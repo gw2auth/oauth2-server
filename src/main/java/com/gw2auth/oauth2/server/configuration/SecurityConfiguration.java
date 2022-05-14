@@ -50,7 +50,8 @@ public class SecurityConfiguration {
                                     "connect-src 'self' https://api.guildwars2.com",
                                     "script-src 'self' 'unsafe-inline'",
                                     "style-src 'self' 'unsafe-inline'",
-                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.com/ data:"
+                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.com/ data:",
+                                    "frame-src https://www.youtube.com/embed/xgaG9ysH3is https://www.youtube.com/embed/Lt50s84D2b4 https://www.youtube.com/embed/W1Gu4kCLx0g"
                             )));
                 })
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))

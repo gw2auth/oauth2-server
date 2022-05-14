@@ -72,3 +72,9 @@
 .border-accent-inner {
   border-color: $accent-inner !important;
 }
+
+iframe.yt-embed {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}

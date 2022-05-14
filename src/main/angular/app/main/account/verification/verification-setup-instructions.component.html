@@ -16,16 +16,27 @@
                     <div class="card-body">
                         <ng-container [ngSwitch]="startedChallenge.challengeId">
                             <ng-container *ngSwitchCase="1">
+                                <iframe class="yt-embed mb-2" src="https://www.youtube.com/embed/xgaG9ysH3is" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                 <ol *ngIf="asApiTokenMessage(startedChallenge.message) as apiTokenName" class="list-group list-group-numbered">
                                     <li class="list-group-item">Follow <a href="https://account.arena.net/applications" target="_blank">this link</a> and login using the account you wish to verify</li>
                                     <li class="list-group-item">Click on the button New Key</li>
-                                    <li class="list-group-item">Fill in the name <strong>{{apiTokenName}}</strong></li>
+                                    <li class="list-group-item">Fill in the name <app-text-copyable><strong>{{apiTokenName}}</strong></app-text-copyable></li>
                                     <li class="list-group-item">Keep the checkboxes as they are</li>
                                     <li class="list-group-item">Click on the button Create API key (big red button on the bottom)</li>
-                                    <li class="list-group-item">In the of API keys, copy the secret value of the newly created one by clicking the copy button right to the hidden characters</li>
+                                    <li class="list-group-item">In the list of API keys, copy the secret value of the newly created one by clicking the copy button right to the hidden characters</li>
                                 </ol>
                             </ng-container>
                             <ng-container *ngSwitchCase="2">
+                                <div class="container-fluid mb-2">
+                                    <div class="row row-cols-1 row-cols-lg-2">
+                                        <div class="col">
+                                            <iframe class="yt-embed" src="https://www.youtube.com/embed/Lt50s84D2b4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                        </div>
+                                        <div class="col">
+                                            <iframe class="yt-embed" src="https://www.youtube.com/embed/W1Gu4kCLx0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                        </div>
+                                    </div>
+                                </div>
                                 <ol *ngIf="asTpBuyOrderMessage(startedChallenge.message) | async; let message" class="list-group list-group-numbered">
                                     <li class="list-group-item">Login to the game using the GuildWars2 account you wish to verify</li>
                                     <li class="list-group-item">Open the ingame tradingpost</li>

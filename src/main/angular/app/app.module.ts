@@ -61,6 +61,7 @@ import {LogoSmallComponent} from './general/logo-small.component';
 import {VerificationSetupSelectComponent} from './main/account/verification/verification-setup-select.component';
 import {VerificationSetupInstructionsComponent} from './main/account/verification/verification-setup-instructions.component';
 import {VerificationSetupSubmitComponent} from './main/account/verification/verification-setup-submit.component';
+import {TextCopyableComponent} from './general/text-copyable.component';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -142,7 +143,8 @@ const cookieConfig: NgcCookieConsentConfig = {
     LogoSmallComponent,
     VerificationSetupSelectComponent,
     VerificationSetupInstructionsComponent,
-    VerificationSetupSubmitComponent
+    VerificationSetupSubmitComponent,
+    TextCopyableComponent
   ],
   imports: [
     BrowserModule,

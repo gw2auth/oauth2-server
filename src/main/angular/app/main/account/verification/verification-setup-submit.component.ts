@@ -9,6 +9,7 @@ import {ToastService} from '../../../toast/toast.service';
 import {Gw2ApiPermission} from '../../../common/common.model';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
+import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
 
 
 @Component({
@@ -33,7 +34,12 @@ export class VerificationSetupSubmitComponent implements OnInit {
     tokenCheckCheckedToken: string | null = null;
     submitInProgress = false;
 
-    constructor(private readonly verificationService: VerificationService, private readonly tokenService: TokenService, private readonly gw2ApiService: Gw2ApiService, private readonly toastService: ToastService, private readonly router: Router) {
+    constructor(private readonly verificationService: VerificationService,
+                private readonly tokenService: TokenService,
+                private readonly gw2ApiService: Gw2ApiService,
+                private readonly toastService: ToastService,
+                private readonly router: Router,
+                private readonly sanitizer: DomSanitizer) {
     }
 
     ngOnInit(): void {
@@ -79,6 +85,24 @@ export class VerificationSetupSubmitComponent implements OnInit {
             case 2: return 'TP Buy-Order';
             default: return 'Unknown';
         }
+    }
+
+    getYoutubeEmbedSrc(challengeId: number, type: 'new' | 'existing'): SafeResourceUrl {
+        return this.sanitizer.bypassSecurityTrustResourceUrl(this.__getYoutubeEmbedSrc(challengeId, type));
+    }
+
+    __getYoutubeEmbedSrc(challengeId: number, type: 'new' | 'existing'): string {
+        switch (challengeId) {
+            case 1: return 'https://www.youtube.com/embed/xgaG9ysH3is';
+            case 2: {
+                switch (type) {
+                    case 'new': return 'https://www.youtube.com/embed/Lt50s84D2b4';
+                    case 'existing': return 'https://www.youtube.com/embed/W1Gu4kCLx0g';
+                }
+            }
+        }
+
+        throw Error();
     }
 
     onNewTokenChange(newApiToken: string): void {
