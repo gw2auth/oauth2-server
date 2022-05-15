@@ -42,6 +42,10 @@ spring:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
     username: ${SERVER_POSTGRES_USER}
     password: ${SERVER_POSTGRES_PASSWORD}
+  flyway:
+    url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
+    user: ${SERVER_FLYWAY_POSTGRES_USER}
+    password: ${SERVER_FLYWAY_POSTGRES_PASSWORD}
   session:
     store-type: hazelcast
   hazelcast:
