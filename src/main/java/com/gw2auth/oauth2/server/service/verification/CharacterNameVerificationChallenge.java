@@ -15,7 +15,7 @@ public class CharacterNameVerificationChallenge implements VerificationChallenge
     private static final long ID = 3;
     private static final Set<Gw2ApiPermission> REQUIRED_GW2_API_PERMISSIONS = Collections.unmodifiableSet(EnumSet.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.CHARACTERS));
     private static final Duration TIMEOUT = Duration.ofMinutes(15L);
-    private static final String CHARACTER_NAME_VERIFICATION_PREFIX = "Gw2auth ";
+    private static final String CHARACTER_NAME_VERIFICATION_PREFIX = "Gwxauth ";
     private static final String SUFFIX_CHARACTERS = "abcdefghijklmnopqrstuvwxyz";
 
     private final Gw2ApiService gw2ApiService;
