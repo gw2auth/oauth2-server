@@ -10,7 +10,7 @@
             <div class="col">
                 <div class="card bg-accent">
                     <div class="card-header">
-                        <h4>{{getChallengeName(startedChallenge.challengeId)}}</h4>
+                        <h4>{{startedChallenge.challenge.name}}</h4>
                     </div>
 
                     <div class="card-body">
@@ -18,7 +18,12 @@
                             <ngb-panel [id]="'acc-panel-new-token'">
                                 <ng-template ngbPanelTitle>Use a new API-Token</ng-template>
                                 <ng-template ngbPanelContent>
-                                    <iframe class="yt-embed mb-2" [src]="getYoutubeEmbedSrc(startedChallenge.challengeId, 'new')" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    <div *ngIf="hasYoutubeEmbedSrcs(this.startedChallenge, 'new')" class="d-flex flex-column flex-lg-row mb-2">
+                                        <iframe *ngFor="let youtubeEmbedSrc of getYoutubeEmbedSrcs(this.startedChallenge, 'new')" class="yt-embed" [src]="youtubeEmbedSrc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    </div>
+
+                                    <p>Create a new API-Token using <a href="https://account.arena.net/applications" target="_blank">this link</a>. Make sure to login using the GuildWars2 account you performed the previous steps with.</p>
+
                                     <form>
                                         <label for="verificationNewApiToken" class="form-label">API-Token</label>
                                         <input type="text" class="form-control" id="verificationNewApiToken" name="verificationNewApiToken" aria-describedby="verificationNewApiTokenDescription" [(ngModel)]="verificationNewApiToken" (ngModelChange)="onNewTokenChange($event)" />
@@ -33,7 +38,10 @@
                                     <span *ngIf="tokens.length < 1" class="badge rounded-pill bg-danger ms-2">0</span>
                                 </ng-template>
                                 <ng-template ngbPanelContent>
-                                    <iframe class="yt-embed mb-2" [src]="getYoutubeEmbedSrc(startedChallenge.challengeId, 'existing')" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    <div *ngIf="hasYoutubeEmbedSrcs(this.startedChallenge, 'existing')" class="d-flex flex-column flex-lg-row mb-2">
+                                        <iframe *ngFor="let youtubeEmbedSrc of getYoutubeEmbedSrcs(this.startedChallenge, 'existing')" class="yt-embed" [src]="youtubeEmbedSrc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    </div>
+
                                     <div class="list-group">
                                         <button *ngFor="let token of tokens"
                                                 type="button"
@@ -61,8 +69,8 @@
                                             <span>Has all required API permissions?</span>
                                             <div class="container-fluid mt-3">
                                                 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xxl-5 g-2">
-                                                    <ng-container *ngFor="let gw2ApiPermission of requiredGw2ApiPermissions">
-                                                        <div class="col">
+                                                    <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
+                                                        <div *ngIf="startedChallenge.challenge.requiredGw2ApiPermissions.has(gw2ApiPermission)" class="col">
                                                             <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="verificationTokenGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
                                                         </div>
                                                     </ng-container>

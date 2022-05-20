@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeRepository;
@@ -17,6 +16,7 @@ import com.gw2auth.oauth2.server.service.verification.VerificationServiceImpl;
 import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringStartsWith;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -38,10 +38,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -185,7 +182,7 @@ class VerificationControllerTest {
                 post("/api/verification")
                         .session(session)
                         .with(csrf())
-                        .queryParam("challengeId", "3")
+                        .queryParam("challengeId", "100")
         )
                 .andExpect(status().isBadRequest());
     }
@@ -222,6 +219,24 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.challengeId").value("2"))
                 .andExpect(jsonPath("$.message.gw2ItemId").isNumber())
                 .andExpect(jsonPath("$.message.buyOrderCoins").isNumber())
+                .andExpect(jsonPath("$.nextAllowedStartTime").isString());
+
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
+    }
+
+    @WithGw2AuthLogin
+    public void startNewChallengeCharacterName(MockHttpSession session) throws Exception {
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+
+        this.mockMvc.perform(
+                        post("/api/verification")
+                                .session(session)
+                                .with(csrf())
+                                .queryParam("challengeId", "3")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.challengeId").value("3"))
+                .andExpect(jsonPath("$.message.characterName").isString())
                 .andExpect(jsonPath("$.nextAllowedStartTime").isString());
 
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
@@ -477,6 +492,57 @@ class VerificationControllerTest {
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value("true"));
+
+        // started challenge should be removed
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
+
+        // pending challenge should not be present (either removed or never inserted)
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
+
+        // account should now be verified
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
+        assertNotNull(accountVerification);
+        assertEquals(accountId, accountVerification.accountId());
+
+        // the other users api token should be removed
+        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+    }
+
+    @WithGw2AuthLogin
+    public void startAndSubmitCharacterNameChallengeDirectlyFulfilled(MockHttpSession session) throws Exception {
+        final UUID gw2AccountId = UUID.randomUUID();
+
+        // insert an api token for another account but for the same gw2 account id
+        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
+
+        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+
+        // prepare the testing clock
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.verificationService.setClock(testingClock);
+
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.CHARACTERS), testingClock.instant(), Duration.ofMinutes(15L));
+
+        // start the challenge
+        final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 3L);
+
+        // prepare the gw2 api
+        this.gw2RestServer.reset();
+        preparedGw2RestServerForCreateSubtoken(gw2ApiToken, gw2ApiSubtoken, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.CHARACTERS), testingClock.instant().plus(Duration.ofMinutes(15L)));
+        preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiSubtoken);
+        prepareGw2RestServerForCharactersRequest(gw2ApiSubtoken, 20, (String) challengeStart.message().get("characterName"));
+
+        // submit the challenge
+        this.mockMvc.perform(
+                        post("/api/verification/pending")
+                                .session(session)
+                                .with(csrf())
+                                .queryParam("token", gw2ApiToken)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("true"));
 
@@ -756,6 +822,26 @@ class VerificationControllerTest {
                             "permissions", gw2ApiPermissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.toList())
                     )).toString().getBytes(StandardCharsets.UTF_8), HttpStatus.OK);
 
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                    return response;
+                });
+    }
+
+    private void prepareGw2RestServerForCharactersRequest(String gw2ApiToken, int addDummyValues, String character) {
+        final List<String> characters = new ArrayList<>(addDummyValues + 1);
+
+        for (int i = 0; i < addDummyValues; i++) {
+            characters.add(UUID.randomUUID().toString());
+        }
+
+        characters.add(addDummyValues / 2, character);
+
+        this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/characters")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andRespond((request) -> {
+                    final MockClientHttpResponse response = new MockClientHttpResponse(new JSONArray(characters).toString().getBytes(StandardCharsets.UTF_8), HttpStatus.OK);
                     response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
                     return response;

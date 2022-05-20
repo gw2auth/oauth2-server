@@ -7,36 +7,28 @@
 
         <div class="col">
             <ngb-accordion #accChallenges [type]="'accent'" [closeOthers]="true">
-                <ngb-panel *ngFor="let challenge of availableChallenges" [disabled]="startedChallenge?.challengeId == challenge.id" [id]="'acc-panel-' + challenge.id">
+                <ngb-panel *ngFor="let challenge of availableChallenges" [disabled]="startedChallenge?.challenge?.id == challenge.id" [id]="'acc-panel-' + challenge.id">
                     <ng-template ngbPanelTitle>
-                        <span>{{getChallengeName(challenge.id)}}</span>
+                        <span>{{challenge.name}}</span>
                         <span *ngIf="challenge.id == 2" class="badge rounded-pill bg-success ms-2">Recommended</span>
-                        <span *ngIf="startedChallenge?.challengeId == challenge.id" class="badge rounded-pill bg-danger ms-2">already active</span>
+                        <span *ngIf="startedChallenge?.challenge?.id == challenge.id" class="badge rounded-pill bg-danger ms-2">already active</span>
                     </ng-template>
                     <ng-template ngbPanelContent>
                         <div class="container-fluid">
                             <div class="row row-cols-1 g-4">
                                 <div class="col">
                                     <h5 class="mb-3">Description</h5>
+                                    <div *ngIf="challenge.youtubeEmbedSrcs.length > 0" class="d-flex flex-column flex-lg-row mb-2">
+                                        <iframe *ngFor="let youtubeEmbedSrc of challenge.youtubeEmbedSrcs" class="yt-embed" [src]="youtubeEmbedSrc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    </div>
                                     <div [ngSwitch]="challenge.id" class="ms-0 ms-md-3">
                                         <ng-container *ngSwitchCase="1">
-                                            <iframe class="yt-embed mb-2" src="https://www.youtube.com/embed/xgaG9ysH3is" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                             <p>
                                                 You will have to login on the official website of GuildWars2 using the account you wish to verify.<br/>
                                                 Once logged in, you will have to create a new API token using a name which will be generated in the next step.
                                             </p>
                                         </ng-container>
                                         <div *ngSwitchCase="2">
-                                            <div class="container-fluid mb-2">
-                                                <div class="row row-cols-1 row-cols-lg-2">
-                                                    <div class="col">
-                                                        <iframe class="yt-embed" src="https://www.youtube.com/embed/Lt50s84D2b4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                                    </div>
-                                                    <div class="col">
-                                                        <iframe class="yt-embed" src="https://www.youtube.com/embed/W1Gu4kCLx0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                                    </div>
-                                                </div>
-                                            </div>
                                             <p>
                                                 You will have to place a buy-order using the ingame tradingpost.<br/>
                                                 The item and exact price you should place a buy-order for will be generated in the next step.<br/>
@@ -44,6 +36,15 @@
                                             </p>
                                             <p>
                                                 You can remove the buy-order and get your placed gold back once the verification succeeded.
+                                            </p>
+                                        </div>
+                                        <div *ngSwitchCase="3">
+                                            <p>
+                                                You will have to create a new character on the GuildWars2 account you wish to verify.<br/>
+                                                The character must be created with a specific name which will be generated in the next step.
+                                            </p>
+                                            <p>
+                                                You can delete the character once the verification succeeded.
                                             </p>
                                         </div>
                                     </div>
@@ -55,7 +56,7 @@
                                         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xxl-5 g-2">
                                             <ng-container *ngFor="let gw2ApiPermission of gw2ApiPermissions">
                                                 <div class="col">
-                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="challenge.requiredGw2ApiPermissions.includes(gw2ApiPermission)"></app-gw2-api-permission-badge>
+                                                    <app-gw2-api-permission-badge [gw2ApiPermission]="gw2ApiPermission" [isPresent]="challenge.requiredGw2ApiPermissions.has(gw2ApiPermission)"></app-gw2-api-permission-badge>
                                                 </div>
                                             </ng-container>
                                         </div>
@@ -64,7 +65,7 @@
 
                                 <div class="col text-center">
                                     <app-button-loadable [class]="['btn-primary']" [loading]="isLoading" (click)="onProceedClick(challenge)">
-                                        Proceed with challenge &quot;{{getChallengeName(challenge.id)}}&quot;
+                                        Proceed with challenge &quot;{{challenge.name}}&quot;
                                     </app-button-loadable>
                                 </div>
                             </div>

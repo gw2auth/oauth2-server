@@ -17,6 +17,8 @@ public interface Gw2ApiService {
 
     Gw2Account getAccount(String gw2ApiToken);
 
+    List<String> getCharacters(String gw2ApiToken);
+
     Gw2SubToken createSubToken(String token, Set<Gw2ApiPermission> permissions, Instant expirationTime);
 
     List<Gw2Transaction> getCurrentBuyTransactions(String gw2ApiToken);

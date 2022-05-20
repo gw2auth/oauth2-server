@@ -1,11 +1,15 @@
 import {Component, OnInit} from '@angular/core';
 import {VerificationService} from './verification.service';
-import {VerificationChallenge, VerificationChallengeStart} from './verification.model';
+import {
+    VerificationChallenge,
+    VerificationChallengeStart
+} from './verification.model';
 import {Gw2ApiPermission} from '../../../common/common.model';
 import {Router} from '@angular/router';
 import {ToastService} from '../../../toast/toast.service';
 import {catchError} from 'rxjs/operators';
 import {of} from 'rxjs';
+
 
 @Component({
     selector: 'app-verification-setup-select',
@@ -20,22 +24,21 @@ export class VerificationSetupSelectComponent implements OnInit {
 
     isLoading = false;
 
-    constructor(private readonly verificationService: VerificationService, private readonly toastService: ToastService, private readonly router: Router) {
+    constructor(private readonly verificationService: VerificationService,
+                private readonly toastService: ToastService,
+                private readonly router: Router) {
     }
 
     ngOnInit(): void {
         this.verificationService.getBootstrap().subscribe((bootstrap) => {
-            this.availableChallenges = bootstrap.availableChallenges;
-            this.startedChallenge = bootstrap.startedChallenge;
-        });
-    }
+            this.availableChallenges = bootstrap.availableChallenges.map((v) => this.verificationService.challengeFromResponse(v));
 
-    getChallengeName(id: number): string {
-        switch (id) {
-            case 1: return 'API-Token Name';
-            case 2: return 'TP Buy-Order';
-            default: return 'Unknown';
-        }
+            if (bootstrap.startedChallenge == null) {
+                this.startedChallenge = null;
+            } else {
+                this.startedChallenge = this.verificationService.challengeStartFromResponse(bootstrap.startedChallenge, this.availableChallenges);
+            }
+        });
     }
 
     onProceedClick(challenge: VerificationChallenge): void {

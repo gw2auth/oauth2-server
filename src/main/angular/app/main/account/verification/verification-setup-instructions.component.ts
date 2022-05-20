@@ -1,10 +1,16 @@
 import {Component, OnInit} from '@angular/core';
 import {VerificationService} from './verification.service';
-import {ApiTokenNameMessage, TpBuyOrderMessage, VerificationChallengeStart} from './verification.model';
+import {
+    ApiTokenNameMessage,
+    CharacterNameMessage,
+    TpBuyOrderMessage,
+    VerificationChallengeStart
+} from './verification.model';
 import {Observable, of} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
 import {Router} from '@angular/router';
+
 
 @Component({
     selector: 'app-verification-setup-instructions',
@@ -15,30 +21,29 @@ export class VerificationSetupInstructionsComponent implements OnInit {
     startedChallenge: VerificationChallengeStart | null = null;
     tpBuyOrderMessageObservableCache = new Map<any, Observable<{ gold: number, silver: number, copper: number, name: string, icon: string}>>();
 
-    constructor(private readonly verificationService: VerificationService, private readonly gw2ApiService: Gw2ApiService, private readonly router: Router) {
+    constructor(private readonly verificationService: VerificationService,
+                private readonly gw2ApiService: Gw2ApiService,
+                private readonly router: Router) {
     }
 
     ngOnInit(): void {
-        this.verificationService.getStartedChallenge().subscribe((startedChallenge) => this.startedChallenge = startedChallenge);
+        this.verificationService.getBootstrap().subscribe((bootstrap) => {
+            if (bootstrap.startedChallenge != null) {
+                const challenges = bootstrap.availableChallenges.map((v) => this.verificationService.challengeFromResponse(v));
+                this.startedChallenge = this.verificationService.challengeStartFromResponse(bootstrap.startedChallenge, challenges);
+            }
+        });
     }
 
-    getChallengeName(id: number): string {
-        switch (id) {
-            case 1: return 'API-Token Name';
-            case 2: return 'TP Buy-Order';
-            default: return 'Unknown';
-        }
+    asApiTokenMessage(v: VerificationChallengeStart): string {
+        return (<ApiTokenNameMessage><unknown>v.message).apiTokenName;
     }
 
-    asApiTokenMessage(message: Map<string, any>): string {
-        return (<ApiTokenNameMessage><unknown>message).apiTokenName;
-    }
-
-    asTpBuyOrderMessage(message: Map<string, any>): Observable<{ gold: number, silver: number, copper: number, name: string, icon: string}> {
-        let observable = this.tpBuyOrderMessageObservableCache.get(message);
+    asTpBuyOrderMessage(v: VerificationChallengeStart): Observable<{ gold: number, silver: number, copper: number, name: string, icon: string}> {
+        let observable = this.tpBuyOrderMessageObservableCache.get(v.message);
 
         if (observable == undefined) {
-            const tpBuyOrderMessage = <TpBuyOrderMessage><unknown>message;
+            const tpBuyOrderMessage = <TpBuyOrderMessage><unknown>v.message;
 
             observable = this.gw2ApiService.getItem(tpBuyOrderMessage.gw2ItemId).pipe(
                 map((gw2Item) => {
@@ -61,10 +66,14 @@ export class VerificationSetupInstructionsComponent implements OnInit {
                 })
             );
 
-            this.tpBuyOrderMessageObservableCache.set(message, observable);
+            this.tpBuyOrderMessageObservableCache.set(v.message, observable);
         }
 
         return observable;
+    }
+
+    asCharacterMessage(v: VerificationChallengeStart): string {
+        return (<CharacterNameMessage><unknown>v.message).characterName;
     }
 
     onChallengeDoneClick(): void {

@@ -59,6 +59,11 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     @Override
+    public List<String> getCharacters(String gw2ApiToken) {
+        return getFromAPI("/v2/characters", gw2ApiToken, new TypeReference<List<String>>(){});
+    }
+
+    @Override
     public Gw2SubToken createSubToken(String token, Set<Gw2ApiPermission> permissions, Instant expirationTime) {
         final MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("permissions", permissions.stream().map(Gw2ApiPermission::gw2).collect(Collectors.joining(",")));

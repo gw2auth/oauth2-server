@@ -10,14 +10,17 @@
             <div class="col">
                 <div class="card bg-accent">
                     <div class="card-header">
-                        <h4>{{getChallengeName(startedChallenge.challengeId)}}</h4>
+                        <h4>{{startedChallenge.challenge.name}}</h4>
                     </div>
 
                     <div class="card-body">
-                        <ng-container [ngSwitch]="startedChallenge.challengeId">
+                        <div *ngIf="startedChallenge.challenge.youtubeEmbedSrcs.length > 0" class="d-flex flex-column flex-lg-row mb-2">
+                            <iframe *ngFor="let youtubeEmbedSrc of startedChallenge.challenge.youtubeEmbedSrcs" class="yt-embed" [src]="youtubeEmbedSrc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+
+                        <ng-container [ngSwitch]="startedChallenge.challenge.id">
                             <ng-container *ngSwitchCase="1">
-                                <iframe class="yt-embed mb-2" src="https://www.youtube.com/embed/xgaG9ysH3is" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                <ol *ngIf="asApiTokenMessage(startedChallenge.message) as apiTokenName" class="list-group list-group-numbered">
+                                <ol *ngIf="asApiTokenMessage(startedChallenge) as apiTokenName" class="list-group list-group-numbered">
                                     <li class="list-group-item">Follow <a href="https://account.arena.net/applications" target="_blank">this link</a> and login using the account you wish to verify</li>
                                     <li class="list-group-item">Click on the button New Key</li>
                                     <li class="list-group-item">Fill in the name <app-text-copyable><strong>{{apiTokenName}}</strong></app-text-copyable></li>
@@ -27,17 +30,7 @@
                                 </ol>
                             </ng-container>
                             <ng-container *ngSwitchCase="2">
-                                <div class="container-fluid mb-2">
-                                    <div class="row row-cols-1 row-cols-lg-2">
-                                        <div class="col">
-                                            <iframe class="yt-embed" src="https://www.youtube.com/embed/Lt50s84D2b4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                        </div>
-                                        <div class="col">
-                                            <iframe class="yt-embed" src="https://www.youtube.com/embed/W1Gu4kCLx0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                        </div>
-                                    </div>
-                                </div>
-                                <ol *ngIf="asTpBuyOrderMessage(startedChallenge.message) | async; let message" class="list-group list-group-numbered">
+                                <ol *ngIf="asTpBuyOrderMessage(startedChallenge) | async; let message" class="list-group list-group-numbered">
                                     <li class="list-group-item">Login to the game using the GuildWars2 account you wish to verify</li>
                                     <li class="list-group-item">Open the ingame tradingpost</li>
                                     <li class="list-group-item">
@@ -55,6 +48,16 @@
                                             <span>{{message.copper}}<img src="/assets/copper_coin.png" class="img-fluid img-text" alt="copper" /></span>
                                         </h4>
                                     </li>
+                                </ol>
+                            </ng-container>
+                            <ng-container *ngSwitchCase="3">
+                                <ol *ngIf="asCharacterMessage(startedChallenge) as characterName" class="list-group list-group-numbered">
+                                    <li class="list-group-item">Login to the game using the GuildWars2 account you wish to verify</li>
+                                    <li class="list-group-item">In the character selection screen, create a new character</li>
+                                    <li class="list-group-item">Proceed with any choice you like until the character name screen</li>
+                                    <li class="list-group-item">Name the character <app-text-copyable><strong>{{characterName}}</strong></app-text-copyable></li>
+                                    <li class="list-group-item">Create and login the character</li>
+                                    <li class="list-group-item">You do not have to play the first mission. You can return to the character selection</li>
                                 </ol>
                             </ng-container>
                         </ng-container>

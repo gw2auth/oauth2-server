@@ -54,8 +54,8 @@
 
                     <div class="list-group">
                         <div *ngFor="let pendingChallenge of pendingChallenges" class="list-group-item">
-                            <h5 class="mb-1">{{getChallengeName(pendingChallenge.challengeId)}}</h5>
-                            <p class="mb-1">for {{tryGetGw2AccountIdDisplayName(pendingChallenge.gw2AccountId)}}</p>
+                            <h5 class="mb-1">{{pendingChallenge.challenge.name}}</h5>
+                            <p class="mb-1">for {{pendingChallenge.name}}</p>
                             <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
                         </div>
                     </div>

@@ -9,7 +9,7 @@ import {ToastService} from '../../../toast/toast.service';
 import {Gw2ApiPermission} from '../../../common/common.model';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
-import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
+import {SafeResourceUrl} from '@angular/platform-browser';
 
 
 @Component({
@@ -20,8 +20,9 @@ export class VerificationSetupSubmitComponent implements OnInit {
 
     faCheck = faCheck;
 
+    gw2ApiPermissions: Gw2ApiPermission[] = Object.values(Gw2ApiPermission);
+
     startedChallenge: VerificationChallengeStart | null = null;
-    requiredGw2ApiPermissions: Gw2ApiPermission[] = [];
     tokens: Token[] = [];
 
     verificationNewApiToken = '';
@@ -38,8 +39,7 @@ export class VerificationSetupSubmitComponent implements OnInit {
                 private readonly tokenService: TokenService,
                 private readonly gw2ApiService: Gw2ApiService,
                 private readonly toastService: ToastService,
-                private readonly router: Router,
-                private readonly sanitizer: DomSanitizer) {
+                private readonly router: Router) {
     }
 
     ngOnInit(): void {
@@ -49,20 +49,16 @@ export class VerificationSetupSubmitComponent implements OnInit {
 
         Promise.all([startedChallengePromise, availableChallengesPromise, tokensPromise])
             .then((values) => {
-                const [startedChallenge, availableChallenges, tokens] = values;
-                const requiredGw2ApiPermissions: Gw2ApiPermission[] = [];
+                const [startedChallengeResp, availableChallengeResps, tokens] = values;
 
-                for (let challenge of availableChallenges) {
-                    if (challenge.id == startedChallenge.challengeId) {
-                        requiredGw2ApiPermissions.push(...challenge.requiredGw2ApiPermissions);
-                        break;
-                    }
-                }
+                const challenges = availableChallengeResps.map((v) => this.verificationService.challengeFromResponse(v));
+                const startedChallenge = this.verificationService.challengeStartFromResponse(startedChallengeResp, challenges);
 
+                this.startedChallenge = startedChallenge;
                 this.tokens = tokens
                     .filter((token) => !token.isVerified)
                     .filter((token) => {
-                        for (let requiredGw2ApiPermission of requiredGw2ApiPermissions) {
+                        for (let requiredGw2ApiPermission of startedChallenge.challenge.requiredGw2ApiPermissions) {
                             if (!token.gw2ApiPermissions.includes(requiredGw2ApiPermission)) {
                                 return false;
                             }
@@ -70,39 +66,20 @@ export class VerificationSetupSubmitComponent implements OnInit {
 
                         return true;
                     });
-
-                this.requiredGw2ApiPermissions = requiredGw2ApiPermissions;
-                this.startedChallenge = startedChallenge;
             })
             .catch((e) => {
                 this.toastService.show('Failed to retrieve data', 'The data could not be loaded. Please try again later: ' + e);
             });
     }
 
-    getChallengeName(id: number): string {
-        switch (id) {
-            case 1: return 'API-Token Name';
-            case 2: return 'TP Buy-Order';
-            default: return 'Unknown';
-        }
+    hasYoutubeEmbedSrcs(v: VerificationChallengeStart, type: 'new' | 'existing'): boolean {
+        const youtubeEmbedSrcs = v.challenge.youtubeEmbedSrcsByType.get(type);
+        return youtubeEmbedSrcs != undefined && youtubeEmbedSrcs.length > 0;
     }
 
-    getYoutubeEmbedSrc(challengeId: number, type: 'new' | 'existing'): SafeResourceUrl {
-        return this.sanitizer.bypassSecurityTrustResourceUrl(this.__getYoutubeEmbedSrc(challengeId, type));
-    }
-
-    __getYoutubeEmbedSrc(challengeId: number, type: 'new' | 'existing'): string {
-        switch (challengeId) {
-            case 1: return 'https://www.youtube.com/embed/xgaG9ysH3is';
-            case 2: {
-                switch (type) {
-                    case 'new': return 'https://www.youtube.com/embed/Lt50s84D2b4';
-                    case 'existing': return 'https://www.youtube.com/embed/W1Gu4kCLx0g';
-                }
-            }
-        }
-
-        throw Error();
+    getYoutubeEmbedSrcs(v: VerificationChallengeStart, type: 'new' | 'existing'): ReadonlyArray<SafeResourceUrl> {
+        const youtubeEmbedSrcs = v.challenge.youtubeEmbedSrcsByType.get(type);
+        return youtubeEmbedSrcs == undefined ? [] : youtubeEmbedSrcs;
     }
 
     onNewTokenChange(newApiToken: string): void {
@@ -142,7 +119,7 @@ export class VerificationSetupSubmitComponent implements OnInit {
 
                     let hasAllRequiredGw2ApiPermissions = true;
 
-                    for (let gw2ApiPermission of this.requiredGw2ApiPermissions) {
+                    for (let gw2ApiPermission of this.startedChallenge!.challenge.requiredGw2ApiPermissions) {
                         if (!tokenInfo.permissions.includes(gw2ApiPermission)) {
                             hasAllRequiredGw2ApiPermissions = false;
                             break;
