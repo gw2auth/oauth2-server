@@ -6,7 +6,6 @@ import com.gw2auth.oauth2.server.service.gw2.Gw2TokenInfo;
 import com.gw2auth.oauth2.server.util.Utils;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -49,7 +48,7 @@ public class ApiTokenNameVerificationChallenge implements VerificationChallenge<
     }
 
     @Override
-    public String writeState(String state) throws IOException {
+    public String writeState(String state) {
         return state;
     }
 
@@ -61,7 +60,7 @@ public class ApiTokenNameVerificationChallenge implements VerificationChallenge<
     @Override
     public String start() {
         final int rand = ThreadLocalRandom.current().nextInt(0xFFFFFF + 1);
-        return API_TOKEN_VERIFICATION_PREFIX + Utils.lpad(Integer.toHexString(rand), '0', 8);
+        return API_TOKEN_VERIFICATION_PREFIX + Utils.lpad(Integer.toHexString(rand), '0', 6);
     }
 
     @Override
