@@ -68,6 +68,8 @@ export class VerificationService {
             }
             case 3: {
                 name = 'Character name';
+                this.addYoutubeEmbedSrc('https://www.youtube.com/embed/SD7FqZC9zwA', 'new', youtubeEmbedSrcs, youtubeEmbedSrcsByType);
+                this.addYoutubeEmbedSrc('https://www.youtube.com/embed/MJMdTtlId1Y', 'existing', youtubeEmbedSrcs, youtubeEmbedSrcsByType);
                 break;
             }
             default: throw new Error();
