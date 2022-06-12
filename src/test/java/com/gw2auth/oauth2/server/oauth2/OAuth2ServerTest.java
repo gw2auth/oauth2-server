@@ -177,7 +177,7 @@ public class OAuth2ServerTest {
                 .andExpect(jsonPath("$.revocation_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt")))
                 .andExpect(jsonPath("$.introspection_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/introspect")))
                 .andExpect(jsonPath("$.introspection_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt")))
-                .andExpect(jsonPath("$.code_challenge_methods_supported").value(containingAll("plain","S256")))
+                .andExpect(jsonPath("$.code_challenge_methods_supported").value(containingAll("S256")))
                 // oidc not expected
                 .andExpect(jsonPath("$.subject_types_supported").doesNotExist())
                 .andExpect(jsonPath("$.id_token_signing_alg_values_supported").doesNotExist())
