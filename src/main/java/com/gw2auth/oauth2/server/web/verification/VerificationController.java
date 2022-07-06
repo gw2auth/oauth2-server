@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server.web.verification;
 
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.verification.VerificationChallengeStart;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
@@ -28,7 +28,7 @@ public class VerificationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/verification/bootstrap", produces = MediaType.APPLICATION_JSON_VALUE)
-    public VerificationChallengeBootstrapResponse getBootstrap(@AuthenticationPrincipal Gw2AuthUser user) {
+    public VerificationChallengeBootstrapResponse getBootstrap(@AuthenticationPrincipal Gw2AuthUserV2 user) {
         return new VerificationChallengeBootstrapResponse(
                 getAvailableChallenges(),
                 getStartedChallenge(user).getBody(),
@@ -45,7 +45,7 @@ public class VerificationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/verification", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<VerificationChallengeStartResponse> getStartedChallenge(@AuthenticationPrincipal Gw2AuthUser user) {
+    public ResponseEntity<VerificationChallengeStartResponse> getStartedChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user) {
         final Optional<VerificationChallengeStart> optional = this.verificationService.getStartedChallenge(user.getAccountId());
         if (optional.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -55,7 +55,7 @@ public class VerificationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/verification/pending", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<VerificationChallengePendingResponse> getPendingChallenges(@AuthenticationPrincipal Gw2AuthUser user) {
+    public List<VerificationChallengePendingResponse> getPendingChallenges(@AuthenticationPrincipal Gw2AuthUserV2 user) {
         return this.verificationService.getPendingChallenges(user.getAccountId()).stream()
                 .map(VerificationChallengePendingResponse::create)
                 .sorted(Comparator.comparing(VerificationChallengePendingResponse::startedAt))
@@ -63,12 +63,12 @@ public class VerificationController extends AbstractRestController {
     }
 
     @PostMapping(value = "/api/verification", produces = MediaType.APPLICATION_JSON_VALUE)
-    public VerificationChallengeStartResponse startNewChallenge(@AuthenticationPrincipal Gw2AuthUser user, @RequestParam("challengeId") long challengeId) {
+    public VerificationChallengeStartResponse startNewChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestParam("challengeId") long challengeId) {
         return VerificationChallengeStartResponse.create(this.verificationService.startChallenge(user.getAccountId(), challengeId));
     }
 
     @PostMapping(value = "/api/verification/pending", produces = MediaType.APPLICATION_JSON_VALUE)
-    public VerificationChallengeSubmitResponse submitChallenge(@AuthenticationPrincipal Gw2AuthUser user, @RequestParam("token") String gw2ApiToken) {
+    public VerificationChallengeSubmitResponse submitChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestParam("token") String gw2ApiToken) {
         return VerificationChallengeSubmitResponse.create(this.verificationService.submitChallenge(user.getAccountId(), gw2ApiToken));
     }
 }

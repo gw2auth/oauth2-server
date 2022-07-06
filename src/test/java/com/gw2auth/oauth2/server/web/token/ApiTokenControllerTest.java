@@ -16,7 +16,6 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 import org.hamcrest.core.IsEqual;
@@ -32,7 +31,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -100,12 +98,12 @@ class ApiTokenControllerTest {
     @Test
     public void getApiTokensUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/token"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void getApiTokens(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void getApiTokens(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
         final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.TRADINGPOST), "TokenB");
@@ -125,7 +123,8 @@ class ApiTokenControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdA, apiTokenB.gw2AccountId(), apiTokenC.gw2AccountId());
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdB, apiTokenC.gw2AccountId());
 
-        final String responseJson = this.mockMvc.perform(get("/api/token").session(session))
+        final String responseJson = this.mockMvc.perform(get("/api/token").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value("3"))
                 .andReturn()
@@ -162,11 +161,11 @@ class ApiTokenControllerTest {
     @Test
     public void addApiTokenUnauthenticated() throws Exception {
         this.mockMvc.perform(post("/api/token").with(csrf()).content(UUID.randomUUID().toString()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenInvalid(MockHttpSession session) throws Exception {
+    public void addApiTokenInvalid(CookieHolder cookieHolder) throws Exception {
         final String gw2ApiToken = TestHelper.randomRootToken();
 
         // prepare the gw2 rest server
@@ -176,15 +175,16 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenInvalidRootTokenFormat(MockHttpSession session) throws Exception {
+    public void addApiTokenInvalidRootTokenFormat(CookieHolder cookieHolder) throws Exception {
         final String gw2ApiToken = TestHelper.randomRootToken() + "Hello";
 
         // dont expect any request to the gw2 api
@@ -192,15 +192,16 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenInvalidSubTokenFormat(MockHttpSession session) throws Exception {
+    public void addApiTokenInvalidSubTokenFormat(CookieHolder cookieHolder) throws Exception {
         final String gw2ApiToken = new PlainJWT(new JWTClaimsSet.Builder().build()).serialize();
 
         // dont expect any request to the gw2 api
@@ -208,17 +209,18 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                         post("/api/token")
-                                .session(session)
+                                .with(cookieHolder)
                                 .with(csrf())
                                 .content(gw2ApiToken)
                 )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenAlreadyAdded(MockHttpSession session) throws Exception {
+    public void addApiTokenAlreadyAdded(CookieHolder cookieHolder) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
-        this.testHelper.createApiToken(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId, Set.of(), "Name");
+        this.testHelper.createApiToken(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow(), gw2AccountId, Set.of(), "Name");
 
         final String gw2ApiToken = UUID.randomUUID().toString();
 
@@ -229,15 +231,16 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenLinkedToOtherAccountButNotVerified(MockHttpSession session) throws Exception {
+    public void addApiTokenLinkedToOtherAccountButNotVerified(CookieHolder cookieHolder) throws Exception {
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
 
         final UUID gw2AccountId = UUID.randomUUID();
@@ -252,10 +255,11 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
@@ -266,11 +270,11 @@ class ApiTokenControllerTest {
                 .andExpect(jsonPath("$.isVerified").value("false"))
                 .andExpect(jsonPath("$.authorizations.length()").value("0"));
 
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId).isPresent());
+        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow(), gw2AccountId).isPresent());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenLinkedAndVerifiedToOtherAccount(MockHttpSession session) throws Exception {
+    public void addApiTokenLinkedAndVerifiedToOtherAccount(CookieHolder cookieHolder) throws Exception {
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
 
         final UUID gw2AccountId = UUID.randomUUID();
@@ -286,18 +290,19 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isNotAcceptable());
 
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId).isEmpty());
+        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow(), gw2AccountId).isEmpty());
     }
 
     @WithGw2AuthLogin
-    public void addApiTokenAlreadyVerified(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void addApiTokenAlreadyVerified(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createAccountVerification(accountId, gw2AccountId);
 
@@ -310,10 +315,11 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
@@ -328,7 +334,7 @@ class ApiTokenControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void addApiToken(MockHttpSession session) throws Exception {
+    public void addApiToken(CookieHolder cookieHolder) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = TestHelper.randomRootToken();
 
@@ -339,10 +345,11 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 post("/api/token")
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .content(gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gw2AccountId").value(gw2AccountId.toString()))
                 .andExpect(jsonPath("$.creationTime").isString())
@@ -353,7 +360,7 @@ class ApiTokenControllerTest {
                 .andExpect(jsonPath("$.isVerified").value("false"))
                 .andExpect(jsonPath("$.authorizations.length()").value("0"));
 
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(AuthenticationHelper.getUser(session).orElseThrow().getAccountId(), gw2AccountId).isPresent());
+        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow(), gw2AccountId).isPresent());
     }
 
     @Test
@@ -365,12 +372,12 @@ class ApiTokenControllerTest {
                         .with(csrf())
                         .queryParam("gw2ApiToken", UUID.randomUUID().toString())
         )
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void updateApiTokenThatHasBeenVerifiedByAnotherAccount(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void updateApiTokenThatHasBeenVerifiedByAnotherAccount(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
         final UUID gw2AccountId = UUID.randomUUID();
 
@@ -383,7 +390,7 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountId)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("displayName", "Hello World")
         )
@@ -394,7 +401,7 @@ class ApiTokenControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void updateApiTokenNotExisting(MockHttpSession session) throws Exception {
+    public void updateApiTokenNotExisting(CookieHolder cookieHolder) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
         final String gw2ApiToken = UUID.randomUUID().toString();
 
@@ -405,16 +412,17 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountId)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("gw2ApiToken", gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin
-    public void updateApiTokenInvalid(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void updateApiTokenInvalid(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -427,16 +435,17 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountId)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("gw2ApiToken", gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void updateApiTokenWithoutAccountPermission(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void updateApiTokenWithoutAccountPermission(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -449,16 +458,17 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountId)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("gw2ApiToken", gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void updateApiTokenForDifferentGw2AccountId(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void updateApiTokenForDifferentGw2AccountId(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountIdOriginal = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountIdOriginal, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -472,16 +482,17 @@ class ApiTokenControllerTest {
 
         this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountIdOriginal)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("gw2ApiToken", gw2ApiToken)
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void updateApiToken(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void updateApiToken(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         final ApiTokenEntity apiToken = this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -512,11 +523,12 @@ class ApiTokenControllerTest {
 
         final String responseJson = this.mockMvc.perform(
                 patch("/api/token/{gw2AccountId}", gw2AccountId)
-                        .session(session)
+                        .with(cookieHolder)
                         .with(csrf())
                         .queryParam("gw2ApiToken", gw2ApiToken)
                         .queryParam("displayName", "New Display Name")
         )
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -537,18 +549,19 @@ class ApiTokenControllerTest {
     @Test
     public void deleteApiTokenUnauthorized() throws Exception {
         this.mockMvc.perform(delete("/api/token/someid").with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void deleteApiTokenNotExisting(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(delete("/api/token/{gw2AccountId}", UUID.randomUUID()).session(session).with(csrf()))
+    public void deleteApiTokenNotExisting(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(delete("/api/token/{gw2AccountId}", UUID.randomUUID()).with(cookieHolder).with(csrf()))
+                .andDo(cookieHolder)
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin
-    public void deleteApiToken(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void deleteApiToken(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -566,7 +579,8 @@ class ApiTokenControllerTest {
         // use this token to the authorization
         this.testHelper.createClientAuthorizationToken(accountId, authorizationId, gw2AccountId);
 
-        this.mockMvc.perform(delete("/api/token/{gw2AccountId}", gw2AccountId).session(session).with(csrf()))
+        this.mockMvc.perform(delete("/api/token/{gw2AccountId}", gw2AccountId).with(cookieHolder).with(csrf()))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk());
 
         // the token should be deleted

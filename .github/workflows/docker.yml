@@ -9,9 +9,23 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          repository: "its-felix/spring-authorization-server"
+          ref: "maven-publish"
+          path: "spring-authorization-server"
+      - name: "Set up JDK 8"
+        uses: actions/setup-java@v3
+        with:
+          distribution: "adopt"
+          java-version: "8"
+          cache: "maven"
+      - name: "Build spring-authorization-server"
+        run: (cd spring-authorization-server && ./gradlew build publishToMavenLocal && cd .. && rm -rf spring-authorization-server)
+      - uses: actions/checkout@v3
       - name: "Set up JDK 16"
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: "adopt"
           java-version: "16"

@@ -1,25 +1,19 @@
 package com.gw2auth.oauth2.server.web.account;
 
 import com.gw2auth.oauth2.server.*;
-import com.gw2auth.oauth2.server.repository.account.AccountEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
-import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
+import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -28,8 +22,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -52,9 +45,6 @@ class AccountControllerTest {
     private AccountRepository accountRepository;
 
     @Autowired
-    private ApiTokenRepository apiTokenRepository;
-
-    @Autowired
     private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
 
     @Autowired
@@ -67,17 +57,20 @@ class AccountControllerTest {
     private AccountFederationRepository accountFederationRepository;
 
     @Autowired
+    private AccountFederationSessionRepository accountFederationSessionRepository;
+
+    @Autowired
     private TestHelper testHelper;
 
     @Test
     public void getAccountSummaryUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/summary"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void getAccountSummary(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void getAccountSummary(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final int apiTokens = 3;
         final int verifiedGw2Accounts = 5;
@@ -110,7 +103,8 @@ class AccountControllerTest {
             this.accountFederationRepository.save(new AccountFederationEntity(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId));
         }
 
-        this.mockMvc.perform(get("/api/account/summary").session(session))
+        this.mockMvc.perform(get("/api/account/summary").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.apiTokens").value(Integer.toString(apiTokens)))
                 .andExpect(jsonPath("$.verifiedGw2Accounts").value(Integer.toString(verifiedGw2Accounts)))
@@ -122,12 +116,13 @@ class AccountControllerTest {
     @Test
     public void getAccountFederationsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/federation"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
-    public void getAccountFederations(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(get("/api/account/federation").session(session))
+    public void getAccountFederations(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(get("/api/account/federation").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentAccountFederation.issuer").value("test-iss"))
                 .andExpect(jsonPath("$.currentAccountFederation.idAtIssuer").value("test-id"))
@@ -141,43 +136,49 @@ class AccountControllerTest {
                         .queryParam("issuer", "")
                         .queryParam("idAtIssuer", "")
                         .with(csrf())
-        ).andExpect(status().isForbidden());
+        ).andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
-    public void deleteAccountFederationCurrentFederation(MockHttpSession session) throws Exception {
+    public void deleteAccountFederationCurrentFederation(CookieHolder cookieHolder) throws Exception {
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam("issuer", "test")
                         .queryParam("idAtIssuer", "test")
                         .with(csrf())
-        ).andExpect(status().isBadRequest());
+        )
+                .andDo(cookieHolder)
+                .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void deleteAccountFederationHavingLessThan2(MockHttpSession session) throws Exception {
+    public void deleteAccountFederationHavingLessThan2(CookieHolder cookieHolder) throws Exception {
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam("issuer", "test")
                         .queryParam("idAtIssuer", "test2")
                         .with(csrf())
-        ).andExpect(status().isNotAcceptable());
+        )
+                .andDo(cookieHolder)
+                .andExpect(status().isNotAcceptable());
     }
 
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
-    public void deleteAccountFederation(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void deleteAccountFederation(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         this.accountFederationRepository.save(new AccountFederationEntity("issuer2", "idAtIssuer2", accountId));
 
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam("issuer", "issuer2")
                         .queryParam("idAtIssuer", "idAtIssuer2")
                         .with(csrf())
-        ).andExpect(status().isOk());
+        )
+                .andDo(cookieHolder)
+                .andExpect(status().isOk());
 
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
         assertEquals(1, result.size());
@@ -185,42 +186,105 @@ class AccountControllerTest {
     }
 
     @Test
+    public void getSessionUnauthenticated() throws Exception {
+        this.mockMvc.perform(get("/api/account/session"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
+    public void getSessions(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(get("/api/account/session").with(cookieHolder))
+                .andDo(cookieHolder)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentAccountSessionId").value(this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow()))
+                .andExpect(jsonPath("$.accountSessions").isArray());
+    }
+
+    @Test
+    public void deleteSessionUnauthenticated() throws Exception {
+        this.mockMvc.perform(
+                delete("/api/account/session")
+                        .queryParam("id", "")
+                        .with(csrf())
+        ).andExpect(status().isUnauthorized());
+    }
+
+    @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
+    public void deleteSessionCurrentSession(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(
+                        delete("/api/account/session")
+                                .with(cookieHolder)
+                                .queryParam("id", this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow())
+                                .with(csrf())
+                )
+                .andDo(cookieHolder)
+                .andExpect(status().isBadRequest());
+    }
+
+    @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
+    public void deleteSession(CookieHolder cookieHolder) throws Exception {
+        final CookieHolder otherSessionCookieHolder = new CookieHolder();
+
+        this.gw2AuthLoginExtension.login(otherSessionCookieHolder, "issuer", "otherIdAtIssuer")
+                .andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
+
+        this.mockMvc.perform(
+                        delete("/api/account/session")
+                                .with(cookieHolder)
+                                .queryParam("id", this.testHelper.getSessionIdForCookie(otherSessionCookieHolder).orElseThrow())
+                                .with(csrf())
+                )
+                .andDo(cookieHolder)
+                .andExpect(status().isOk());
+
+        this.mockMvc.perform(head("/api/authinfo").with(otherSessionCookieHolder))
+                .andExpect(status().isUnauthorized());
+
+        final List<AccountFederationSessionEntity> result = this.accountFederationSessionRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow());
+        assertEquals(1, result.size());
+        assertEquals("idAtIssuer", result.get(0).idAtIssuer());
+    }
+
+    @Test
     public void deleteAccountUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/account").with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void deleteAccount(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void deleteAccount(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
-        this.mockMvc.perform(delete("/api/account").session(session).with(csrf()))
+        this.mockMvc.perform(delete("/api/account").with(cookieHolder).with(csrf()))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value("true"));
 
         // session should be invalidated
-        assertTrue(AuthenticationHelper.getUser(session).isEmpty());
+        assertTrue(this.testHelper.getAccountIdForCookie(cookieHolder).isEmpty());
 
         // account should be removed (checking for account is enough, since every other table has a foreign key on that)
         assertTrue(this.accountRepository.findById(accountId).isEmpty());
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederationUnknownProvider(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).session(session))
+    public void addAccountFederationUnknownProvider(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederation(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").session(session))
+    public void addAccountFederation(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().is3xxRedirection())
                 .andReturn()
                 .getResponse()
                 .getRedirectedUrl();
 
-        this.gw2AuthLoginExtension.login(loginURL, "dummyIssuer", "B").andExpectAll(this.gw2AuthLoginExtension.expectSuccess());
+        this.gw2AuthLoginExtension.login(loginURL, "dummyIssuer", "B").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
         assertEquals(2, result.size());
@@ -231,12 +295,13 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederationAlreadyLinkedToOtherAccount(MockHttpSession session) throws Exception {
+    public void addAccountFederationAlreadyLinkedToOtherAccount(CookieHolder cookieHolder) throws Exception {
         final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
         this.accountFederationRepository.save(new AccountFederationEntity("dummyIssuer", "B", otherUserAccountId));
 
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
-        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").session(session))
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().is3xxRedirection())
                 .andReturn()
                 .getResponse()

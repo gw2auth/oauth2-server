@@ -13,13 +13,18 @@ import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserMixin;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2Mixin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
 import org.springframework.security.oauth2.core.*;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
@@ -31,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
@@ -50,13 +56,15 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     private final RegisteredClientRepository registeredClientRepository;
     private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
     private final ObjectMapper objectMapper;
+    private final boolean isTest;
     private Clock clock;
 
     public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
                                           ClientConsentService clientConsentService,
                                           RegisteredClientRepository registeredClientRepository,
-                                          AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
+                                          AuthorizationCodeParamAccessor authorizationCodeParamAccessor,
+                                          boolean isTest) {
 
         this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.clientAuthorizationTokenRepository = clientAuthorizationTokenRepository;
@@ -64,6 +72,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         this.registeredClientRepository = registeredClientRepository;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
         this.objectMapper = new ObjectMapper();
+        this.isTest = isTest;
         this.clock = Clock.systemUTC();
 
         final ClassLoader classLoader = ClientAuthorizationServiceImpl.class.getClassLoader();
@@ -73,15 +82,24 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         this.objectMapper.registerModule(new Java9CollectionJackson2Module());
         this.objectMapper.registerModule(new LinkedHashSetJackson2Module());
         this.objectMapper.addMixIn(Gw2AuthUser.class, Gw2AuthUserMixin.class);
+        this.objectMapper.addMixIn(Gw2AuthUserV2.class, Gw2AuthUserV2Mixin.class);
     }
 
     @Autowired
-    public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
+    public ClientAuthorizationServiceImpl(Environment environment,
+                                          ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
                                           ClientConsentService clientConsentService,
                                           RegisteredClientRepository registeredClientRepository) {
 
-        this(clientAuthorizationRepository, clientAuthorizationTokenRepository, clientConsentService, registeredClientRepository, AuthorizationCodeParamAccessor.DEFAULT);
+        this(
+                clientAuthorizationRepository,
+                clientAuthorizationTokenRepository,
+                clientConsentService,
+                registeredClientRepository,
+                AuthorizationCodeParamAccessor.DEFAULT,
+                environment.acceptsProfiles(Profiles.of("test"))
+        );
     }
 
     public void setClock(Clock clock) {
@@ -173,6 +191,23 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     @Override
     @Transactional
     public void save(OAuth2Authorization authorization) {
+        // validate only known keys are persisted
+        final Set<String> authorizationAttributesKeys = new HashSet<>(authorization.getAttributes().keySet());
+        authorizationAttributesKeys.remove(OAuth2AuthorizationRequest.class.getName());
+        authorizationAttributesKeys.remove(Principal.class.getName());
+        authorizationAttributesKeys.remove(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
+        authorizationAttributesKeys.remove(OAuth2ParameterNames.STATE);
+
+        if (!authorizationAttributesKeys.isEmpty()) {
+            LOG.error("authorization.attributes contains more keys than expected; unexpected keys: {}", authorizationAttributesKeys);
+
+            if (this.isTest) {
+                // test should fail hard if we encounter unknown keys
+                throw new IllegalArgumentException("authorization.attributes contains more keys than expected; unexpected keys: " + authorizationAttributesKeys);
+            }
+        }
+
+        // actual logic
         final long accountId = Long.parseLong(authorization.getPrincipalName());
         final long clientRegistrationId = Long.parseLong(authorization.getRegisteredClientId());
 

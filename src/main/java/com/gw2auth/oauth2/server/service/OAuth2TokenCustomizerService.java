@@ -12,17 +12,16 @@ import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2TokenType;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
@@ -84,12 +83,19 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             final OAuth2Authorization authorization = ctx.getAuthorization();
 
             final RegisteredClient registeredClient = ctx.getRegisteredClient();// the client of the application the user wants to access
-            final OAuth2AuthenticationToken auth = ctx.getPrincipal();
-            final OAuth2User oAuth2User = auth.getPrincipal();// the user
+            final Object oauth2User = ctx.getPrincipal().getPrincipal();// the user (intended double getPrincipal())
 
-            if (authorization != null && oAuth2User instanceof Gw2AuthUser) {
-                final long accountId = ((Gw2AuthUser) oAuth2User).getAccountId();
+            if (authorization != null) {
+                final long accountId;
                 final long clientRegistrationId = Long.parseLong(registeredClient.getId());
+
+                if (oauth2User instanceof Gw2AuthUser gw2AuthUser) {
+                    accountId = gw2AuthUser.getAccountId();
+                } else if (oauth2User instanceof Gw2AuthUserV2 gw2AuthUserV2) {
+                    accountId = gw2AuthUserV2.getAccountId();
+                } else {
+                    throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR));
+                }
 
                 customize(ctx, authorization.getId(), accountId, clientRegistrationId);
             } else {

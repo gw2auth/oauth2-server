@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {faGithub, faGoogle} from '@fortawesome/free-brands-svg-icons';
 import {faQuestion, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
-import {AccountFederation, AccountFederations} from './account.model';
+import {AccountFederation, AccountFederations, AccountSession, AccountSessions} from './account.model';
 import {AccountService} from './account.service';
 import {IconProp} from '@fortawesome/fontawesome-svg-core';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
@@ -23,11 +23,13 @@ export class SettingsComponent implements OnInit {
   faTrashAlt = faTrashAlt;
 
   federations: AccountFederations | null = null;
+  sessions: AccountSessions | null = null;
 
   constructor(private readonly accountService: AccountService, private readonly toastService: ToastService, private readonly modalService: NgbModal, private readonly authService: AuthService) { }
 
   ngOnInit(): void {
     this.accountService.getAccountFederations().subscribe((federations) => this.federations = federations);
+    this.accountService.getAccountSessions().subscribe((sessions) => this.sessions = sessions);
   }
 
   getIssuerName(issuer: string): string {
@@ -52,6 +54,10 @@ export class SettingsComponent implements OnInit {
     return federation.issuer == current.issuer && federation.idAtIssuer == current.idAtIssuer;
   }
 
+  isCurrentSession(session: AccountSession): boolean {
+    return session.id == this.sessions!.currentAccountSessionId;
+  }
+
   openDeleteFederationModal(federation: AccountFederation): void {
     const issuer = federation.issuer;
     const idAtIssuer = federation.idAtIssuer;
@@ -63,7 +69,7 @@ export class SettingsComponent implements OnInit {
     modalRef.result
         .then((confirmed: boolean) => {
           if (confirmed) {
-            return firstValueFrom(this.accountService.deleteAccountFederation(issuer, idAtIssuer));
+            return firstValueFrom(this.accountService.deleteAccountFederation(issuer, idAtIssuer)).then(() => true);
           } else {
             return Promise.reject(false);
           }
@@ -83,6 +89,40 @@ export class SettingsComponent implements OnInit {
         .catch((e) => {
           if (e) {
             this.toastService.show('Login provider deletion failed', 'The Login provider deletion failed for an unknown reason');
+          }
+        });
+  }
+
+  openDeleteSessionModal(session: AccountSession): void {
+    const sessionId = session.id;
+
+    const modalRef = this.modalService.open(DeleteModalComponent);
+    modalRef.componentInstance.entityType = 'Session';
+    modalRef.componentInstance.entityName = 'ID ' + sessionId.substring(0, 10);
+
+    modalRef.result
+        .then((confirmed: boolean) => {
+          if (confirmed) {
+            return firstValueFrom(this.accountService.deleteAccountSession(sessionId)).then(() => true)
+          } else {
+            return Promise.reject(false);
+          }
+        })
+        .then((success) => {
+          if (success) {
+            this.toastService.show('Session deleted', 'The session has been deleted successfully');
+
+            const sessions = this.sessions!;
+            sessions.accountSessions = sessions.accountSessions.filter((v) => v.id != sessionId);
+
+            return null;
+          } else {
+            return Promise.reject(false);
+          }
+        })
+        .catch((e) => {
+          if (e) {
+            this.toastService.show('Session deletion failed', 'The session deletion failed for an unknown reason');
           }
         });
   }

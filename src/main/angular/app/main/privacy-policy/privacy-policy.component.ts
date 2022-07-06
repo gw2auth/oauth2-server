@@ -25,13 +25,30 @@ export class PrivacyPolicyComponent implements OnInit {
 
   cookieInformations: CookieInformation[] = [
     {
+      name: 'BEARER',
+      type: 'Strictly necessary',
+      expiration: '30 Days',
+      description: `
+      The BEARER is used to recognize you across multiple requests.
+      It is only created if it is technically required to do so, for example when logging in.
+      This cookie is valid for 30 days upon creation.
+      `
+    },
+    {
+      name: 'REDIRECT_URI',
+      type: 'Strictly necessary',
+      expiration: '30 Days',
+      description: `
+      The REDIRECT_URI cookie keeps information of a page you attempted to access while not being logged in.
+      This cookie is required to send you back to the page you initially requested once you successfully logged in.
+      `
+    },
+    {
       name: 'JSESSIONID',
       type: 'Strictly necessary',
       expiration: 'Session',
       description: `
-      The JSESSIONID is used to recognize you across multiple requests.
-      It is only created if it is technically required to do so, for example when logging in.
-      This Cookie is valid only for one Session, that means your Browser automatically deletes it once your close it.
+      (HISTORICAL) This cookie is no longer used and will no longer be created.
       `
     },
     {

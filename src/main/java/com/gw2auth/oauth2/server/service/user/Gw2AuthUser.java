@@ -14,6 +14,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
+/*
+Has to be kept here to support old issued authorizations
+ */
+@Deprecated
 public class Gw2AuthUser implements OAuth2User, OidcUser, Serializable {
 
     @Serial

@@ -6,7 +6,7 @@ import com.gw2auth.oauth2.server.service.client.consent.ClientConsent;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,7 +40,7 @@ public class ClientConsentController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/consent", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ClientConsentResponse> getClientConsents(@AuthenticationPrincipal Gw2AuthUser user) {
+    public List<ClientConsentResponse> getClientConsents(@AuthenticationPrincipal Gw2AuthUserV2 user) {
         final List<ClientConsent> clientConsents = this.clientConsentService.getClientConsents(user.getAccountId());
 
         // get all client registration ids for batch lookup
@@ -68,7 +68,7 @@ public class ClientConsentController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/consent/{clientId}/logs", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ClientAuthorizationLogsResponse getClientConsentLogPage(@AuthenticationPrincipal Gw2AuthUser user,
+    public ClientAuthorizationLogsResponse getClientConsentLogPage(@AuthenticationPrincipal Gw2AuthUserV2 user,
                                                                    @PathVariable("clientId") UUID clientId,
                                                                    @RequestParam(value = "page", required = false) Integer page) {
 
@@ -95,7 +95,7 @@ public class ClientConsentController extends AbstractRestController {
     }
 
     @DeleteMapping("/api/client/consent/{clientId}")
-    public ResponseEntity<Void> deleteClientConsent(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
+    public ResponseEntity<Void> deleteClientConsent(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
         this.clientConsentService.deleteClientConsent(user.getAccountId(), clientId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }

@@ -1,9 +1,6 @@
 package com.gw2auth.oauth2.server.web;
 
-import com.gw2auth.oauth2.server.Gw2AuthLoginExtension;
-import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
-import com.gw2auth.oauth2.server.TruncateTablesExtension;
-import com.gw2auth.oauth2.server.WithGw2AuthLogin;
+import com.gw2auth.oauth2.server.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,8 +35,9 @@ class AuthInfoControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void authInfo(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(head("/api/authinfo").session(session))
+    public void authInfo(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(head("/api/authinfo").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isAccepted());
     }
 }

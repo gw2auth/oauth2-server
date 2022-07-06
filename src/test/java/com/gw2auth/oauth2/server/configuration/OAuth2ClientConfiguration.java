@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.configuration;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -30,8 +31,11 @@ public class OAuth2ClientConfiguration {
 
     @Bean("testOAuth2LoginCustomizer")
     @Primary
-    public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer() {
-        return (oauth2) -> oauth2.tokenEndpoint().accessTokenResponseClient(accessTokenResponseClient());
+    public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2LoginCustomizer") Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer) {
+        return oauth2 -> {
+            oauth2LoginCustomizer.customize(oauth2);
+            oauth2.tokenEndpoint().accessTokenResponseClient(accessTokenResponseClient());
+        };
     }
 
     @Bean

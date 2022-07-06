@@ -5,7 +5,6 @@ import com.gw2auth.oauth2.server.TestHelper;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;

@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server;
 
+import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
@@ -15,6 +16,9 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
+import com.gw2auth.oauth2.server.util.Constants;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -25,8 +29,10 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
+import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 
+import javax.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -55,6 +61,15 @@ public class TestHelper {
 
     @Autowired
     private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
+
+    @Autowired
+    private Gw2AuthInternalJwtConverter jwtConverter;
+
+    @Autowired
+    private Gw2AuthTokenUserService gw2AuthTokenUserService;
+
+    @Autowired
+    private JdbcOperations jdbcOperations;
 
     public static String randomRootToken() {
         return (UUID.randomUUID() + UUID.randomUUID().toString()).toUpperCase();
@@ -175,5 +190,32 @@ public class TestHelper {
 
     public Gw2AccountVerificationEntity createAccountVerification(long accountId, UUID gw2AccountId) {
         return this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
+    }
+
+    public Optional<String> getSessionIdForCookie(CookieHolder cookieHolder) {
+        final Cookie cookie = cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
+
+        if (cookie == null || cookie.getMaxAge() <= 0 || cookie.getValue().isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(this.jwtConverter.readSessionId(this.jwtConverter.readJWT(cookie.getValue())));
+    }
+
+    public OptionalLong getAccountIdForCookie(CookieHolder cookieHolder) {
+        final Cookie cookie = cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
+
+        if (cookie == null || cookie.getMaxAge() <= 0 || cookie.getValue().isEmpty()) {
+            return OptionalLong.empty();
+        }
+
+        return this.gw2AuthTokenUserService.resolveUserForToken(cookie.getValue())
+                .map(Gw2AuthUserV2::getAccountId)
+                .map(OptionalLong::of)
+                .orElseGet(OptionalLong::empty);
+    }
+
+    public int executeUpdate(String sql, Object... args) {
+        return this.jdbcOperations.update(sql, args);
     }
 }

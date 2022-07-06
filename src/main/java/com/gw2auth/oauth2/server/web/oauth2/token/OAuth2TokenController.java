@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server.web.oauth2.token;
 
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,7 +31,7 @@ public class OAuth2TokenController extends AbstractRestController {
 
     // this proxy is required for the Test-UI because on a direct request the server un-authenticates the session
     @PostMapping("/api/oauth2/token")
-    public void oauth2Token(@AuthenticationPrincipal Gw2AuthUser user, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void oauth2Token(@AuthenticationPrincipal Gw2AuthUserV2 user, HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (user == null) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.flushBuffer();

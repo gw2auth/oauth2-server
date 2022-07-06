@@ -1,5 +1,9 @@
 com.gw2auth:
   url: "https://gw2auth.com"
+  session:
+    key:
+      id: "cd6fb64f-4724-49ad-9ebb-eec6ec3de9ed"
+      path: "/opt/app/session_id_rsa"
   oauth2:
     keypair:
       id: "9b051022-aeba-4767-9e98-d6f1b7b4d09f"

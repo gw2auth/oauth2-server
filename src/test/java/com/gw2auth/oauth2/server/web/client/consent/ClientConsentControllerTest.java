@@ -15,13 +15,11 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.*;
@@ -75,12 +73,12 @@ class ClientConsentControllerTest {
     @Test
     public void getClientConsentsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/consent"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void getClientConsents(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void getClientConsents(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientRegistrationEntity clientRegistrationC = this.testHelper.createClientRegistration(accountId, "Name");
@@ -88,7 +86,8 @@ class ClientConsentControllerTest {
         final ClientConsentEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
         final ClientConsentEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationC.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
 
-        final String jsonResponse = this.mockMvc.perform(get("/api/client/consent").session(session))
+        final String jsonResponse = this.mockMvc.perform(get("/api/client/consent").with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andReturn()
@@ -180,12 +179,13 @@ class ClientConsentControllerTest {
     @Test
     public void getClientConsentLogPageUnauthorized() throws Exception {
         this.mockMvc.perform(get("/api/client/consent/someid/logs"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void getClientConsentLogPageEmpty(MockHttpSession session) throws Exception {
-        this.mockMvc.perform(get("/api/client/consent/{clientId}/logs", UUID.randomUUID()).session(session))
+    public void getClientConsentLogPageEmpty(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(get("/api/client/consent/{clientId}/logs", UUID.randomUUID()).with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value("0"))
                 .andExpect(jsonPath("$.nextPage").value("-1"))
@@ -193,8 +193,8 @@ class ClientConsentControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void getClientConsentLogPage(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void getClientConsentLogPage(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientConsentEntity clientAuthorization = this.testHelper.createClientConsent(accountId, clientRegistration.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
@@ -218,9 +218,10 @@ class ClientConsentControllerTest {
         do {
             final String responseJson = this.mockMvc.perform(
                     get("/api/client/consent/{clientId}/logs", clientRegistration.clientId())
-                            .session(session)
+                            .with(cookieHolder)
                             .queryParam("page", Integer.toString(page))
             )
+                    .andDo(cookieHolder)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.page").exists())
                     .andExpect(jsonPath("$.nextPage").exists())
@@ -263,13 +264,13 @@ class ClientConsentControllerTest {
 
     @Test
     public void deleteClientConsentUnauthorized() throws Exception {
-        this.mockMvc.perform(delete("/api/client/consent/someid"))
-                .andExpect(status().isForbidden());
+        this.mockMvc.perform(delete("/api/client/consent/someid").with(csrf()))
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void deleteClientConsent(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void deleteClientConsent(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientRegistrationEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
@@ -298,7 +299,8 @@ class ClientConsentControllerTest {
         this.testHelper.createClientLog(accountId, clientConsentB.clientRegistrationId(), "SomeTypeA", List.of());
 
         // delete authorization A
-        this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.clientId()).session(session).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.clientId()).with(cookieHolder).with(csrf()))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk());
 
         // entity should still be there

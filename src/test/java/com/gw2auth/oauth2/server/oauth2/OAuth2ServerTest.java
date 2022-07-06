@@ -24,7 +24,6 @@ import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import com.gw2auth.oauth2.server.util.QueryParam;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.nimbusds.jwt.JWT;
@@ -34,6 +33,7 @@ import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringEndsWith;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -45,7 +45,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2TokenType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
@@ -70,6 +69,7 @@ import java.util.stream.Collectors;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.*;
+import static com.gw2auth.oauth2.server.service.client.consent.ClientConsentService.GW2AUTH_VERIFIED_SCOPE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.client.ExpectedCount.times;
@@ -144,6 +144,12 @@ public class OAuth2ServerTest {
         this.gw2AccountId3rd = UUID.randomUUID();
     }
 
+    @AfterEach
+    public void resetClock() {
+        this.clientAuthorizationService.setClock(Clock.systemUTC());
+        this.oAuth2TokenCustomizerService.setClock(Clock.systemUTC());
+    }
+
     @Test
     public void oidcConfigurationIsNotAccessible() throws Exception {
         this.mockMvc.perform(get("/.well-known/openid-configuration"))
@@ -204,8 +210,8 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestConsent(MockHttpSession session) throws Exception {
-        performAuthorizeWithNewClient(session, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2()))
+    public void authorizationCodeRequestConsent(CookieHolder cookieHolder) throws Exception {
+        performAuthorizeWithNewClient(cookieHolder, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
                         new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
@@ -218,8 +224,8 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -229,7 +235,7 @@ public class OAuth2ServerTest {
                 Set.of(Gw2ApiPermission.ACCOUNT.oauth2())
         ));
 
-        performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()))
+        performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
                         new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
@@ -242,8 +248,8 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestWithUpgradingConsent(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void authorizationCodeRequestWithUpgradingConsent(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -253,7 +259,7 @@ public class OAuth2ServerTest {
                 Set.of(Gw2ApiPermission.ACCOUNT.oauth2())
         ));
 
-        performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.INVENTORIES.oauth2()))
+        performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.INVENTORIES.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
                         new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
@@ -266,8 +272,8 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void authorizationCodeRequestWithExistingConsentAndPromptConsent(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void authorizationCodeRequestWithExistingConsentAndPromptConsent(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -277,7 +283,7 @@ public class OAuth2ServerTest {
                 Set.of(Gw2ApiPermission.ACCOUNT.oauth2())
         ));
 
-        performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), true)
+        performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), true)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
                         new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
@@ -290,18 +296,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitAndHappyFlow(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitAndHappyFlow(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -375,18 +381,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithExpiredSubtokens(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithExpiredSubtokens(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -494,18 +500,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithSubtokenRetrievalError(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithSubtokenRetrievalError(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -613,18 +619,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithUnexpectedGW2APIException(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithUnexpectedGW2APIException(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -735,18 +741,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithLaterRemovedRootApiTokens(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithLaterRemovedRootApiTokens(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -828,12 +834,12 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithLessScopesThanRequested(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithLessScopesThanRequested(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2())).andReturn();
 
         // read request information from redirected uri
         final Map<String, String> params = Utils.parseQuery(URI.create(result.getResponse().getRedirectedUrl()).getRawQuery())
@@ -850,11 +856,13 @@ public class OAuth2ServerTest {
         // lookup the consent info (containing the submit uri and parameters that should be submitted)
         result = this.mockMvc.perform(
                 get("/api/oauth2/consent")
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, params.get(OAuth2ParameterNames.CLIENT_ID))
                         .queryParam(OAuth2ParameterNames.STATE, params.get(OAuth2ParameterNames.STATE))
                         .queryParam(OAuth2ParameterNames.SCOPE, params.get(OAuth2ParameterNames.SCOPE))
-        ).andReturn();
+        )
+                .andDo(cookieHolder)
+                .andReturn();
 
         // read the consent info and build the submit request
         final ObjectMapper mapper = new ObjectMapper();
@@ -863,7 +871,7 @@ public class OAuth2ServerTest {
 
         MockHttpServletRequestBuilder builder = post(submitUri)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .session(session)
+                .with(cookieHolder)
                 .with(csrf());
 
         for (Map.Entry<String, JsonNode> entry : (Iterable<? extends Map.Entry<String, JsonNode>>) () -> consentInfo.get("submitFormParameters").fields()) {
@@ -891,6 +899,7 @@ public class OAuth2ServerTest {
 
         // submit the consent
         this.mockMvc.perform(builder)
+                .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
 
         // authorization should not be saved
@@ -903,23 +912,23 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitWithGw2AuthVerifiedScope(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitWithGw2AuthVerifiedScope(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE)).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), GW2AUTH_VERIFIED_SCOPE)).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // verify the consent has been saved
         final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
         assertNotNull(clientConsentEntity);
-        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE), clientConsentEntity.authorizedScopes());
+        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), GW2AUTH_VERIFIED_SCOPE), clientConsentEntity.authorizedScopes());
 
         // verify the authorization has been saved
         final List<ClientAuthorizationEntity> authorizations = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientConsentEntity.clientRegistrationId());
@@ -927,7 +936,7 @@ public class OAuth2ServerTest {
 
         final ClientAuthorizationEntity clientAuthorization = authorizations.get(0);
 
-        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE), clientAuthorization.authorizedScopes());
+        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), GW2AUTH_VERIFIED_SCOPE), clientAuthorization.authorizedScopes());
 
         List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorization.id());
         assertEquals(2, clientAuthorizationTokenEntities.size());
@@ -949,7 +958,7 @@ public class OAuth2ServerTest {
                 Map.of(tokenA, dummySubtokenA[0], tokenB, dummySubtokenB[0]),
                 Set.of(Gw2ApiPermission.ACCOUNT)
         )
-                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE))
+                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), GW2AUTH_VERIFIED_SCOPE))
                 .andReturn();
 
         // verify the authorized tokens have been updated
@@ -987,7 +996,7 @@ public class OAuth2ServerTest {
         // retrieve a new access token using the refresh token
         final String refreshToken = tokenResponse.get("refresh_token").textValue();
         result = performRetrieveTokensByRefreshToken(clientRegistrationCreation, refreshToken)
-                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE))
+                .andExpectAll(expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2(), GW2AUTH_VERIFIED_SCOPE))
                 .andReturn();
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
@@ -997,18 +1006,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void consentSubmitAndSubmitAgainWithLessScopes(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void consentSubmitAndSubmitAgainWithLessScopes(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.UNLOCKS.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.UNLOCKS.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.UNLOCKS)).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.UNLOCKS)).andReturn();
 
         // verify the consent has been saved
         ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -1055,7 +1064,7 @@ public class OAuth2ServerTest {
 
         // perform a new authorization
         // perform authorization request (which should redirect to application)
-        result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), false).andReturn();
+        result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), false).andReturn();
 
         // verify the consent is unchanged
         clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -1098,18 +1107,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void revokeAccessToken(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void revokeAccessToken(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // set testing clock to token customizer
         final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -1149,18 +1158,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void revokeAccessTokenWithInvalidClientSecret(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void revokeAccessTokenWithInvalidClientSecret(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // set testing clock to token customizer
         final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -1200,18 +1209,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void revokeRefreshToken(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void revokeRefreshToken(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // set testing clock to token customizer & authorization service
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -1264,18 +1273,18 @@ public class OAuth2ServerTest {
     }
 
     @WithGw2AuthLogin
-    public void revokeRefreshTokenWithInvalidClientSecret(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void revokeRefreshTokenWithInvalidClientSecret(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
-        MvcResult result = performAuthorizeWithClient(session, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
 
         // submit the consent
         final String tokenA = TestHelper.randomRootToken();
         final String tokenB = TestHelper.randomRootToken();
         final String tokenC = TestHelper.randomRootToken();
-        result = performSubmitConsent(session, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
 
         // set testing clock to token customizer
         final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -1312,6 +1321,199 @@ public class OAuth2ServerTest {
         // database should still contain the authorization
         final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistration.id());
         assertEquals(1, clientAuthorizationEntities.size());
+    }
+
+    @WithGw2AuthLogin(issuer = "testissuer", idAtIssuer = "testidatissuer")
+    public void refreshWithLegacyAttributes(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
+        final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2())).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(cookieHolder, clientRegistration, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // verify the consent has been saved
+        final ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
+        assertNotNull(clientConsentEntity);
+        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2()), clientConsentEntity.authorizedScopes());
+
+        // verify the authorization has been saved
+        List<ClientAuthorizationEntity> authorizations = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientConsentEntity.clientRegistrationId());
+        assertEquals(1, authorizations.size());
+
+        ClientAuthorizationEntity clientAuthorization = authorizations.get(0);
+
+        assertEquals(Set.of(Gw2ApiPermission.ACCOUNT.oauth2()), clientAuthorization.authorizedScopes());
+
+        // verify the tokens have been saved
+        List<ClientAuthorizationTokenEntity> clientAuthorizationTokenEntities = this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorization.id());
+        assertEquals(2, clientAuthorizationTokenEntities.size());
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.oAuth2TokenCustomizerService.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT(this.gw2AccountId1st, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT(this.gw2AccountId2nd, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        result = performRetrieveTokenByCodeAndExpectValid(
+                clientRegistrationCreation,
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB)
+        ).andReturn();
+
+        // verify the subtokens have been saved
+        final Set<String> subTokens = this.apiSubTokenRepository.findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(
+                        accountId,
+                        Set.of(this.gw2AccountId1st, this.gw2AccountId2nd),
+                        Gw2ApiPermission.toBitSet(Set.of(Gw2ApiPermission.ACCOUNT))
+                )
+                .stream()
+                .map(ApiSubTokenEntity::gw2ApiSubtoken)
+                .collect(Collectors.toSet());
+
+        assertEquals(2, subTokens.size());
+        assertTrue(subTokens.contains(dummySubtokenA));
+        assertTrue(subTokens.contains(dummySubtokenB));
+
+        // verify the validity status has been saved
+        final List<ApiTokenEntity> apiTokenEntities = this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(this.gw2AccountId1st, this.gw2AccountId2nd));
+        assertEquals(2, apiTokenEntities.size());
+        assertTrue(apiTokenEntities.get(0).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(0).lastValidCheckTime());
+        assertTrue(apiTokenEntities.get(1).isValid());
+        assertInstantEquals(testingClock.instant(), apiTokenEntities.get(1).lastValidCheckTime());
+
+        // verify the access token
+        JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
+                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        authorizations = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientConsentEntity.clientRegistrationId());
+        clientAuthorization = authorizations.get(0);
+
+        // simulate the old format attributes
+        String attributesJson = """
+                        {
+                          "@class": "java.util.HashMap",
+                          "org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest": {
+                            "@class": "org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest",
+                            "authorizationUri": "http://127.0.0.1:9000/oauth2/authorize",
+                            "authorizationGrantType": {
+                              "value": "authorization_code"
+                            },
+                            "responseType": {
+                              "value": "code"
+                            },
+                            "clientId": "__CLIENT_ID",
+                            "redirectUri": "__REDIRECT_URI",
+                            "scopes": [
+                              "java.util.Collections$UnmodifiableSet",
+                              [
+                                "gw2:account"
+                              ]
+                            ],
+                            "state": "__STATE",
+                            "additionalParameters": {
+                              "@class": "java.util.Collections$UnmodifiableMap",
+                              "code_challenge": "__CODE_CHALLENGE",
+                              "code_challenge_method": "S256"
+                            },
+                            "authorizationRequestUri": "http://127.0.0.1:9000/oauth2/authorize?response_type=code&client_id=__CLIENT_ID&scope=gw2:account&state=uxAer3ibHweuGm0hVMdNzA&redirect_uri=__REDIRECT_URI&code_challenge=__CODE_CHALLENGE&code_challenge_method=S256",
+                            "attributes": {
+                              "@class": "java.util.Collections$UnmodifiableMap"
+                            }
+                          },
+                          "java.security.Principal": {
+                            "@class": "org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken",
+                            "principal": {
+                              "@class": "com.gw2auth.oauth2.server.service.user.Gw2AuthUser",
+                              "parent": {
+                                "@class": "org.springframework.security.oauth2.core.user.DefaultOAuth2User",
+                                "authorities": [
+                                  "java.util.Collections$UnmodifiableSet",
+                                  [
+                                    {
+                                      "@class": "org.springframework.security.oauth2.core.user.OAuth2UserAuthority",
+                                      "authority": "ROLE_USER",
+                                      "attributes": {
+                                        "@class": "java.util.Collections$UnmodifiableMap",
+                                        "login": "its-felix",
+                                        "created_at": "2016-11-21T13:52:43Z",
+                                        "updated_at": "2022-04-11T22:57:12Z"
+                                      }
+                                    },
+                                    {
+                                      "@class": "org.springframework.security.core.authority.SimpleGrantedAuthority",
+                                      "authority": "SCOPE_"
+                                    }
+                                  ]
+                                ],
+                                "attributes": {
+                                  "@class": "java.util.Collections$UnmodifiableMap",
+                                  "login": "its-felix",
+                                  "id": "testidatissuer",
+                                  "created_at": "2016-11-21T13:52:43Z",
+                                  "updated_at": "2022-04-11T22:57:12Z"
+                                },
+                                "nameAttributeKey": "id"
+                              },
+                              "accountId": __ACCOUNT_ID
+                            },
+                            "authorities": [
+                              "java.util.Collections$UnmodifiableRandomAccessList",
+                              [
+                                {
+                                  "@class": "org.springframework.security.oauth2.core.user.OAuth2UserAuthority",
+                                  "authority": "ROLE_USER",
+                                  "attributes": {
+                                    "@class": "java.util.Collections$UnmodifiableMap",
+                                    "login": "its-felix",
+                                    "created_at": "2016-11-21T13:52:43Z",
+                                    "updated_at": "2022-04-11T22:57:12Z"
+                                  }
+                                },
+                                {
+                                  "@class": "org.springframework.security.core.authority.SimpleGrantedAuthority",
+                                  "authority": "SCOPE_"
+                                }
+                              ]
+                            ],
+                            "authorizedClientRegistrationId": "testissuer",
+                            "details": {
+                              "@class": "org.springframework.security.web.authentication.WebAuthenticationDetails",
+                              "remoteAddress": "127.0.0.1",
+                              "sessionId": "5f935ea9-a65a-4504-bed7-bbc4286fe7e0"
+                            }
+                          }
+                        }
+                """;
+
+        attributesJson = attributesJson.replace("__CLIENT_ID", clientRegistration.clientId().toString());
+        attributesJson = attributesJson.replace("__REDIRECT_URI", TestHelper.first(clientRegistration.redirectUris()).orElseThrow());
+        attributesJson = attributesJson.replace("__STATE", UUID.randomUUID().toString());
+        attributesJson = attributesJson.replace("__CODE_CHALLENGE", UUID.randomUUID().toString());
+        attributesJson = attributesJson.replace("__ACCOUNT_ID", Long.toString(accountId));
+
+        this.testHelper.executeUpdate("UPDATE client_authorizations SET attributes = ? WHERE id = ?", attributesJson, clientAuthorization.id());
+
+        // retrieve a new access token using the refresh token
+        final String refreshToken = tokenResponse.get("refresh_token").textValue();
+        result = performRetrieveTokensByRefreshTokenAndExpectValid(clientRegistrationCreation, refreshToken).andReturn();
+
+        tokenResponse = assertTokenResponse(result, () -> Map.of(
+                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
+                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+        ));
+
+        assertNotEquals(refreshToken, tokenResponse.get("refresh_token").textValue());
     }
 
     private ResultActions performRetrieveTokensByRefreshTokenAndExpectValid(ClientRegistrationCreation clientRegistrationCreation, String refreshToken) throws Exception {
@@ -1387,11 +1589,11 @@ public class OAuth2ServerTest {
                 });
     }
 
-    private ResultActions performSubmitConsent(MockHttpSession session, ClientRegistration clientRegistration, URI redirectedURI, String tokenA, String tokenB, String tokenC) throws Exception {
-        return performSubmitConsent(session, clientRegistration, redirectedURI, tokenA, tokenB, tokenC, Set.of(Gw2ApiPermission.ACCOUNT));
+    private ResultActions performSubmitConsent(CookieHolder cookieHolder, ClientRegistration clientRegistration, URI redirectedURI, String tokenA, String tokenB, String tokenC) throws Exception {
+        return performSubmitConsent(cookieHolder, clientRegistration, redirectedURI, tokenA, tokenB, tokenC, Set.of(Gw2ApiPermission.ACCOUNT));
     }
 
-    private ResultActions performSubmitConsent(MockHttpSession session, ClientRegistration clientRegistration, URI redirectedURI, String tokenA, String tokenB, String tokenC, Set<Gw2ApiPermission> requestedGw2ApiPermissions) throws Exception {
+    private ResultActions performSubmitConsent(CookieHolder cookieHolder, ClientRegistration clientRegistration, URI redirectedURI, String tokenA, String tokenB, String tokenC, Set<Gw2ApiPermission> requestedGw2ApiPermissions) throws Exception {
         // read request information from redirected uri
         final Map<String, String> params = Utils.parseQuery(redirectedURI.getRawQuery())
                 .filter(QueryParam::hasValue)
@@ -1402,7 +1604,7 @@ public class OAuth2ServerTest {
         assertTrue(params.containsKey(OAuth2ParameterNames.SCOPE));
 
         // insert some dummy api tokens
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         this.testHelper.createApiToken(accountId, this.gw2AccountId1st, tokenA, requestedGw2ApiPermissions, "First");
         this.testHelper.createApiToken(accountId, this.gw2AccountId2nd, tokenB, requestedGw2ApiPermissions, "Second");
@@ -1411,11 +1613,13 @@ public class OAuth2ServerTest {
         // lookup the consent info (containing the submit uri and parameters that should be submitted)
         MvcResult result = this.mockMvc.perform(
                 get("/api/oauth2/consent")
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, params.get(OAuth2ParameterNames.CLIENT_ID))
                         .queryParam(OAuth2ParameterNames.STATE, params.get(OAuth2ParameterNames.STATE))
                         .queryParam(OAuth2ParameterNames.SCOPE, params.get(OAuth2ParameterNames.SCOPE))
-        ).andReturn();
+        )
+                .andDo(cookieHolder)
+                .andReturn();
 
         // read the consent info and build the submit request
         final ObjectMapper mapper = new ObjectMapper();
@@ -1424,7 +1628,7 @@ public class OAuth2ServerTest {
 
         MockHttpServletRequestBuilder builder = post(submitUri)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .session(session)
+                .with(cookieHolder)
                 .with(csrf());
 
         for (Map.Entry<String, JsonNode> entry : (Iterable<? extends Map.Entry<String, JsonNode>>) () -> consentInfo.get("submitFormParameters").fields()) {
@@ -1447,6 +1651,7 @@ public class OAuth2ServerTest {
 
         // submit the consent
         return this.mockMvc.perform(builder)
+                .andDo(cookieHolder)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", new AllOf<>(
                         new StringStartsWith(TestHelper.first(clientRegistration.redirectUris()).orElseThrow()),
@@ -1505,30 +1710,32 @@ public class OAuth2ServerTest {
         return expectValidTokenResponse(Gw2ApiPermission.ACCOUNT.oauth2());
     }
 
-    private ResultActions performAuthorizeWithNewClient(MockHttpSession session) throws Exception {
-        return performAuthorizeWithNewClient(session, List.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+    private ResultActions performAuthorizeWithNewClient(CookieHolder cookieHolder) throws Exception {
+        return performAuthorizeWithNewClient(cookieHolder, List.of(Gw2ApiPermission.ACCOUNT.oauth2()));
     }
 
-    private ResultActions performAuthorizeWithNewClient(MockHttpSession session, List<String> scopes) throws Exception {
-        return performAuthorizeWithClient(session, createClientRegistration().clientRegistration(), scopes, false);
+    private ResultActions performAuthorizeWithNewClient(CookieHolder cookieHolder, List<String> scopes) throws Exception {
+        return performAuthorizeWithClient(cookieHolder, createClientRegistration().clientRegistration(), scopes, false);
     }
 
-    private ResultActions performAuthorizeWithClient(MockHttpSession session, ClientRegistration clientRegistration, List<String> scopes) throws Exception {
-        return performAuthorizeWithClient(session, clientRegistration, scopes, false);
+    private ResultActions performAuthorizeWithClient(CookieHolder cookieHolder, ClientRegistration clientRegistration, List<String> scopes) throws Exception {
+        return performAuthorizeWithClient(cookieHolder, clientRegistration, scopes, false);
     }
 
-    private ResultActions performAuthorizeWithClient(MockHttpSession session, ClientRegistration clientRegistration, List<String> scopes, boolean promptConsent) throws Exception {
-        MockHttpServletRequestBuilder builder = get("/oauth2/authorize");
+    private ResultActions performAuthorizeWithClient(CookieHolder cookieHolder, ClientRegistration clientRegistration, List<String> scopes, boolean promptConsent) throws Exception {
+        MockHttpServletRequestBuilder builder = get("/oauth2/authorize")
+                // simulates a browser request for HTML; if not set it will return a 401 instead of redirecting to /login
+                .accept(MediaType.TEXT_HTML, MediaType.ALL);
 
-        if (session != null) {
-            builder = builder.session(session);
+        if (cookieHolder != null) {
+            builder = builder.with(cookieHolder);
         }
 
         if (promptConsent) {
             builder = builder.queryParam("prompt", "consent");
         }
 
-        return this.mockMvc.perform(
+        ResultActions resultActions =  this.mockMvc.perform(
                 builder
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistration.clientId().toString())
                         .queryParam(OAuth2ParameterNames.SCOPE, String.join(" ", scopes))
@@ -1536,6 +1743,12 @@ public class OAuth2ServerTest {
                         .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistration.redirectUris()).orElseThrow())
                         .queryParam(OAuth2ParameterNames.STATE, UUID.randomUUID().toString())
         );
+
+        if (cookieHolder != null) {
+            resultActions = resultActions.andDo(cookieHolder);
+        }
+
+        return resultActions;
     }
 
     private ClientRegistrationCreation createClientRegistration() {

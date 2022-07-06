@@ -3,6 +3,10 @@ package com.gw2auth.oauth2.server.service.user;
 import com.fasterxml.jackson.annotation.*;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+/*
+Has to be kept here to support old issued authorizations
+ */
+@Deprecated
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE,
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE,
