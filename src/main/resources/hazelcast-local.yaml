@@ -1,3 +1,0 @@
-hazelcast:
-  cluster-name: "gw2auth-local"
-  instance-name: "gw2auth-local"

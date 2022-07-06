@@ -33,7 +33,7 @@ public class Gw2AuthOAuth2UserService extends AbstractUserService implements OAu
     }
 
     @Override
-    public Gw2AuthUser loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+    public Gw2AuthLoginUser loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         return loadUser(userRequest, this.parent.loadUser(userRequest));
     }
 

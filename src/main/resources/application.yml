@@ -1,4 +1,13 @@
 com.gw2auth:
+  oauth2:
+    client:
+      s3:
+        bucket: ${AWS_S3_SESSION_BUCKET}
+        prefix: "oauth2/authorization/"
+    addfederation:
+      s3:
+        bucket: ${AWS_S3_SESSION_BUCKET}
+        prefix: "oauth2/addfederation/"
   gw2:
     client:
       aws-lambda-proxy:
@@ -46,10 +55,6 @@ spring:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
     user: ${SERVER_FLYWAY_POSTGRES_USER}
     password: ${SERVER_FLYWAY_POSTGRES_PASSWORD}
-  session:
-    store-type: hazelcast
-  hazelcast:
-    config: ${HAZELCAST_CONFIG_PATH}
 
 management:
   endpoints:

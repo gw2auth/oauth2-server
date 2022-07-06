@@ -3,11 +3,23 @@ com.gw2auth:
   login:
     user-service:
       use-dummy: true
+  session:
+    key:
+      id: "generate"
+      path: "generate"
   oauth2:
+    client:
+      s3:
+        bucket: "dummy"
+        prefix: "oauth2/authorization/"
+    addfederation:
+      s3:
+        bucket: "dummy"
+        prefix: "oauth2/addfederation/"
     keypair:
       id: "generate"
       path: "generate"
 
 spring:
-  session:
-    store-type: none
+  profiles:
+    active: "test"

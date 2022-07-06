@@ -6,7 +6,7 @@ import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizatio
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ public class ApiTokenController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ApiTokenResponse> getApiTokens(@AuthenticationPrincipal Gw2AuthUser user) {
+    public List<ApiTokenResponse> getApiTokens(@AuthenticationPrincipal Gw2AuthUserV2 user) {
         final List<ApiToken> apiTokens = this.apiTokenService.getApiTokens(user.getAccountId());
 
         // get all gw2 account ids for authorization batch lookup
@@ -92,7 +92,7 @@ public class ApiTokenController extends AbstractRestController {
     }
 
     @PostMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiTokenResponse addApiToken(@AuthenticationPrincipal Gw2AuthUser user, @RequestBody String token) {
+    public ApiTokenResponse addApiToken(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestBody String token) {
         final ApiToken apiToken = this.apiTokenService.addApiToken(user.getAccountId(), token);
         final boolean isVerified = this.verificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(-1L) == user.getAccountId();
 
@@ -100,7 +100,7 @@ public class ApiTokenController extends AbstractRestController {
     }
 
     @PatchMapping(value = "/api/token/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiTokenResponse updateApiToken(@AuthenticationPrincipal Gw2AuthUser user,
+    public ApiTokenResponse updateApiToken(@AuthenticationPrincipal Gw2AuthUserV2 user,
                                    @PathVariable("gw2AccountId") UUID gw2AccountId,
                                    @RequestParam(value = "displayName", required = false) String displayName,
                                    @RequestParam(value = "gw2ApiToken", required = false) String gw2ApiToken) {
@@ -127,7 +127,7 @@ public class ApiTokenController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/token/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public void deleteApiToken(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("gw2AccountId") UUID gw2AccountId) {
+    public void deleteApiToken(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("gw2AccountId") UUID gw2AccountId) {
         this.apiTokenService.deleteApiToken(user.getAccountId(), gw2AccountId);
     }
 }

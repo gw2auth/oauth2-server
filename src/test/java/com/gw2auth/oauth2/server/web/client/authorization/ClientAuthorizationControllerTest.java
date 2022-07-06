@@ -9,13 +9,11 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -53,12 +51,12 @@ class ClientAuthorizationControllerTest {
     @Test
     public void getClientAuthorizationsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/authorization/someid"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void getClientAuthorizations(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void getClientAuthorizations(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
@@ -80,7 +78,8 @@ class ClientAuthorizationControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
         // query api
-        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.clientId()).session(session))
+        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.clientId()).with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -170,12 +169,12 @@ class ClientAuthorizationControllerTest {
     @Test
     public void deleteClientAuthorizationsUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/client/authorization/someid").with(csrf()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @WithGw2AuthLogin
-    public void deleteClientAuthorization(MockHttpSession session) throws Exception {
-        final long accountId = AuthenticationHelper.getUser(session).orElseThrow().getAccountId();
+    public void deleteClientAuthorization(CookieHolder cookieHolder) throws Exception {
+        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
@@ -197,7 +196,8 @@ class ClientAuthorizationControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
         // delete second authorization
-        this.mockMvc.perform(delete("/api/client/authorization/_/{clientAuthorizationId}", authorization2.id()).with(csrf()).session(session))
+        this.mockMvc.perform(delete("/api/client/authorization/_/{clientAuthorizationId}", authorization2.id()).with(csrf()).with(cookieHolder))
+                .andDo(cookieHolder)
                 .andExpect(status().isOk());
 
         // verify the authorization has been deleted

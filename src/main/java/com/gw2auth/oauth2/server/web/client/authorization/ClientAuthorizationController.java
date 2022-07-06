@@ -4,7 +4,7 @@ import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,7 +33,7 @@ public class ClientAuthorizationController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/client/authorization/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUser user, @PathVariable("clientId") UUID clientId) {
+    public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), clientId);
 
         // get all gw2-account ids for batch lookup
@@ -71,7 +71,7 @@ public class ClientAuthorizationController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/client/authorization/_/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> deleteClientAuthorization(@AuthenticationPrincipal Gw2AuthUser user,
+    public ResponseEntity<Void> deleteClientAuthorization(@AuthenticationPrincipal Gw2AuthUserV2 user,
                                                           @PathVariable("id") String id) {
 
         if (this.clientAuthorizationService.deleteClientAuthorization(user.getAccountId(), id)) {

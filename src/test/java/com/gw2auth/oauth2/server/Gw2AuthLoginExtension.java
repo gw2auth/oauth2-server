@@ -1,21 +1,23 @@
 package com.gw2auth.oauth2.server;
 
 import com.gw2auth.oauth2.server.configuration.OAuth2ClientConfiguration;
+import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.QueryParam;
 import com.gw2auth.oauth2.server.util.Utils;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNot;
 import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -54,7 +56,8 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
             final WithGw2AuthLogin gw2AuthLogin = method.getDeclaredAnnotation(WithGw2AuthLogin.class);
 
             if (gw2AuthLogin != null) {
-                loginInternal(context, gw2AuthLogin.issuer(), gw2AuthLogin.idAtIssuer()).andExpectAll(expectSuccess());
+                final CookieHolder cookieHolder = this.context.getStore(NAMESPACE).getOrComputeIfAbsent("cookies", k -> new CookieHolder(), CookieHolder.class);
+                loginInternal(cookieHolder, gw2AuthLogin.issuer(), gw2AuthLogin.idAtIssuer()).andExpectAll(expectLoginSuccess());
             }
         }
     }
@@ -69,42 +72,59 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
             final WithGw2AuthLogin gw2AuthLogin = method.getDeclaredAnnotation(WithGw2AuthLogin.class);
 
             if (gw2AuthLogin != null) {
-                final MockHttpSession session = context.getStore(NAMESPACE).get("session", MockHttpSession.class);
+                final CookieHolder cookieHolder = Objects.requireNonNull(context.getStore(NAMESPACE).get("cookies", CookieHolder.class));
 
-                this.mockMvc.perform(post("/logout").session(session).with(csrf()))
-                        .andExpect(status().isOk());
+                logout(cookieHolder).andExpectAll(expectLogoutSuccess());
 
-                context.getStore(NAMESPACE).remove("session", MockHttpSession.class);
+                context.getStore(NAMESPACE).remove("cookies", CookieHolder.class);
             }
         }
     }
 
-    public ResultMatcher[] expectSuccess() {
+    public ResultMatcher[] expectLoginSuccess() {
         return new ResultMatcher[]{
                 status().is3xxRedirection(),
-                header().string("Location", new IsNot<>(new StringEndsWith("?error")))
+                header().string("Location", new IsNot<>(new StringEndsWith("?error"))),
+                MockMvcResultMatchers.cookie().exists(Constants.ACCESS_TOKEN_COOKIE_NAME),
+                MockMvcResultMatchers.cookie().httpOnly(Constants.ACCESS_TOKEN_COOKIE_NAME, true),
+                MockMvcResultMatchers.cookie().maxAge(Constants.ACCESS_TOKEN_COOKIE_NAME, Matchers.greaterThan(0))
+        };
+    }
+
+    public ResultMatcher[] expectLogoutSuccess() {
+        return new ResultMatcher[]{
+                status().isOk(),
+                MockMvcResultMatchers.cookie().exists(Constants.ACCESS_TOKEN_COOKIE_NAME),
+                MockMvcResultMatchers.cookie().maxAge(Constants.ACCESS_TOKEN_COOKIE_NAME, 0)
         };
     }
 
     public ResultActions login(String issuer, String idAtIssuer) throws Exception {
-        return loginInternal(this.context, issuer, idAtIssuer);
+        final CookieHolder cookieHolder = this.context.getStore(NAMESPACE).getOrComputeIfAbsent("cookies", k -> new CookieHolder(), CookieHolder.class);
+        return login(cookieHolder, issuer, idAtIssuer);
+    }
+
+    public ResultActions login(CookieHolder cookieHolder, String issuer, String idAtIssuer) throws Exception {
+        return loginInternal(cookieHolder, issuer, idAtIssuer);
     }
 
     public ResultActions login(String loginUrl, String issuer, String idAtIssuer) throws Exception {
-        return loginInternal(this.context, loginUrl, issuer, idAtIssuer);
+        final CookieHolder cookieHolder = this.context.getStore(NAMESPACE).getOrComputeIfAbsent("cookies", k -> new CookieHolder(), CookieHolder.class);
+        return loginInternal(cookieHolder, loginUrl, issuer, idAtIssuer);
     }
 
-    private ResultActions loginInternal(ExtensionContext context, String issuer, String idAtIssuer) throws Exception {
-        return loginInternal(context, "/oauth2/authorization/" + URLEncoder.encode(issuer, StandardCharsets.UTF_8), issuer, idAtIssuer);
+    private ResultActions loginInternal(CookieHolder cookieHolder, String issuer, String idAtIssuer) throws Exception {
+        return loginInternal(cookieHolder, "/oauth2/authorization/" + URLEncoder.encode(issuer, StandardCharsets.UTF_8), issuer, idAtIssuer);
     }
 
-    private ResultActions loginInternal(ExtensionContext context, String loginURL, String issuer, String idAtIssuer) throws Exception {
-        final MockHttpSession session = context.getStore(NAMESPACE).getOrComputeIfAbsent("session", (k) -> new MockHttpSession(), MockHttpSession.class);
-
+    private ResultActions loginInternal(CookieHolder cookieHolder, String loginURL, String issuer, String idAtIssuer) throws Exception {
         this.testClientRegistrationRepository.prepareRegistrationId(issuer);
 
-        final MvcResult result = this.mockMvc.perform(get(loginURL).session(session)).andReturn();
-        final String location = Objects.requireNonNull(result.getResponse().getHeader("Location"));
+        final MvcResult result = this.mockMvc.perform(get(loginURL).with(cookieHolder))
+                .andDo(cookieHolder)
+                .andReturn();
+
+        final String location = Objects.requireNonNull(result.getResponse().getRedirectedUrl());
         final String state = Utils.parseQuery(new URL(location).getQuery())
                 .filter(QueryParam::hasValue)
                 .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
@@ -114,9 +134,23 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
 
         return this.mockMvc.perform(
                 get("/login/oauth2/code/{issuer}", issuer)
-                        .session(session)
+                        .with(cookieHolder)
                         .queryParam("code", idAtIssuer)
                         .queryParam("state", state)
-        );
+        ).andDo(cookieHolder);
+    }
+
+    public ResultActions logout() throws Exception {
+        final CookieHolder cookieHolder = context.getStore(NAMESPACE).get("cookies", CookieHolder.class);
+        if (cookieHolder == null) {
+            throw new IllegalStateException("not logged in via extension");
+        }
+
+        return logout(cookieHolder);
+    }
+
+    public ResultActions logout(CookieHolder cookieHolder) throws Exception {
+        return this.mockMvc.perform(post("/logout").with(cookieHolder).with(csrf()))
+                .andDo(cookieHolder);
     }
 }

@@ -71,6 +71,49 @@
             </div>
         </div>
 
+        <ng-container [ngSwitch]="sessions">
+            <div *ngSwitchCase="null" class="col">
+                Loading ...
+            </div>
+            <div *ngSwitchDefault class="col">
+                <h3 class="mb-3">Active sessions</h3>
+                <div class="table-responsive">
+                    <table class="table table-accent table-striped align-middle">
+                        <colgroup>
+                            <col class="w-25" />
+                            <col class="w-75" />
+                            <col class="w-auto "/>
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Created at</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr *ngFor="let session of sessions!.accountSessions">
+                            <td>
+                                <span>{{session.id.substring(0, 10)}}</span>
+                            </td>
+                            <td>
+                                <div class="position-relative">
+                                    <span>{{session.creationTime}}</span>
+                                    <span *ngIf="isCurrentSession(session)" class="position-absolute end-0 me-2 badge rounded-pill bg-success">Current session</span>
+                                </div>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger" [disabled]="isCurrentSession(session)" (click)="openDeleteSessionModal(session)">
+                                    <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </ng-container>
+
         <div class="col">
             <h3 class="mb-3">Delete account</h3>
             <button type="button" class="btn btn-danger" [attr.aria-describedby]="'delete_account_description'" (click)="openDeleteAccountModal()">
