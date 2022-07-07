@@ -55,7 +55,7 @@
                                             <div class="container-fluid">
                                                 <div class="row align-items-center">
                                                     <div class="col-6">
-                                                        <span *ngIf="isCurrentFederation(federation)" class="me-2 badge rounded-pill bg-success">Current login</span>
+                                                        <span *ngIf="isCurrentSession(session)" class="me-2 badge rounded-pill bg-success">Current login</span>
                                                         <span>{{session.id.substring(0, 10)}}</span>
                                                     </div>
                                                     <div class="col-4">
