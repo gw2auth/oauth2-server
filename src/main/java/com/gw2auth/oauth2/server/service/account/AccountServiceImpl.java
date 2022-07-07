@@ -77,7 +77,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public AccountFederationSession createNewSession(String issuer, String idAtIssuer) {
         final Instant now = this.clock.instant();
-        final byte[] sessionIdBytes = new byte[256];
+        final byte[] sessionIdBytes = new byte[128];
         new SecureRandom().nextBytes(sessionIdBytes);
 
         final AccountFederationSessionEntity entity = this.accountFederationSessionRepository.save(new AccountFederationSessionEntity(
