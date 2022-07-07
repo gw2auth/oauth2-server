@@ -2,6 +2,8 @@ package com.gw2auth.oauth2.server.web;
 
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
+import com.gw2auth.oauth2.server.repository.account.AccountFederationSessionEntity;
+import com.gw2auth.oauth2.server.repository.account.AccountFederationSessionRepository;
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountServiceImpl;
 import com.gw2auth.oauth2.server.util.Constants;
@@ -41,6 +43,9 @@ public class SessionTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private AccountFederationSessionRepository accountFederationSessionRepository;
+
+    @Autowired
     private AccountServiceImpl accountService;
 
     @Autowired
@@ -61,12 +66,12 @@ public class SessionTest {
 
         final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
-        List<AccountFederationSession> sessions = this.accountService.getSessions(accountId);
+        List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertEquals(1, sessions.size());
 
         this.gw2AuthLoginExtension.logout(cookieHolder).andExpectAll(this.gw2AuthLoginExtension.expectLogoutSuccess());
 
-        sessions = this.accountService.getSessions(accountId);
+        sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertTrue(sessions.isEmpty());
     }
 
@@ -103,7 +108,7 @@ public class SessionTest {
 
         final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
-        List<AccountFederationSession> sessions = this.accountService.getSessions(accountId);
+        List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertEquals(1, sessions.size());
 
         // let 31 days pass
@@ -114,7 +119,7 @@ public class SessionTest {
         this.accountService.deleteAllExpiredSessions();
 
         // should now be empty
-        sessions = this.accountService.getSessions(accountId);
+        sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertTrue(sessions.isEmpty());
     }
 

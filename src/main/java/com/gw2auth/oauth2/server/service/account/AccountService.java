@@ -22,9 +22,7 @@ public interface AccountService {
 
     Account addAccountFederationOrReturnExisting(long accountId, String issuer, String idAtIssuer);
 
-    List<AccountFederation> getAccountFederations(long accountId);
-
-    List<AccountFederationSession> getSessions(long accountId);
+    List<AccountFederationWithSessions> getAccountFederationsWithSessions(long accountId);
 
     boolean deleteAccountFederation(long accountId, String issuer, String idAtIssuer);
 

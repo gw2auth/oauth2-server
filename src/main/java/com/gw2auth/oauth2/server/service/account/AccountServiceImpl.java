@@ -23,10 +23,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -153,17 +150,23 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public List<AccountFederation> getAccountFederations(long accountId) {
-        return this.accountFederationRepository.findAllByAccountId(accountId).stream()
-                .map(AccountFederation::fromEntity)
-                .collect(Collectors.toList());
-    }
+    public List<AccountFederationWithSessions> getAccountFederationsWithSessions(long accountId) {
+        final List<AccountFederationEntity> federationEntities = this.accountFederationRepository.findAllByAccountId(accountId);
+        final Map<Pair<String, String>, List<AccountFederationSessionEntity>> federationSessionEntities = this.accountFederationSessionRepository.findAllByAccountId(accountId).stream()
+                .collect(Collectors.groupingBy((v) -> new Pair<>(v.issuer(), v.idAtIssuer())));
 
-    @Override
-    public List<AccountFederationSession> getSessions(long accountId) {
-        return this.accountFederationSessionRepository.findAllByAccountId(accountId).stream()
-                .map(AccountFederationSession::fromEntity)
-                .collect(Collectors.toList());
+        final List<AccountFederationWithSessions> result = new ArrayList<>(federationEntities.size());
+
+        for (AccountFederationEntity federationEntity : federationEntities) {
+            result.add(new AccountFederationWithSessions(
+                    AccountFederation.fromEntity(federationEntity),
+                    federationSessionEntities.getOrDefault(new Pair<>(federationEntity.issuer(), federationEntity.idAtIssuer()), List.of()).stream()
+                            .map(AccountFederationSession::fromEntity)
+                            .collect(Collectors.toList())
+            ));
+        }
+
+        return result;
     }
 
     @Override

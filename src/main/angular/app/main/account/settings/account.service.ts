@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {AccountFederations, AccountSessions} from './account.model';
+import {AccountFederations} from './account.model';
 
 @Injectable()
 export class AccountService {
@@ -11,10 +11,6 @@ export class AccountService {
 
     getAccountFederations(): Observable<AccountFederations> {
         return this.httpClient.get<AccountFederations>('/api/account/federation');
-    }
-
-    getAccountSessions(): Observable<AccountSessions> {
-        return this.httpClient.get<AccountSessions>('/api/account/session');
     }
 
     deleteAccountFederation(issuer: string, idAtIssuer: string): Observable<any> {

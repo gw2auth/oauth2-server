@@ -21,26 +21,58 @@
                         </tr>
                         </thead>
                         <tbody>
-                        <tr *ngFor="let federation of federations!.accountFederations">
-                            <td>
-                                <ng-container [ngSwitch]="federation.issuer">
-                                    <app-logo-small *ngSwitchCase="'cognito'"></app-logo-small>
-                                    <fa-icon *ngSwitchDefault [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
-                                </ng-container>
-                                <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
-                            </td>
-                            <td>
-                                <div class="position-relative">
-                                    {{federation.idAtIssuer}}
-                                    <span *ngIf="isCurrentFederation(federation)" class="position-absolute end-0 me-2 badge rounded-pill bg-success">Current login</span>
-                                </div>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-danger" [disabled]="federations!.accountFederations.length < 2 || isCurrentFederation(federation)" (click)="openDeleteFederationModal(federation)">
-                                    <fa-icon [icon]="faTrashAlt"></fa-icon>
-                                </button>
-                            </td>
-                        </tr>
+                        <ng-container *ngFor="let federation of federations!.federations">
+                            <tr>
+                                <td>
+                                    <ng-container [ngSwitch]="federation.issuer">
+                                        <app-logo-small *ngSwitchCase="'cognito'"></app-logo-small>
+                                        <fa-icon *ngSwitchDefault [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
+                                    </ng-container>
+                                    <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
+                                </td>
+                                <td>
+                                    <div class="position-relative">
+                                        {{federation.idAtIssuer}}
+                                        <span *ngIf="isCurrentFederation(federation)" class="position-absolute end-0 me-2 badge rounded-pill bg-success">Current login</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-accent-inner" [disabled]="federation.sessions.length < 1" (click)="detailsCollapse.toggle()">
+                                            <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                        </button>
+                                        <button type="button" class="btn btn-danger" [disabled]="federations!.federations.length < 2 || isCurrentFederation(federation)" (click)="openDeleteFederationModal(federation)">
+                                            <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="no-transition" #detailsCollapse="ngbCollapse" [ngbCollapse]="true">
+                                <td colspan="3">
+                                    <h5>Sessions</h5>
+                                    <div class="list-group">
+                                        <div *ngFor="let session of federation.sessions" class="list-group-item">
+                                            <div class="container-fluid">
+                                                <div class="row align-items-center">
+                                                    <div class="col-6">
+                                                        <span *ngIf="isCurrentFederation(federation)" class="me-2 badge rounded-pill bg-success">Current login</span>
+                                                        <span>{{session.id.substring(0, 10)}}</span>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <span>{{session.creationTime.toLocaleString()}}</span>
+                                                    </div>
+                                                    <div class="col-2">
+                                                        <button type="button" class="btn btn-danger float-end" [disabled]="isCurrentSession(session)" (click)="openDeleteSessionModal(session)">
+                                                            <fa-icon [icon]="faTrashAlt"></fa-icon>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-container>
                         </tbody>
                     </table>
                 </div>
@@ -70,49 +102,6 @@
                 </div>
             </div>
         </div>
-
-        <ng-container [ngSwitch]="sessions">
-            <div *ngSwitchCase="null" class="col">
-                Loading ...
-            </div>
-            <div *ngSwitchDefault class="col">
-                <h3 class="mb-3">Active sessions</h3>
-                <div class="table-responsive">
-                    <table class="table table-accent table-striped align-middle">
-                        <colgroup>
-                            <col class="w-25" />
-                            <col class="w-75" />
-                            <col class="w-auto "/>
-                        </colgroup>
-                        <thead>
-                        <tr>
-                            <th scope="col">ID</th>
-                            <th scope="col">Created at</th>
-                            <th scope="col">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr *ngFor="let session of sessions!.accountSessions">
-                            <td>
-                                <span>{{session.id.substring(0, 10)}}</span>
-                            </td>
-                            <td>
-                                <div class="position-relative">
-                                    <span>{{session.creationTime}}</span>
-                                    <span *ngIf="isCurrentSession(session)" class="position-absolute end-0 me-2 badge rounded-pill bg-success">Current session</span>
-                                </div>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-danger" [disabled]="isCurrentSession(session)" (click)="openDeleteSessionModal(session)">
-                                    <fa-icon [icon]="faTrashAlt"></fa-icon>
-                                </button>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </ng-container>
 
         <div class="col">
             <h3 class="mb-3">Delete account</h3>

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @RestController
@@ -37,21 +38,14 @@ public class AccountController extends AbstractRestController {
     }
 
     @GetMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
-    public AccountFederationsResponse getAccountFederations(@AuthenticationPrincipal Gw2AuthUserV2 user) {
-        return new AccountFederationsResponse(
-                new AccountFederationResponse(user.getAccountFederation().v1(), user.getAccountFederation().v2()),
-                this.accountService.getAccountFederations(user.getAccountId()).stream()
-                        .map(AccountFederationResponse::create)
-                        .collect(Collectors.toList())
-        );
-    }
-
-    @GetMapping(value = "/api/account/session", produces = MediaType.APPLICATION_JSON_VALUE)
-    public AccountSessionsResponse getAccountSessions(@AuthenticationPrincipal Gw2AuthUserV2 user) {
-        return new AccountSessionsResponse(
+    public AccountFederationsWithSessionsResponse getAccountFederations(@AuthenticationPrincipal Gw2AuthUserV2 user) {
+        return new AccountFederationsWithSessionsResponse(
+                user.getIssuer(),
+                user.getIdAtIssuer(),
                 user.getSessionId(),
-                this.accountService.getSessions(user.getAccountId()).stream()
-                        .map(AccountSessionResponse::create)
+                this.accountService.getAccountFederationsWithSessions(user.getAccountId()).stream()
+                        .map(AccountFederationWithSessionsResponse::create)
+                        .sorted(Comparator.comparing(AccountFederationWithSessionsResponse::issuer).thenComparing(AccountFederationWithSessionsResponse::idAtIssuer))
                         .collect(Collectors.toList())
         );
     }

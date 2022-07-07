@@ -121,12 +121,21 @@ class AccountControllerTest {
 
     @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
     public void getAccountFederations(CookieHolder cookieHolder) throws Exception {
+        final String sessionId = this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow();
+
         this.mockMvc.perform(get("/api/account/federation").with(cookieHolder))
                 .andDo(cookieHolder)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentAccountFederation.issuer").value("test-iss"))
-                .andExpect(jsonPath("$.currentAccountFederation.idAtIssuer").value("test-id"))
-                .andExpect(jsonPath("$.accountFederations").isArray());
+                .andExpect(jsonPath("$.currentIssuer").value("test-iss"))
+                .andExpect(jsonPath("$.currentIdAtIssuer").value("test-id"))
+                .andExpect(jsonPath("$.currentSessionId").value(sessionId))
+                .andExpect(jsonPath("$.federations").isArray())
+                .andExpect(jsonPath("$.federations[0].issuer").value("test-iss"))
+                .andExpect(jsonPath("$.federations[0].idAtIssuer").value("test-id"))
+                .andExpect(jsonPath("$.federations[0].sessions").isArray())
+                .andExpect(jsonPath("$.federations[0].sessions[0].id").value(sessionId))
+                .andExpect(jsonPath("$.federations[0].sessions[0].creationTime").isString())
+                .andExpect(jsonPath("$.federations[0].sessions[0].expirationTime").isString());
     }
 
     @Test
@@ -183,21 +192,6 @@ class AccountControllerTest {
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
         assertEquals(1, result.size());
         assertEquals(new AccountFederationEntity("issuer", "idAtIssuer", accountId), result.get(0));
-    }
-
-    @Test
-    public void getSessionUnauthenticated() throws Exception {
-        this.mockMvc.perform(get("/api/account/session"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
-    public void getSessions(CookieHolder cookieHolder) throws Exception {
-        this.mockMvc.perform(get("/api/account/session").with(cookieHolder))
-                .andDo(cookieHolder)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentAccountSessionId").value(this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow()))
-                .andExpect(jsonPath("$.accountSessions").isArray());
     }
 
     @Test

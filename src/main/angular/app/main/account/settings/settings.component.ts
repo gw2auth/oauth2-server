@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {faGithub, faGoogle} from '@fortawesome/free-brands-svg-icons';
-import {faQuestion, faTrashAlt} from '@fortawesome/free-solid-svg-icons';
-import {AccountFederation, AccountFederations, AccountSession, AccountSessions} from './account.model';
+import {faQuestion, faTrashAlt, faAngleDoubleDown, faAngleDoubleUp} from '@fortawesome/free-solid-svg-icons';
+import {AccountFederation, AccountFederations, AccountFederationSession} from './account.model';
 import {AccountService} from './account.service';
 import {IconProp} from '@fortawesome/fontawesome-svg-core';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
@@ -21,15 +21,15 @@ export class SettingsComponent implements OnInit {
   faGoogle = faGoogle;
   faQuestion = faQuestion;
   faTrashAlt = faTrashAlt;
+  faAngleDoubleDown = faAngleDoubleDown;
+  faAngleDoubleUp = faAngleDoubleUp;
 
   federations: AccountFederations | null = null;
-  sessions: AccountSessions | null = null;
 
   constructor(private readonly accountService: AccountService, private readonly toastService: ToastService, private readonly modalService: NgbModal, private readonly authService: AuthService) { }
 
   ngOnInit(): void {
     this.accountService.getAccountFederations().subscribe((federations) => this.federations = federations);
-    this.accountService.getAccountSessions().subscribe((sessions) => this.sessions = sessions);
   }
 
   getIssuerName(issuer: string): string {
@@ -50,12 +50,11 @@ export class SettingsComponent implements OnInit {
   }
 
   isCurrentFederation(federation: AccountFederation): boolean {
-    const current = this.federations!.currentAccountFederation;
-    return federation.issuer == current.issuer && federation.idAtIssuer == current.idAtIssuer;
+    return federation.issuer == this.federations!.currentIssuer && federation.idAtIssuer == this.federations!.currentIdAtIssuer;
   }
 
-  isCurrentSession(session: AccountSession): boolean {
-    return session.id == this.sessions!.currentAccountSessionId;
+  isCurrentSession(session: AccountFederationSession): boolean {
+    return session.id == this.federations!.currentSessionId;
   }
 
   openDeleteFederationModal(federation: AccountFederation): void {
@@ -78,8 +77,7 @@ export class SettingsComponent implements OnInit {
           if (success) {
             this.toastService.show('Login provider deleted', 'The Login provider has been deleted successfully');
 
-            const federations = this.federations!;
-            federations.accountFederations = federations.accountFederations.filter((v) => !(v.issuer == issuer && v.idAtIssuer == idAtIssuer));
+            this.federations!.federations = this.federations!.federations.filter((v) => !(v.issuer == issuer && v.idAtIssuer == idAtIssuer));
 
             return null;
           } else {
@@ -93,7 +91,7 @@ export class SettingsComponent implements OnInit {
         });
   }
 
-  openDeleteSessionModal(session: AccountSession): void {
+  openDeleteSessionModal(session: AccountFederationSession): void {
     const sessionId = session.id;
 
     const modalRef = this.modalService.open(DeleteModalComponent);
@@ -112,8 +110,9 @@ export class SettingsComponent implements OnInit {
           if (success) {
             this.toastService.show('Session deleted', 'The session has been deleted successfully');
 
-            const sessions = this.sessions!;
-            sessions.accountSessions = sessions.accountSessions.filter((v) => v.id != sessionId);
+            for (let federation of this.federations!.federations) {
+              federation.sessions = federation.sessions.filter((v) => v.id != sessionId);
+            }
 
             return null;
           } else {
