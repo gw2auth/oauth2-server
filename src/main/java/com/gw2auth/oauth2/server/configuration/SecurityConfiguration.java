@@ -53,15 +53,6 @@ import java.util.*;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-    public static void main(String[] args) throws Exception {
-        for (String p : List.of("id_rsa", "id_rsa.pub")) {
-            final Path path = Paths.get(p);
-            final String s = Files.readString(path).replace("\n", "");
-
-            Files.write(path, Base64.getDecoder().decode(s));
-        }
-    }
-
     @Bean
     public Gw2AuthInternalJwtConverter gw2AuthInternalJwtConverter(@Value("${com.gw2auth.session.key.id}") String sessionKeyId,
                                                                    @Value("${com.gw2auth.session.key.path}") String sessionKeyPath) throws Exception {
