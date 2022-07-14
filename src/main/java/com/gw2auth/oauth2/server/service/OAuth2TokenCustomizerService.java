@@ -86,8 +86,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             final Object oauth2User = ctx.getPrincipal().getPrincipal();// the user (intended double getPrincipal())
 
             if (authorization != null) {
-                final long accountId;
-                final long clientRegistrationId = Long.parseLong(registeredClient.getId());
+                final UUID accountId;
+                final UUID clientRegistrationId = UUID.fromString(registeredClient.getId());
 
                 if (oauth2User instanceof Gw2AuthUser gw2AuthUser) {
                     accountId = gw2AuthUser.getAccountId();
@@ -104,7 +104,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         }
     }
 
-    private void customize(JwtEncodingContext ctx, String clientAuthorizationId, long accountId, long clientRegistrationId) {
+    private void customize(JwtEncodingContext ctx, String clientAuthorizationId, UUID accountId, UUID clientRegistrationId) {
         final ClientAuthorization clientAuthorization = this.clientAuthorizationService.getClientAuthorization(accountId, clientAuthorizationId).orElse(null);
         final ClientConsent clientConsent = this.clientConsentService.getClientConsent(accountId, clientRegistrationId).orElse(null);
 

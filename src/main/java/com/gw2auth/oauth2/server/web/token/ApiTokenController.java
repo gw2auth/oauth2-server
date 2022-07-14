@@ -45,8 +45,8 @@ public class ApiTokenController extends AbstractRestController {
 
         // aggregate authorizations for later lookup
         final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), gw2AccountIds);
-        final Set<Long> clientRegistrationIds = new HashSet<>(clientAuthorizations.size());
-        final Map<UUID, Set<Long>> clientRegistrationIdsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
+        final Set<UUID> clientRegistrationIds = new HashSet<>(clientAuthorizations.size());
+        final Map<UUID, Set<UUID>> clientRegistrationIdsByGw2AccountId = new HashMap<>(clientAuthorizations.size());
 
         for (ClientAuthorization clientAuthorization : clientAuthorizations) {
             clientRegistrationIds.add(clientAuthorization.clientRegistrationId());
@@ -57,7 +57,7 @@ public class ApiTokenController extends AbstractRestController {
         }
 
         // find all client registrations for the registration ids and remember them by id
-        final Map<Long, ClientRegistration> clientRegistrationById = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
+        final Map<UUID, ClientRegistration> clientRegistrationById = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
                 .collect(Collectors.toMap(ClientRegistration::id, Function.identity()));
 
         // find all verified gw2 account ids for this account (better than querying for every single one)
@@ -66,13 +66,13 @@ public class ApiTokenController extends AbstractRestController {
         final List<ApiTokenResponse> response = new ArrayList<>(apiTokens.size());
 
         for (ApiToken apiToken : apiTokens) {
-            final Set<Long> clientRegistrationIdsForThisToken = clientRegistrationIdsByGw2AccountId.get(apiToken.gw2AccountId());
+            final Set<UUID> clientRegistrationIdsForThisToken = clientRegistrationIdsByGw2AccountId.get(apiToken.gw2AccountId());
             final List<ApiTokenResponse.Authorization> authorizations;
 
             if (clientRegistrationIdsForThisToken != null && !clientRegistrationIdsForThisToken.isEmpty()) {
                 authorizations = new ArrayList<>(clientRegistrationIdsForThisToken.size());
 
-                for (long clientRegistrationId : clientRegistrationIdsForThisToken) {
+                for (UUID clientRegistrationId : clientRegistrationIdsForThisToken) {
                     final ClientRegistration clientRegistration = clientRegistrationById.get(clientRegistrationId);
 
                     if (clientRegistration != null) {
@@ -94,7 +94,7 @@ public class ApiTokenController extends AbstractRestController {
     @PostMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiTokenResponse addApiToken(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestBody String token) {
         final ApiToken apiToken = this.apiTokenService.addApiToken(user.getAccountId(), token);
-        final boolean isVerified = this.verificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(-1L) == user.getAccountId();
+        final boolean isVerified = Objects.equals(this.verificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(null), user.getAccountId());
 
         return ApiTokenResponse.create(apiToken, isVerified, List.of());
     }
@@ -112,7 +112,7 @@ public class ApiTokenController extends AbstractRestController {
         final List<ApiTokenResponse.Authorization> authorizations;
 
         if (!clientAuthorizations.isEmpty()) {
-            final Set<Long> clientRegistrationIds = clientAuthorizations.stream().map(ClientAuthorization::clientRegistrationId).collect(Collectors.toSet());
+            final Set<UUID> clientRegistrationIds = clientAuthorizations.stream().map(ClientAuthorization::clientRegistrationId).collect(Collectors.toSet());
 
             authorizations = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
                     .map(ApiTokenResponse.Authorization::create)
@@ -121,7 +121,7 @@ public class ApiTokenController extends AbstractRestController {
             authorizations = List.of();
         }
 
-        final boolean isVerified = this.verificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(-1L) == user.getAccountId();
+        final boolean isVerified = Objects.equals(this.verificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(null), user.getAccountId());
 
         return ApiTokenResponse.create(apiToken, isVerified, authorizations);
     }

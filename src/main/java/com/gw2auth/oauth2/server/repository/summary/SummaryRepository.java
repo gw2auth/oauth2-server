@@ -5,6 +5,8 @@ import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
 public interface SummaryRepository extends BaseRepository<ApplicationSummaryEntity> {
 
@@ -26,5 +28,5 @@ public interface SummaryRepository extends BaseRepository<ApplicationSummaryEnti
         (SELECT COUNT(*) FROM client_consents WHERE account_id = :account_id AND ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations,
         (SELECT COUNT(*) FROM account_federations WHERE account_id = :account_id) AS account_federations
     """)
-    AccountSummaryEntity getAccountSummary(@Param("account_id") long accountId);
+    AccountSummaryEntity getAccountSummary(@Param("account_id") UUID accountId);
 }

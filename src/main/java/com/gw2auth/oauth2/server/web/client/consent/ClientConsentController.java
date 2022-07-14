@@ -44,11 +44,11 @@ public class ClientConsentController extends AbstractRestController {
         final List<ClientConsent> clientConsents = this.clientConsentService.getClientConsents(user.getAccountId());
 
         // get all client registration ids for batch lookup
-        final Set<Long> clientRegistrationIds = clientConsents.stream()
+        final Set<UUID> clientRegistrationIds = clientConsents.stream()
                 .map(ClientConsent::clientRegistrationId)
                 .collect(Collectors.toSet());
 
-        final Map<Long, ClientRegistration> clientRegistrationById = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
+        final Map<UUID, ClientRegistration> clientRegistrationById = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
                 .collect(Collectors.toMap(ClientRegistration::id, Function.identity()));
 
         final List<ClientConsentResponse> result = new ArrayList<>(clientConsents.size());
@@ -78,7 +78,7 @@ public class ClientConsentController extends AbstractRestController {
 
         final List<ClientAuthorizationLogsResponse.Log> logs;
 
-        try (Stream<ClientConsentLogEntity> stream = this.clientConsentLogRepository.findByAccountIdAndClientId(user.getAccountId(), clientId, page, LOGS_PAGE_SIZE)) {
+        try (Stream<ClientConsentLogEntity> stream = this.clientConsentLogRepository.findByAccountIdAndClientRegistrationId(user.getAccountId(), clientId, page, LOGS_PAGE_SIZE)) {
             logs = stream
                     .sorted(Comparator.comparing(ClientConsentLogEntity::timestamp).reversed())
                     .map(ClientAuthorizationLogsResponse.Log::create).collect(Collectors.toList());

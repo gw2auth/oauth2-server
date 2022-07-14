@@ -10,6 +10,8 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+import java.util.Objects;
+
 public abstract class AbstractUserService {
 
     private final AccountService accountService;
@@ -30,7 +32,7 @@ public abstract class AbstractUserService {
                 final Account resultAccount = this.accountService.addAccountFederationOrReturnExisting(currentlyLoggedInUser.getAccountId(), issuer, idAtIssuer);
 
                 // only allow if this federation was not yet linked to another account
-                if (resultAccount.id() == currentlyLoggedInUser.getAccountId()) {
+                if (Objects.equals(resultAccount.id(), currentlyLoggedInUser.getAccountId())) {
                     account = resultAccount;
                 }
             }

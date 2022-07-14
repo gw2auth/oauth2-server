@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,7 +65,7 @@ public class SessionTest {
         final CookieHolder cookieHolder = new CookieHolder();
         this.gw2AuthLoginExtension.login(cookieHolder, "issuer", "idAtIssuer").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertEquals(1, sessions.size());
@@ -106,7 +107,7 @@ public class SessionTest {
         final CookieHolder cookieHolder = new CookieHolder();
         this.gw2AuthLoginExtension.login(cookieHolder, "issuer", "idAtIssuer").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertEquals(1, sessions.size());

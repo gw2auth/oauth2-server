@@ -61,7 +61,7 @@ class ApplicationControllerTest {
 
     @Test
     public void getApplicationSummary() throws Exception {
-        final long accountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID accountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
 
         final int accounts = 102;
         final int apiTokens = 3;
@@ -70,7 +70,7 @@ class ApplicationControllerTest {
         final int clientAuthorizations = 10;// this must be less than clientRegistrations! (only to keep the testcase simple)
 
         for (int i = 0; i < accounts; i++) {
-            this.accountRepository.save(new AccountEntity(null, Instant.now()));
+            this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now()));
         }
 
         for (int i = 0; i < apiTokens; i++) {
@@ -84,7 +84,7 @@ class ApplicationControllerTest {
         final Queue<ClientRegistrationEntity> clientRegistrationEntities = new LinkedList<>();
 
         for (int i = 0; i < clientRegistrations; i++) {
-            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "Name", UUID.randomUUID(), "", Set.of(), Set.of("http://127.0.0.1/"))));
+            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "Name", "", Set.of(), Set.of("http://127.0.0.1/"))));
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {

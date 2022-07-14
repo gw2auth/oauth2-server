@@ -6,6 +6,8 @@ import com.gw2auth.oauth2.server.repository.summary.SummaryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class SummaryServiceImpl implements SummaryService {
 
@@ -30,7 +32,7 @@ public class SummaryServiceImpl implements SummaryService {
     }
 
     @Override
-    public AccountSummary getAccountSummary(long accountId) {
+    public AccountSummary getAccountSummary(UUID accountId) {
         final AccountSummaryEntity value = this.summaryRepository.getAccountSummary(accountId);
 
         return new AccountSummary(

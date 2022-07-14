@@ -3,6 +3,8 @@ package com.gw2auth.oauth2.server.service.user;
 import com.fasterxml.jackson.annotation.*;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+import java.util.UUID;
+
 /*
 Has to be kept here to support old issued authorizations
  */
@@ -14,7 +16,7 @@ Has to be kept here to support old issued authorizations
 public abstract class Gw2AuthUserMixin {
 
     @JsonCreator
-    Gw2AuthUserMixin(@JsonProperty("parent") OAuth2User parent, @JsonProperty("accountId") long accountId) {
+    Gw2AuthUserMixin(@JsonProperty("parent") OAuth2User parent, @JsonProperty("accountId") UUID accountId) {
 
     }
 
@@ -22,5 +24,5 @@ public abstract class Gw2AuthUserMixin {
     abstract OAuth2User getParent();
 
     @JsonGetter("accountId")
-    abstract long getAccountId();
+    abstract UUID getAccountId();
 }

@@ -10,34 +10,31 @@ import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
 import java.security.Principal;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrincipal, Serializable {
 
     @Serial
     private static final ObjectStreamField[] serialPersistentFields = new ObjectStreamField[]{
-            new ObjectStreamField("accountId", long.class),
+            new ObjectStreamField("accountId", UUID.class),
             new ObjectStreamField("accountFederation", Pair.class)
     };
 
-    private final long accountId;
+    private final UUID accountId;
     private final Pair<String, String> accountFederation;
     private final String sessionId;
 
-    public Gw2AuthUserV2(long accountId, String issuer, String idAtIssuer) {
+    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer) {
         this(accountId, issuer, idAtIssuer, null);
     }
 
-    public Gw2AuthUserV2(long accountId, String issuer, String idAtIssuer, String sessionId) {
+    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId) {
         this.accountId = accountId;
         this.accountFederation = new Pair<>(issuer, idAtIssuer);
         this.sessionId = sessionId;
     }
 
-    public long getAccountId() {
+    public UUID getAccountId() {
         return this.accountId;
     }
 
@@ -60,7 +57,7 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
 
     @Override
     public String getName() {
-        return Long.toString(this.accountId);
+        return this.accountId.toString();
     }
 
     @Override

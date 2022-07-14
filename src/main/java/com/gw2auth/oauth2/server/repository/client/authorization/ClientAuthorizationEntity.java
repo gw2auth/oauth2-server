@@ -5,11 +5,12 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 @Table("client_authorizations")
-public record ClientAuthorizationEntity(@Column("account_id") long accountId,
-                                        @Column("id") String id,
-                                        @Column("client_registration_id") long clientRegistrationId,
+public record ClientAuthorizationEntity(@Column("id") String id,
+                                        @Column("account_id") UUID accountId,
+                                        @Column("client_registration_id") UUID clientRegistrationId,
                                         @Column("creation_time") Instant creationTime,
                                         @Column("last_update_time") Instant lastUpdateTime,
                                         @Column("display_name") String displayName,

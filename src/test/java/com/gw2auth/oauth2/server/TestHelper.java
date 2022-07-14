@@ -101,11 +101,11 @@ public class TestHelper {
         return collection.stream().findFirst();
     }
 
-    public ApiTokenEntity createApiToken(long accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+    public ApiTokenEntity createApiToken(UUID accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         return createApiToken(accountId, gw2AccountId, randomRootToken(), gw2ApiPermissions, name);
     }
 
-    public ApiTokenEntity createApiToken(long accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+    public ApiTokenEntity createApiToken(UUID accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         final Instant now = Instant.now();
         return this.apiTokenRepository.save(new ApiTokenEntity(
                 accountId,
@@ -119,26 +119,25 @@ public class TestHelper {
         ));
     }
 
-    public ClientRegistrationEntity createClientRegistration(long accountId, String name) {
+    public ClientRegistrationEntity createClientRegistration(UUID accountId, String name) {
         return this.clientRegistrationRepository.save(new ClientRegistrationEntity(
-                null,
+                UUID.randomUUID(),
                 accountId,
                 Instant.now(),
                 name,
-                UUID.randomUUID(),
                 UUID.randomUUID().toString(),
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
                 Set.of("http://test.gw2auth.com/dummy")
         ));
     }
 
-    public ClientConsentEntity createClientConsent(long accountId, long clientRegistrationId, Set<String> scopes) {
+    public ClientConsentEntity createClientConsent(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
         return this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationId, UUID.randomUUID(), scopes));
     }
 
-    public ClientConsentLogEntity createClientLog(long accountId, long clientRegistrationId, String type, List<String> messages) {
+    public ClientConsentLogEntity createClientLog(UUID accountId, UUID clientRegistrationId, String type, List<String> messages) {
         return this.clientConsentLogRepository.save(new ClientConsentLogEntity(
-                null,
+                UUID.randomUUID(),
                 accountId,
                 clientRegistrationId,
                 Instant.now(),
@@ -147,12 +146,12 @@ public class TestHelper {
         ));
     }
 
-    public ClientAuthorizationEntity createClientAuthorization(long accountId, long clientRegistrationId, Set<String> scopes) {
+    public ClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
         final Instant now = Instant.now();
 
         return this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
-                accountId,
                 UUID.randomUUID().toString(),
+                accountId,
                 clientRegistrationId,
                 now,
                 now,
@@ -178,17 +177,17 @@ public class TestHelper {
         ));
     }
 
-    public ClientAuthorizationTokenEntity createClientAuthorizationToken(long accountId, String clientAuthorizationId, UUID gw2AccountId) {
-        return this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationId, gw2AccountId));
+    public ClientAuthorizationTokenEntity createClientAuthorizationToken(UUID accountId, String clientAuthorizationId, UUID gw2AccountId) {
+        return this.clientAuthorizationTokenRepository.save(new ClientAuthorizationTokenEntity(clientAuthorizationId, accountId, gw2AccountId));
     }
 
-    public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(long accountId, String clientAuthorizationId, UUID... gw2AccountIds) {
+    public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(UUID accountId, String clientAuthorizationId, UUID... gw2AccountIds) {
         return Arrays.stream(gw2AccountIds)
                 .map((gw2AccountId) -> createClientAuthorizationToken(accountId, clientAuthorizationId, gw2AccountId))
                 .collect(Collectors.toList());
     }
 
-    public Gw2AccountVerificationEntity createAccountVerification(long accountId, UUID gw2AccountId) {
+    public Gw2AccountVerificationEntity createAccountVerification(UUID accountId, UUID gw2AccountId) {
         return this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
     }
 
@@ -202,17 +201,14 @@ public class TestHelper {
         return Optional.of(this.jwtConverter.readSessionId(this.jwtConverter.readJWT(cookie.getValue())));
     }
 
-    public OptionalLong getAccountIdForCookie(CookieHolder cookieHolder) {
+    public Optional<UUID> getAccountIdForCookie(CookieHolder cookieHolder) {
         final Cookie cookie = cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
 
         if (cookie == null || cookie.getMaxAge() <= 0 || cookie.getValue().isEmpty()) {
-            return OptionalLong.empty();
+            return Optional.empty();
         }
 
-        return this.gw2AuthTokenUserService.resolveUserForToken(cookie.getValue())
-                .map(Gw2AuthUserV2::getAccountId)
-                .map(OptionalLong::of)
-                .orElseGet(OptionalLong::empty);
+        return this.gw2AuthTokenUserService.resolveUserForToken(cookie.getValue()).map(Gw2AuthUserV2::getAccountId);
     }
 
     public int executeUpdate(String sql, Object... args) {

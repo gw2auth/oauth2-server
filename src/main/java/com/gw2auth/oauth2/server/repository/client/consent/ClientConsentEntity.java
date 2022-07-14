@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.UUID;
 
 @Table("client_consents")
-public record ClientConsentEntity(@Column("account_id") long accountId,
-                                  @Column("client_registration_id") long clientRegistrationId,
+public record ClientConsentEntity(@Column("account_id") UUID accountId,
+                                  @Column("client_registration_id") UUID clientRegistrationId,
                                   @Column("account_sub") UUID accountSub,
                                   @Column("authorized_scopes") Set<String> authorizedScopes) {
 

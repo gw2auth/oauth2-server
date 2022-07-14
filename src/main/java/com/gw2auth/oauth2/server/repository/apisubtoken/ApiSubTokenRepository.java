@@ -28,7 +28,7 @@ public interface ApiSubTokenRepository extends BaseRepository<ApiSubTokenEntity>
     expiration_time = EXCLUDED.expiration_time
     RETURNING *
     """)
-    ApiSubTokenEntity save(@Param("account_id") long accountId,
+    ApiSubTokenEntity save(@Param("account_id") UUID accountId,
                            @Param("gw2_account_id") UUID gw2AccountId,
                            @Param("gw2_api_permissions_bit_set") int gw2ApiPermissionsBitSet,
                            @Param("gw2_api_subtoken") String gw2ApiSubtoken,
@@ -41,7 +41,7 @@ public interface ApiSubTokenRepository extends BaseRepository<ApiSubTokenEntity>
     AND gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
     AND gw2_api_permissions_bit_set = :gw2_api_permissions_bit_set
     """)
-    List<ApiSubTokenEntity> findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(@Param("account_id") long accountId,
+    List<ApiSubTokenEntity> findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(@Param("account_id") UUID accountId,
                                                                                       @Param("gw2_account_ids") Collection<UUID> gw2AccountIds,
                                                                                       @Param("gw2_api_permissions_bit_set") int gw2ApiPermissionsBitSet);
 }

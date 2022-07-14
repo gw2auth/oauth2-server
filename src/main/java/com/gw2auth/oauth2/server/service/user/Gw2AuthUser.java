@@ -13,6 +13,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 /*
 Has to be kept here to support old issued authorizations
@@ -23,19 +24,19 @@ public class Gw2AuthUser implements OAuth2User, OidcUser, Serializable {
     @Serial
     private static final ObjectStreamField[] serialPersistentFields = new ObjectStreamField[]{
             new ObjectStreamField("parent", OAuth2User.class),
-            new ObjectStreamField("accountId", long.class),
+            new ObjectStreamField("accountId", UUID.class),
             new ObjectStreamField("accountFederation", Pair.class)
     };
 
     private final OAuth2User parent;
-    private final long accountId;
+    private final UUID accountId;
     private final Pair<String, String> accountFederation;
 
-    public Gw2AuthUser(OAuth2User parent, long accountId) {
+    public Gw2AuthUser(OAuth2User parent, UUID accountId) {
         this(parent, accountId, null);
     }
 
-    public Gw2AuthUser(OAuth2User parent, long accountId, Pair<String, String> accountFederation) {
+    public Gw2AuthUser(OAuth2User parent, UUID accountId, Pair<String, String> accountFederation) {
         this.parent = parent;
         this.accountId = accountId;
         this.accountFederation = accountFederation;
@@ -58,14 +59,14 @@ public class Gw2AuthUser implements OAuth2User, OidcUser, Serializable {
 
     @Override
     public String getName() {
-        return Long.toString(this.accountId);
+        return this.accountId.toString();
     }
 
     public OAuth2User getParent() {
         return this.parent;
     }
 
-    public long getAccountId() {
+    public UUID getAccountId() {
         return this.accountId;
     }
 

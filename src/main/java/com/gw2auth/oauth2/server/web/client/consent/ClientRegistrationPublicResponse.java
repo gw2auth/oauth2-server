@@ -14,6 +14,6 @@ public record ClientRegistrationPublicResponse(@JsonProperty("creationTime") Ins
                                                @JsonProperty("clientId") UUID clientId) {
 
     public static ClientRegistrationPublicResponse create(ClientRegistration clientRegistration) {
-        return new ClientRegistrationPublicResponse(clientRegistration.creationTime(), clientRegistration.displayName(), clientRegistration.clientId());
+        return new ClientRegistrationPublicResponse(clientRegistration.creationTime(), clientRegistration.displayName(), clientRegistration.id());
     }
 }

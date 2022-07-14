@@ -113,13 +113,12 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public void prepareAddFederation(long accountId, String issuer) {
+    public void prepareAddFederation(UUID accountId, String issuer) {
         this.s3.putObject(this.bucket, this.prefix + accountId, issuer);
     }
 
     @Override
-    public boolean checkAndDeletePrepareAddFederation(long accountId, String issuer) {
-
+    public boolean checkAndDeletePrepareAddFederation(UUID accountId, String issuer) {
         try (S3Object s3Object = this.s3.getObject(this.bucket, this.prefix + accountId)) {
             this.s3.deleteObject(this.bucket, this.prefix + accountId);
 
@@ -133,7 +132,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public Account addAccountFederationOrReturnExisting(long accountId, String issuer, String idAtIssuer) {
+    public Account addAccountFederationOrReturnExisting(UUID accountId, String issuer, String idAtIssuer) {
         final Optional<AccountEntity> optionalAccountEntity = this.accountRepository.findByFederation(issuer, idAtIssuer);
         AccountEntity accountEntity;
 
@@ -150,7 +149,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public List<AccountFederationWithSessions> getAccountFederationsWithSessions(long accountId) {
+    public List<AccountFederationWithSessions> getAccountFederationsWithSessions(UUID accountId) {
         final List<AccountFederationEntity> federationEntities = this.accountFederationRepository.findAllByAccountId(accountId);
         final Map<Pair<String, String>, List<AccountFederationSessionEntity>> federationSessionEntities = this.accountFederationSessionRepository.findAllByAccountId(accountId).stream()
                 .collect(Collectors.groupingBy((v) -> new Pair<>(v.issuer(), v.idAtIssuer())));
@@ -171,7 +170,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public boolean deleteAccountFederation(long accountId, String issuer, String idAtIssuer) {
+    public boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer) {
         final int federationCount = this.accountFederationRepository.countByAccountId(accountId);
 
         // at least one federation has to be kept, otherwise the user could not login anymore
@@ -183,13 +182,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean deleteSession(long accountId, String sessionId) {
+    public boolean deleteSession(UUID accountId, String sessionId) {
         return this.accountFederationSessionRepository.deleteByAccountIdAndId(accountId, sessionId);
     }
 
     @Override
     @Transactional
-    public boolean deleteAccount(long accountId) {
+    public boolean deleteAccount(UUID accountId) {
         this.accountRepository.deleteById(accountId);
         return true;
     }
@@ -200,7 +199,7 @@ public class AccountServiceImpl implements AccountService {
         AccountEntity accountEntity;
 
         if (optionalAccount.isEmpty()) {
-            accountEntity = this.accountRepository.save(new AccountEntity(null, this.clock.instant()));
+            accountEntity = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), this.clock.instant()));
 
             AccountFederationEntity accountFederationEntity = new AccountFederationEntity(issuer, idAtIssuer, accountEntity.id());
             accountFederationEntity = this.accountFederationRepository.save(accountFederationEntity);

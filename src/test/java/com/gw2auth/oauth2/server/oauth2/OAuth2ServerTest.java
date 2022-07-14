@@ -20,7 +20,6 @@ import com.gw2auth.oauth2.server.service.OAuth2TokenCustomizerService;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationServiceImpl;
-import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
@@ -225,7 +224,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -249,7 +248,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void authorizationCodeRequestWithUpgradingConsent(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -273,7 +272,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void authorizationCodeRequestWithExistingConsentAndPromptConsent(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistration clientRegistration = createClientRegistration().clientRegistration();
 
         this.clientConsentRepository.save(new ClientConsentEntity(
@@ -297,7 +296,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitAndHappyFlow(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -382,7 +381,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithExpiredSubtokens(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -501,7 +500,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithSubtokenRetrievalError(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -620,7 +619,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithUnexpectedGW2APIException(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -699,7 +698,7 @@ public class OAuth2ServerTest {
                 post("/oauth2/token")
                         .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
                         .queryParam(OAuth2ParameterNames.CODE, codeParam)
-                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                         .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                         .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistrationCreation.clientRegistration().redirectUris()).orElseThrow())
         )
@@ -742,7 +741,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithLaterRemovedRootApiTokens(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -835,7 +834,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithLessScopesThanRequested(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -913,7 +912,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitWithGw2AuthVerifiedScope(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -990,7 +989,7 @@ public class OAuth2ServerTest {
         ));
 
         // remove the verification for the first account and save one for the second
-        this.gw2AccountVerificationRepository.deleteById(this.gw2AccountId1st);
+        this.gw2AccountVerificationRepository.deleteByGw2AccountId(this.gw2AccountId1st);
         this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(this.gw2AccountId2nd, accountId));
 
         // retrieve a new access token using the refresh token
@@ -1007,7 +1006,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void consentSubmitAndSubmitAgainWithLessScopes(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1108,7 +1107,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void revokeAccessToken(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1145,7 +1144,7 @@ public class OAuth2ServerTest {
 
         this.mockMvc.perform(
                 post("/oauth2/revoke")
-                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                         .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                         .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
                         .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
@@ -1159,7 +1158,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void revokeAccessTokenWithInvalidClientSecret(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1196,7 +1195,7 @@ public class OAuth2ServerTest {
 
         this.mockMvc.perform(
                         post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
                                 .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
                                 .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
@@ -1210,7 +1209,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void revokeRefreshToken(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1248,7 +1247,7 @@ public class OAuth2ServerTest {
 
         this.mockMvc.perform(
                         post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                                 .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
                                 .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
@@ -1274,7 +1273,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin
     public void revokeRefreshTokenWithInvalidClientSecret(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1311,7 +1310,7 @@ public class OAuth2ServerTest {
 
         this.mockMvc.perform(
                         post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
                                 .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
                                 .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
@@ -1325,7 +1324,7 @@ public class OAuth2ServerTest {
 
     @WithGw2AuthLogin(issuer = "testissuer", idAtIssuer = "testidatissuer")
     public void refreshWithLegacyAttributes(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ClientRegistrationCreation clientRegistrationCreation = createClientRegistration();
         final ClientRegistration clientRegistration = clientRegistrationCreation.clientRegistration();
         // perform authorization request (which should redirect to the consent page)
@@ -1465,7 +1464,7 @@ public class OAuth2ServerTest {
                                 },
                                 "nameAttributeKey": "id"
                               },
-                              "accountId": __ACCOUNT_ID
+                              "accountId": "__ACCOUNT_ID"
                             },
                             "authorities": [
                               "java.util.Collections$UnmodifiableRandomAccessList",
@@ -1496,11 +1495,11 @@ public class OAuth2ServerTest {
                         }
                 """;
 
-        attributesJson = attributesJson.replace("__CLIENT_ID", clientRegistration.clientId().toString());
+        attributesJson = attributesJson.replace("__CLIENT_ID", clientRegistration.id().toString());
         attributesJson = attributesJson.replace("__REDIRECT_URI", TestHelper.first(clientRegistration.redirectUris()).orElseThrow());
         attributesJson = attributesJson.replace("__STATE", UUID.randomUUID().toString());
         attributesJson = attributesJson.replace("__CODE_CHALLENGE", UUID.randomUUID().toString());
-        attributesJson = attributesJson.replace("__ACCOUNT_ID", Long.toString(accountId));
+        attributesJson = attributesJson.replace("__ACCOUNT_ID", accountId.toString());
 
         this.testHelper.executeUpdate("UPDATE client_authorizations SET attributes = ? WHERE id = ?", attributesJson, clientAuthorization.id());
 
@@ -1526,7 +1525,7 @@ public class OAuth2ServerTest {
                         post("/oauth2/token")
                                 .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.REFRESH_TOKEN.getValue())
                                 .queryParam(OAuth2ParameterNames.REFRESH_TOKEN, refreshToken)
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                 );
     }
@@ -1555,7 +1554,7 @@ public class OAuth2ServerTest {
                         post("/oauth2/token")
                                 .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
                                 .queryParam(OAuth2ParameterNames.CODE, codeParam)
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().clientId().toString())
+                                .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistrationCreation.clientRegistration().id().toString())
                                 .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientRegistrationCreation.clientSecret())
                                 .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistrationCreation.clientRegistration().redirectUris()).orElseThrow())
                 );
@@ -1604,7 +1603,7 @@ public class OAuth2ServerTest {
         assertTrue(params.containsKey(OAuth2ParameterNames.SCOPE));
 
         // insert some dummy api tokens
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         this.testHelper.createApiToken(accountId, this.gw2AccountId1st, tokenA, requestedGw2ApiPermissions, "First");
         this.testHelper.createApiToken(accountId, this.gw2AccountId2nd, tokenB, requestedGw2ApiPermissions, "Second");
@@ -1737,7 +1736,7 @@ public class OAuth2ServerTest {
 
         ResultActions resultActions =  this.mockMvc.perform(
                 builder
-                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistration.clientId().toString())
+                        .queryParam(OAuth2ParameterNames.CLIENT_ID, clientRegistration.id().toString())
                         .queryParam(OAuth2ParameterNames.SCOPE, String.join(" ", scopes))
                         .queryParam(OAuth2ParameterNames.RESPONSE_TYPE, "code")
                         .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(clientRegistration.redirectUris()).orElseThrow())

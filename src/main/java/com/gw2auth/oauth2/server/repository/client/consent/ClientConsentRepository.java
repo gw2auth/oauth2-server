@@ -29,18 +29,15 @@ public interface ClientConsentRepository extends BaseRepository<ClientConsentEnt
     authorized_scopes = EXCLUDED.authorized_scopes
     RETURNING *
     """)
-    ClientConsentEntity save(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId, @Param("account_sub") UUID accountSub, @Param("authorized_scopes") Set<String> authorizedScopes);
+    ClientConsentEntity save(@Param("account_id") UUID accountId, @Param("client_registration_id") UUID clientRegistrationId, @Param("account_sub") UUID accountSub, @Param("authorized_scopes") Set<String> authorizedScopes);
 
     @Query("SELECT * FROM client_consents WHERE account_id = :account_id")
-    List<ClientConsentEntity> findAllByAccountId(@Param("account_id") long accountId);
-
-    @Query("SELECT auth.* FROM client_consents auth INNER JOIN client_registrations reg ON auth.client_registration_id = reg.id WHERE auth.account_id = :account_id AND reg.client_id = :client_id")
-    Optional<ClientConsentEntity> findByAccountIdAndClientId(@Param("account_id") long accountId, @Param("client_id") UUID clientId);
+    List<ClientConsentEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Query("SELECT * FROM client_consents WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
-    Optional<ClientConsentEntity> findByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
+    Optional<ClientConsentEntity> findByAccountIdAndClientRegistrationId(@Param("account_id") UUID accountId, @Param("client_registration_id") UUID clientRegistrationId);
 
     @Modifying
     @Query("DELETE FROM client_consents WHERE account_id = :account_id AND client_registration_id = :client_registration_id")
-    void deleteByAccountIdAndClientRegistrationId(@Param("account_id") long accountId, @Param("client_registration_id") long clientRegistrationId);
+    void deleteByAccountIdAndClientRegistrationId(@Param("account_id") UUID accountId, @Param("client_registration_id") UUID clientRegistrationId);
 }

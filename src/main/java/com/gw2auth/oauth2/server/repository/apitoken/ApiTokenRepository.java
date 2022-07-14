@@ -31,25 +31,25 @@ public interface ApiTokenRepository extends BaseRepository<ApiTokenEntity>, Cust
     display_name = EXCLUDED.display_name
     RETURNING *
     """)
-    ApiTokenEntity save(@Param("account_id") long accountId, @Param("gw2_account_id") UUID gw2AccountId, @Param("creation_time") Instant creationTime, @Param("gw2_api_token") String gw2ApiToken, @Param("gw2_api_permissions") Set<String> gw2ApiPermissions, @Param("last_valid_check_time") Instant lastValidCheckTime, @Param("is_valid") boolean isValid, @Param("display_name") String displayName);
+    ApiTokenEntity save(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId, @Param("creation_time") Instant creationTime, @Param("gw2_api_token") String gw2ApiToken, @Param("gw2_api_permissions") Set<String> gw2ApiPermissions, @Param("last_valid_check_time") Instant lastValidCheckTime, @Param("is_valid") boolean isValid, @Param("display_name") String displayName);
 
     @Query("SELECT * FROM gw2_api_tokens WHERE account_id = :account_id")
-    List<ApiTokenEntity> findAllByAccountId(@Param("account_id") long accountId);
+    List<ApiTokenEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Query("SELECT * FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])")
-    List<ApiTokenEntity> findAllByAccountIdAndGw2AccountIds(@Param("account_id") long accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
+    List<ApiTokenEntity> findAllByAccountIdAndGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
 
     @Query("SELECT * FROM gw2_api_tokens WHERE last_valid_check_time <= :last_valid_check_time LIMIT :limit")
     List<ApiTokenEntity> findAllByLastValidCheckTimeLTE(@Param("last_valid_check_time") Instant lastValidCheckTime, @Param("limit") int limit);
 
     @Query("SELECT * FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
-    Optional<ApiTokenEntity> findByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") UUID gw2AccountId);
+    Optional<ApiTokenEntity> findByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 
     @Modifying
     @Query("DELETE FROM gw2_api_tokens WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
-    int deleteByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") UUID gw2AccountId);
+    int deleteByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 
     @Modifying
     @Query("DELETE FROM gw2_api_tokens WHERE gw2_account_id = :gw2_account_id AND account_id <> :account_id")
-    int deleteAllByGw2AccountIdExceptForAccountId(@Param("gw2_account_id") UUID gw2AccountId, @Param("account_id") long accountId);
+    int deleteAllByGw2AccountIdExceptForAccountId(@Param("gw2_account_id") UUID gw2AccountId, @Param("account_id") UUID accountId);
 }

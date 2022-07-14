@@ -104,7 +104,7 @@ class VerificationControllerTest {
     public void getBootstrap(CookieHolder cookieHolder) throws Exception {
         // this basically tests 3 other endpoints too
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final ObjectMapper mapper = new ObjectMapper();
 
         // 1 started challenge
@@ -195,7 +195,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startNewChallengeApiTokenName(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         this.mockMvc.perform(
                 post("/api/verification")
@@ -214,7 +214,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startNewChallengeTPBuyOrder(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         this.mockMvc.perform(
                 post("/api/verification")
@@ -234,7 +234,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startNewChallengeCharacterName(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         this.mockMvc.perform(
                         post("/api/verification")
@@ -265,7 +265,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeWithInsufficientPermissions(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -299,7 +299,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeUnfulfilled(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -359,10 +359,10 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -413,7 +413,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
-        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).orElse(null);
         assertNotNull(accountVerification);
         assertEquals(accountId, accountVerification.accountId());
 
@@ -426,10 +426,10 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -465,7 +465,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
-        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).orElse(null);
         assertNotNull(accountVerification);
         assertEquals(accountId, accountVerification.accountId());
 
@@ -478,10 +478,10 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -517,7 +517,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
-        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).orElse(null);
         assertNotNull(accountVerification);
         assertEquals(accountId, accountVerification.accountId());
 
@@ -530,10 +530,10 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -569,7 +569,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
 
         // account should now be verified
-        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findById(gw2AccountId).orElse(null);
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).orElse(null);
         assertNotNull(accountVerification);
         assertEquals(accountId, accountVerification.accountId());
 
@@ -579,7 +579,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startChallengeWithoutWaitingLongEnoughBetween(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -620,7 +620,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startChallengeWithSameChallengeIdAsExisting(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -661,7 +661,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startChallengeWithLongEnoughBetween(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -709,7 +709,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitChallengeForGw2AccountHavingAPendingVerification(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -772,7 +772,7 @@ class VerificationControllerTest {
 
     @WithGw2AuthLogin
     public void startAndSubmitChallengeForGw2AccountAlreadyVerified(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());

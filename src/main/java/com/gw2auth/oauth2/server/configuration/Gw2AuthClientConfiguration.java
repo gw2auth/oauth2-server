@@ -70,7 +70,7 @@ public class Gw2AuthClientConfiguration {
                 );
 
                 this.jdbcOperations.update(
-                        "UPDATE client_registrations SET client_id = ?, client_secret = ? WHERE id = ?",
+                        "UPDATE client_registrations SET id = ?, client_secret = ? WHERE id = ?",
                         clientId,
                         this.passwordEncoder.encode(registrationConfig.getClientSecret()),
                         clientRegistrationCreation.clientRegistration().id()

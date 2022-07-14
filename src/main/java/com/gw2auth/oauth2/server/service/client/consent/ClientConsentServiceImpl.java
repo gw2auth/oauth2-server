@@ -7,7 +7,10 @@ import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntit
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
 @Service
 public class ClientConsentServiceImpl implements ClientConsentService, OAuth2AuthorizationConsentService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ClientConsentServiceImpl.class);
     private static final int MAX_LOG_COUNT = 50;
 
     private final ClientConsentRepository clientConsentRepository;
@@ -51,7 +55,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     }
 
     @Override
-    public List<ClientConsent> getClientConsents(long accountId) {
+    public List<ClientConsent> getClientConsents(UUID accountId) {
         return this.clientConsentRepository.findAllByAccountId(accountId).stream()
                 .filter(ClientConsentServiceImpl::isAuthorized)
                 .map(ClientConsent::fromEntity)
@@ -59,7 +63,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     }
 
     @Override
-    public Optional<ClientConsent> getClientConsent(long accountId, long clientRegistrationId) {
+    public Optional<ClientConsent> getClientConsent(UUID accountId, UUID clientRegistrationId) {
         return this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                 .filter(ClientConsentServiceImpl::isAuthorized)
                 .map(ClientConsent::fromEntity);
@@ -67,7 +71,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     @Override
     @Transactional
-    public void createEmptyClientConsentIfNotExists(long accountId, long clientRegistrationId) {
+    public void createEmptyClientConsentIfNotExists(UUID accountId, UUID clientRegistrationId) {
         final Optional<ClientConsentEntity> optional = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId);
         if (optional.isEmpty()) {
             this.clientConsentRepository.save(createAuthorizedClientEntity(accountId, clientRegistrationId));
@@ -76,13 +80,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     @Override
     @Transactional
-    public void deleteClientConsent(long accountId, UUID clientId) {
-        this.clientConsentRepository.findByAccountIdAndClientId(accountId, clientId).ifPresent(this::deleteInternal);
-    }
-
-    @Override
-    @Transactional
-    public void deleteClientConsent(long accountId, long clientRegistrationId) {
+    public void deleteClientConsent(UUID accountId, UUID clientRegistrationId) {
         this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).ifPresent(this::deleteInternal);
     }
 
@@ -94,7 +92,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     }
 
     @Override
-    public LoggingContext log(long accountId, long clientRegistrationId, LogType logType) {
+    public LoggingContext log(UUID accountId, UUID clientRegistrationId, LogType logType) {
         return new LoggingContextImpl(accountId, clientRegistrationId, logType);
     }
 
@@ -106,8 +104,8 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
             throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
-        final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
-        final long clientRegistrationId = Long.parseLong(authorizationConsent.getRegisteredClientId());
+        final UUID accountId = UUID.fromString(authorizationConsent.getPrincipalName());
+        final UUID clientRegistrationId = UUID.fromString(authorizationConsent.getRegisteredClientId());
 
         try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
             ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
@@ -121,16 +119,16 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     @Override
     public void remove(OAuth2AuthorizationConsent authorizationConsent) {
-        final long accountId = Long.parseLong(authorizationConsent.getPrincipalName());
-        final long registeredClientId = Long.parseLong(authorizationConsent.getRegisteredClientId());
+        final UUID accountId = UUID.fromString(authorizationConsent.getPrincipalName());
+        final UUID registeredClientId = UUID.fromString(authorizationConsent.getRegisteredClientId());
 
         deleteClientConsent(accountId, registeredClientId);
     }
 
     @Override
     public OAuth2AuthorizationConsent findById(String registeredClientId, String principalName) {
-        final long accountId = Long.parseLong(principalName);
-        final long clientRegistrationId = Long.parseLong(registeredClientId);
+        final UUID accountId = UUID.fromString(principalName);
+        final UUID clientRegistrationId = UUID.fromString(registeredClientId);
 
         if (this.authorizationCodeParamAccessor.isInCodeRequest() && !this.authorizationCodeParamAccessor.isInConsentContext()) {
             if (this.authorizationCodeParamAccessor.getAdditionalParameters().filter((e) -> e.getKey().equals("prompt")).map(Map.Entry::getValue).anyMatch(Predicate.isEqual("consent"))) {
@@ -151,7 +149,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
         return this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
                 .filter(ClientConsentServiceImpl::isAuthorized)
                 .map((entity) -> {
-                    final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(Long.toString(entity.clientRegistrationId()), Long.toString(entity.accountId()));
+                    final OAuth2AuthorizationConsent.Builder builder = OAuth2AuthorizationConsent.withId(entity.clientRegistrationId().toString(), entity.accountId().toString());
                     entity.authorizedScopes().forEach(builder::scope);
 
                     return builder.build();
@@ -160,7 +158,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     }
     // endregion
 
-    private ClientConsentEntity createAuthorizedClientEntity(long accountId, long registeredClientId) {
+    private ClientConsentEntity createAuthorizedClientEntity(UUID accountId, UUID registeredClientId) {
         return new ClientConsentEntity(accountId, registeredClientId, UUID.randomUUID(), Set.of());
     }
 
@@ -170,14 +168,14 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     private final class LoggingContextImpl implements LoggingContext {
 
-        private final long accountId;
-        private final long clientRegistrationId;
+        private final UUID accountId;
+        private final UUID clientRegistrationId;
         private final LogType logType;
         private final Instant timestamp;
         private final List<String> messages;
         private final AtomicBoolean isValid;
 
-        private LoggingContextImpl(long accountId, long clientRegistrationId, LogType logType) {
+        private LoggingContextImpl(UUID accountId, UUID clientRegistrationId, LogType logType) {
             this.accountId = accountId;
             this.clientRegistrationId = clientRegistrationId;
             this.logType = logType;
@@ -198,8 +196,18 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
         @Override
         public void close() {
             if (this.isValid.compareAndSet(true, false)) {
-                ClientConsentServiceImpl.this.clientConsentLogRepository.deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(this.accountId, this.clientRegistrationId, MAX_LOG_COUNT - 1);
-                ClientConsentServiceImpl.this.clientConsentLogRepository.save(new ClientConsentLogEntity(null, this.accountId, this.clientRegistrationId, this.timestamp, this.logType.name(), this.messages));
+                try {
+                    /*
+                    Preparation for CockroachDB
+                    Caused by: org.postgresql.util.PSQLException: ERROR: restart transaction: TransactionRetryWithProtoRefreshError: ReadWithinUncertaintyIntervalError: read at time 1657844930.854217895,0 encountered previous write with future timestamp 1657844930.854217895,1 within uncertainty interval [...]
+                    Hinweis: See: https://www.cockroachlabs.com/docs/v22.1/transaction-retry-error-reference.html#readwithinuncertaintyinterval
+                     */
+                    ClientConsentServiceImpl.this.clientConsentLogRepository.deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(this.accountId, this.clientRegistrationId, MAX_LOG_COUNT - 1);
+                } catch (DataAccessException e) {
+                    LOG.info("failed to delete old logs", e);
+                }
+
+                ClientConsentServiceImpl.this.clientConsentLogRepository.save(new ClientConsentLogEntity(UUID.randomUUID(), this.accountId, this.clientRegistrationId, this.timestamp, this.logType.name(), this.messages));
                 this.messages.clear();
             }
         }

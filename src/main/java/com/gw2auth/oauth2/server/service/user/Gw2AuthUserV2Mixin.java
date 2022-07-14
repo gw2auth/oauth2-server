@@ -2,6 +2,8 @@ package com.gw2auth.oauth2.server.service.user;
 
 import com.fasterxml.jackson.annotation.*;
 
+import java.util.UUID;
+
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE,
         isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE,
@@ -9,12 +11,12 @@ import com.fasterxml.jackson.annotation.*;
 public abstract class Gw2AuthUserV2Mixin {
 
     @JsonCreator
-    Gw2AuthUserV2Mixin(@JsonProperty("accountId") long accountId, @JsonProperty("issuer") String issuer, @JsonProperty("idAtIssuer") String idAtIssuer) {
+    Gw2AuthUserV2Mixin(@JsonProperty("accountId") UUID accountId, @JsonProperty("issuer") String issuer, @JsonProperty("idAtIssuer") String idAtIssuer) {
 
     }
 
     @JsonGetter("accountId")
-    abstract long getAccountId();
+    abstract UUID getAccountId();
 
     @JsonGetter("issuer")
     abstract String getIssuer();

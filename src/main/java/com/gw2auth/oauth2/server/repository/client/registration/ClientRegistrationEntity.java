@@ -9,11 +9,10 @@ import java.util.Set;
 import java.util.UUID;
 
 @Table("client_registrations")
-public record ClientRegistrationEntity(@Id @Column("id") Long id,
-                                       @Column("account_id") long accountId,
+public record ClientRegistrationEntity(@Id @Column("id") UUID id,
+                                       @Column("account_id") UUID accountId,
                                        @Column("creation_time") Instant creationTime,
                                        @Column("display_name") String displayName,
-                                       @Column("client_id") UUID clientId,
                                        @Column("client_secret") String clientSecret,
                                        @Column("authorization_grant_types") Set<String> authorizationGrantTypes,
                                        @Column("redirect_uris") Set<String> redirectUris) {
@@ -24,7 +23,6 @@ public record ClientRegistrationEntity(@Id @Column("id") Long id,
                 this.accountId,
                 this.creationTime,
                 this.displayName,
-                this.clientId,
                 clientSecret,
                 this.authorizationGrantTypes,
                 this.redirectUris

@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface AccountFederationRepository extends BaseRepository<AccountFederationEntity> {
@@ -23,19 +24,19 @@ public interface AccountFederationRepository extends BaseRepository<AccountFeder
     (:issuer, :id_at_issuer, :account_id)
     RETURNING *
     """)
-    AccountFederationEntity save(@Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer, @Param("account_id") long accountId);
+    AccountFederationEntity save(@Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer, @Param("account_id") UUID accountId);
 
     @Query("""
     SELECT *
     FROM account_federations
     WHERE account_id = :account_id
     """)
-    List<AccountFederationEntity> findAllByAccountId(@Param("account_id") long accountId);
+    List<AccountFederationEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Query("SELECT COUNT(*) FROM account_federations WHERE account_id = :account_id")
-    int countByAccountId(@Param("account_id") long accountId);
+    int countByAccountId(@Param("account_id") UUID accountId);
 
     @Modifying
     @Query("DELETE FROM account_federations WHERE account_id = :account_id AND issuer = :issuer AND id_at_issuer = :id_at_issuer")
-    boolean deleteByAccountIdAndIssuerAndIdAtIssuer(@Param("account_id") long accountId, @Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer);
+    boolean deleteByAccountIdAndIssuerAndIdAtIssuer(@Param("account_id") UUID accountId, @Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer);
 }

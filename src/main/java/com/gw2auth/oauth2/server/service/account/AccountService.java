@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.util.Pair;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface AccountService {
 
@@ -17,16 +18,16 @@ public interface AccountService {
 
     Optional<Pair<Account, AccountFederation>> getAccountForSession(String sessionId);
 
-    void prepareAddFederation(long accountId, String issuer);
-    boolean checkAndDeletePrepareAddFederation(long accountId, String issuer);
+    void prepareAddFederation(UUID accountId, String issuer);
+    boolean checkAndDeletePrepareAddFederation(UUID accountId, String issuer);
 
-    Account addAccountFederationOrReturnExisting(long accountId, String issuer, String idAtIssuer);
+    Account addAccountFederationOrReturnExisting(UUID accountId, String issuer, String idAtIssuer);
 
-    List<AccountFederationWithSessions> getAccountFederationsWithSessions(long accountId);
+    List<AccountFederationWithSessions> getAccountFederationsWithSessions(UUID accountId);
 
-    boolean deleteAccountFederation(long accountId, String issuer, String idAtIssuer);
+    boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer);
 
-    boolean deleteSession(long accountId, String sessionId);
+    boolean deleteSession(UUID accountId, String sessionId);
 
-    boolean deleteAccount(long accountId);
+    boolean deleteAccount(UUID accountId);
 }

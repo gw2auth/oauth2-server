@@ -1,8 +1,8 @@
 package com.gw2auth.oauth2.server.service.client.registration;
 
-import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
+import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
+import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class ClientRegistrationServiceImpl implements ClientRegistrationService, RegisteredClientRepository {
@@ -45,30 +44,30 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public List<ClientRegistration> getClientRegistrations(long accountId) {
+    public List<ClientRegistration> getClientRegistrations(UUID accountId) {
         return this.clientRegistrationRepository.findAllByAccountId(accountId).stream().map(ClientRegistration::fromEntity).collect(Collectors.toList());
     }
 
     @Override
-    public Optional<ClientRegistration> getClientRegistration(long accountId, UUID clientId) {
-        return this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId).map(ClientRegistration::fromEntity);
+    public Optional<ClientRegistration> getClientRegistration(UUID accountId, UUID id) {
+        return this.clientRegistrationRepository.findByAccountIdAndId(accountId, id).map(ClientRegistration::fromEntity);
     }
 
     @Override
-    public List<ClientRegistration> getClientRegistrations(Collection<Long> ids) {
-        return StreamSupport.stream(this.clientRegistrationRepository.findAllById(ids).spliterator(), false)
+    public List<ClientRegistration> getClientRegistrations(Collection<UUID> ids) {
+        return this.clientRegistrationRepository.findAllByIds(ids)
                 .map(ClientRegistration::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<ClientRegistration> getClientRegistration(UUID clientId) {
-        return this.clientRegistrationRepository.findByClientId(clientId).map(ClientRegistration::fromEntity);
+    public Optional<ClientRegistration> getClientRegistration(UUID id) {
+        return this.clientRegistrationRepository.findById(id).map(ClientRegistration::fromEntity);
     }
 
     @Override
     @Transactional
-    public ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> _authorizationGrantTypes, Set<String> redirectUris) {
+    public ClientRegistrationCreation createClientRegistration(UUID accountId, String displayName, Set<String> _authorizationGrantTypes, Set<String> redirectUris) {
         if (redirectUris.isEmpty()) {
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
         } else if (!redirectUris.stream().allMatch(this.redirectUriValidator::validate)) {
@@ -84,11 +83,10 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
         final String encodedClientSecret = this.passwordEncoder.encode(clientSecret);
 
         final ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.save(new ClientRegistrationEntity(
-                null,
+                generateClientId(),
                 accountId,
                 Instant.now(),
                 displayName,
-                generateClientId(),
                 encodedClientSecret,
                 authorizationGrantTypes.stream().map(AuthorizationGrantType::getValue).collect(Collectors.toSet()),
                 redirectUris
@@ -98,12 +96,12 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistration addRedirectUri(long accountId, UUID clientId, String redirectUri) {
+    public ClientRegistration addRedirectUri(UUID accountId, UUID id, String redirectUri) {
         if (!this.redirectUriValidator.validate(redirectUri)) {
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.INVALID_REDIRECT_URI, HttpStatus.BAD_REQUEST);
         }
 
-        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdAndId(accountId, id)
                 .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
 
         clientRegistrationEntity.redirectUris().add(redirectUri);
@@ -113,8 +111,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistration removeRedirectUri(long accountId, UUID clientId, String redirectUri) {
-        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+    public ClientRegistration removeRedirectUri(UUID accountId, UUID id, String redirectUri) {
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdAndId(accountId, id)
                 .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
 
         clientRegistrationEntity.redirectUris().remove(redirectUri);
@@ -129,8 +127,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public ClientRegistrationCreation regenerateClientSecret(long accountId, UUID clientId) {
-        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdIdAndClientId(accountId, clientId)
+    public ClientRegistrationCreation regenerateClientSecret(UUID accountId, UUID id) {
+        ClientRegistrationEntity clientRegistrationEntity = this.clientRegistrationRepository.findByAccountIdAndId(accountId, id)
                 .orElseThrow(() -> new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
 
         final String clientSecret = generateClientSecret();
@@ -142,8 +140,8 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     @Override
-    public void deleteClientRegistration(long accountId, UUID clientId) {
-        if (!this.clientRegistrationRepository.deleteByAccountIdIdAndClientId(accountId, clientId)) {
+    public void deleteClientRegistration(UUID accountId, UUID id) {
+        if (!this.clientRegistrationRepository.deleteByAccountIdAndId(accountId, id)) {
             // return not found since we dont want the user to know this client id exists
             throw new ClientRegistrationServiceException(ClientRegistrationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND);
         }
@@ -165,9 +163,9 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
     }
 
     private static RegisteredClient registeredClientFromEntity(ClientRegistrationEntity entity) {
-        final RegisteredClient.Builder builder = RegisteredClient.withId(Long.toString(entity.id()))
+        final RegisteredClient.Builder builder = RegisteredClient.withId(entity.id().toString())
                 .clientName(entity.displayName())
-                .clientId(entity.clientId().toString())
+                .clientId(entity.id().toString())
                 .clientSecret(entity.clientSecret())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(entity.redirectUris()))
@@ -209,13 +207,13 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
 
     @Override
     public RegisteredClient findById(String id) {
-        final long registeredClientId = Long.parseLong(id);
+        final UUID registeredClientId = UUID.fromString(id);
         return this.clientRegistrationRepository.findById(registeredClientId).map(ClientRegistrationServiceImpl::registeredClientFromEntity).orElse(null);
     }
 
     @Override
     public RegisteredClient findByClientId(String clientId) {
-        return this.clientRegistrationRepository.findByClientId(UUID.fromString(clientId)).map(ClientRegistrationServiceImpl::registeredClientFromEntity).orElse(null);
+        return findById(clientId);
     }
     // endregion
 }

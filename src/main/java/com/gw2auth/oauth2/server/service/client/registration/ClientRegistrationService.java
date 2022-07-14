@@ -4,21 +4,21 @@ import java.util.*;
 
 public interface ClientRegistrationService {
 
-    List<ClientRegistration> getClientRegistrations(long accountId);
+    List<ClientRegistration> getClientRegistrations(UUID accountId);
 
-    Optional<ClientRegistration> getClientRegistration(long accountId, UUID clientId);
+    Optional<ClientRegistration> getClientRegistration(UUID accountId, UUID id);
 
-    List<ClientRegistration> getClientRegistrations(Collection<Long> ids);
+    List<ClientRegistration> getClientRegistrations(Collection<UUID> ids);
 
-    Optional<ClientRegistration> getClientRegistration(UUID clientId);
+    Optional<ClientRegistration> getClientRegistration(UUID id);
 
-    ClientRegistrationCreation createClientRegistration(long accountId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris);
+    ClientRegistrationCreation createClientRegistration(UUID accountId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris);
 
-    ClientRegistration addRedirectUri(long accountId, UUID clientId, String redirectUri);
+    ClientRegistration addRedirectUri(UUID accountId, UUID id, String redirectUri);
 
-    ClientRegistration removeRedirectUri(long accountId, UUID clientId, String redirectUri);
+    ClientRegistration removeRedirectUri(UUID accountId, UUID id, String redirectUri);
 
-    ClientRegistrationCreation regenerateClientSecret(long accountId, UUID clientId);
+    ClientRegistrationCreation regenerateClientSecret(UUID accountId, UUID id);
 
-    void deleteClientRegistration(long accountId, UUID clientId);
+    void deleteClientRegistration(UUID accountId, UUID id);
 }

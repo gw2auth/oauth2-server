@@ -9,17 +9,15 @@ public interface ClientConsentService {
 
     String GW2AUTH_VERIFIED_SCOPE = "gw2auth:verified";
 
-    List<ClientConsent> getClientConsents(long accountId);
+    List<ClientConsent> getClientConsents(UUID accountId);
 
-    Optional<ClientConsent> getClientConsent(long accountId, long clientRegistrationId);
+    Optional<ClientConsent> getClientConsent(UUID accountId, UUID clientRegistrationId);
 
-    void createEmptyClientConsentIfNotExists(long accountId, long clientRegistrationId);
+    void createEmptyClientConsentIfNotExists(UUID accountId, UUID clientRegistrationId);
 
-    void deleteClientConsent(long accountId, UUID clientId);
+    void deleteClientConsent(UUID accountId, UUID clientRegistrationId);
 
-    void deleteClientConsent(long accountId, long clientRegistrationId);
-
-    LoggingContext log(long accountId, long clientRegistrationId, LogType logType);
+    LoggingContext log(UUID accountId, UUID clientRegistrationId, LogType logType);
 
     enum LogType {
 

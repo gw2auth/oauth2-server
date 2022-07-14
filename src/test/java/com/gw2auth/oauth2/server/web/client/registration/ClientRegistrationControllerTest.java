@@ -69,10 +69,10 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void getClientRegistrations(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
-        final ClientRegistrationEntity clientRegistrationA = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
-        final ClientRegistrationEntity clientRegistrationB = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameB", UUID.randomUUID(), "SecretB", Set.of(), Set.of("http://127.0.0.1/b", "http://127.0.0.1/c")));
+        final ClientRegistrationEntity clientRegistrationA = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ClientRegistrationEntity clientRegistrationB = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameB", "SecretB", Set.of(), Set.of("http://127.0.0.1/b", "http://127.0.0.1/c")));
 
         final String responseJson = this.mockMvc.perform(get("/api/client/registration").with(cookieHolder))
                 .andDo(cookieHolder)
@@ -96,7 +96,7 @@ class ClientRegistrationControllerTest {
             final UUID clientId = UUID.fromString(clientRegistrationNode.get("clientId").textValue());
             final ClientRegistrationEntity clientRegistration;
 
-            if (clientId.equals(clientRegistrationA.clientId())) {
+            if (clientId.equals(clientRegistrationA.id())) {
                 if (foundA) {
                     fail("Received A twice");
                     return;
@@ -104,7 +104,7 @@ class ClientRegistrationControllerTest {
                     foundA = true;
                     clientRegistration = clientRegistrationA;
                 }
-            } else if (clientId.equals(clientRegistrationB.clientId())) {
+            } else if (clientId.equals(clientRegistrationB.id())) {
                 if (foundB) {
                     fail("Received B twice");
                     return;
@@ -133,10 +133,10 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void getClientRegistrationOfOtherUser(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, otherUserAccountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.clientId()).with(cookieHolder))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.id()).with(cookieHolder))
                 .andDo(cookieHolder)
                 .andExpect(status().isNotFound());
     }
@@ -150,10 +150,10 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void getClientRegistration(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity( UUID.randomUUID(), accountId, Instant.now(), "NameA","SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.clientId()).with(cookieHolder))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.id()).with(cookieHolder))
                 .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
@@ -171,10 +171,10 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void deleteClientRegistrationOfOtherUser(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, otherUserAccountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
-        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.clientId()).with(cookieHolder).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.id()).with(cookieHolder).with(csrf()))
                 .andDo(cookieHolder)
                 .andExpect(status().isNotFound());
     }
@@ -188,14 +188,14 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void deleteClientRegistration(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(),  accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
-        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.clientId()).with(cookieHolder).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.id()).with(cookieHolder).with(csrf()))
                 .andDo(cookieHolder)
                 .andExpect(status().isOk());
 
-        assertTrue(this.clientRegistrationRepository.findByClientId(clientRegistration.clientId()).isEmpty());
+        assertTrue(this.clientRegistrationRepository.findById(clientRegistration.id()).isEmpty());
     }
 
     @Test
@@ -278,11 +278,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void addRedirectUriOfOtherUser(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, otherUserAccountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -294,11 +294,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void addInvalidRedirectUri(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -310,11 +310,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void addRedirectUri(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -345,11 +345,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void removeRedirectUriOfOtherUser(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, otherUserAccountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -361,11 +361,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void removeLastRedirectUri(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -377,11 +377,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void removeRedirectUri(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a", "http://127.0.0.1/b")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a", "http://127.0.0.1/b")));
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.clientId())
+                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -410,11 +410,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void regenerateClientSecretOfOtherUser(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, otherUserAccountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.clientId())
+                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                 )
@@ -424,11 +424,11 @@ class ClientRegistrationControllerTest {
 
     @WithGw2AuthLogin
     public void regenerateClientSecret(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(null, accountId, Instant.now(), "NameA", UUID.randomUUID(), "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
 
         this.mockMvc.perform(
-                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.clientId())
+                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.id())
                                 .with(cookieHolder)
                                 .with(csrf())
                 )

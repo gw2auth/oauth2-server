@@ -26,7 +26,7 @@ public record ApiTokenResponse(@JsonProperty("gw2AccountId") UUID gw2AccountId,
     public record Authorization(@JsonProperty("displayName") String displayName, @JsonProperty("clientId") UUID clientId) {
 
         public static Authorization create(ClientRegistration value) {
-            return new Authorization(value.displayName(), value.clientId());
+            return new Authorization(value.displayName(), value.id());
         }
     }
 }

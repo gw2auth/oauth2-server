@@ -7,15 +7,15 @@ import java.util.UUID;
 
 public interface ApiTokenService {
 
-    List<ApiToken> getApiTokens(long accountId);
+    List<ApiToken> getApiTokens(UUID accountId);
 
-    List<ApiToken> getApiTokens(long accountId, Collection<UUID> gw2AccountIds);
+    List<ApiToken> getApiTokens(UUID accountId, Collection<UUID> gw2AccountIds);
 
-    ApiToken updateApiToken(long accountId, UUID gw2AccountId, String gw2ApiToken, String displayName);
+    ApiToken updateApiToken(UUID accountId, UUID gw2AccountId, String gw2ApiToken, String displayName);
 
-    ApiToken addApiToken(long accountId, String gw2ApiToken);
+    ApiToken addApiToken(UUID accountId, String gw2ApiToken);
 
-    void deleteApiToken(long accountId, UUID gw2AccountId);
+    void deleteApiToken(UUID accountId, UUID gw2AccountId);
 
     void updateApiTokensValid(Instant lastValidCheckTime, Collection<ApiTokenValidityUpdate> updates);
 }

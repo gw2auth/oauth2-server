@@ -78,7 +78,7 @@ class ClientConsentControllerTest {
 
     @WithGw2AuthLogin
     public void getClientConsents(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientRegistrationEntity clientRegistrationC = this.testHelper.createClientRegistration(accountId, "Name");
@@ -110,7 +110,7 @@ class ClientConsentControllerTest {
             final ClientRegistrationEntity clientRegistration;
             final ClientConsentEntity clientConsent;
 
-            if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.clientId().toString())) {
+            if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.id().toString())) {
                 if (foundAuthorizationA) {
                     fail("authorization A appeared at least twice in the response");
                     return;
@@ -120,7 +120,7 @@ class ClientConsentControllerTest {
                     clientRegistration = clientRegistrationA;
                     clientConsent = clientConsentA;
                 }
-            } else if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationC.clientId().toString())) {
+            } else if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationC.id().toString())) {
                 if (foundAuthorizationC) {
                     fail("authorization C appeared at least twice in the response");
                     return;
@@ -194,7 +194,7 @@ class ClientConsentControllerTest {
 
     @WithGw2AuthLogin
     public void getClientConsentLogPage(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientConsentEntity clientAuthorization = this.testHelper.createClientConsent(accountId, clientRegistration.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
@@ -217,7 +217,7 @@ class ClientConsentControllerTest {
 
         do {
             final String responseJson = this.mockMvc.perform(
-                    get("/api/client/consent/{clientId}/logs", clientRegistration.clientId())
+                    get("/api/client/consent/{clientId}/logs", clientRegistration.id())
                             .with(cookieHolder)
                             .queryParam("page", Integer.toString(page))
             )
@@ -270,7 +270,7 @@ class ClientConsentControllerTest {
 
     @WithGw2AuthLogin
     public void deleteClientConsent(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ClientRegistrationEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
@@ -299,7 +299,7 @@ class ClientConsentControllerTest {
         this.testHelper.createClientLog(accountId, clientConsentB.clientRegistrationId(), "SomeTypeA", List.of());
 
         // delete authorization A
-        this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.clientId()).with(cookieHolder).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.id()).with(cookieHolder).with(csrf()))
                 .andDo(cookieHolder)
                 .andExpect(status().isOk());
 
@@ -312,7 +312,7 @@ class ClientConsentControllerTest {
 
         // logs and tokens should be deleted
         assertTrue(this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdA).isEmpty());
-        assertTrue(this.clientConsentLogRepository.findByAccountIdAndClientId(accountId, clientRegistrationA.clientId(), 0, 10).findAny().isEmpty());
+        assertTrue(this.clientConsentLogRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationA.id(), 0, 10).findAny().isEmpty());
 
         // authorization B should still be there (and unchanged)
         clientConsent = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientConsentB.clientRegistrationId()).orElse(null);
@@ -320,6 +320,6 @@ class ClientConsentControllerTest {
 
         // logs and tokens of B should still be there
         assertEquals(1, this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdB).size());
-        assertEquals(1L, this.clientConsentLogRepository.findByAccountIdAndClientId(accountId, clientRegistrationB.clientId(), 0, 10).count());
+        assertEquals(1L, this.clientConsentLogRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationB.id(), 0, 10).count());
     }
 }

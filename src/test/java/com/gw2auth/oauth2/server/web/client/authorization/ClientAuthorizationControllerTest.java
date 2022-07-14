@@ -56,7 +56,7 @@ class ClientAuthorizationControllerTest {
 
     @WithGw2AuthLogin
     public void getClientAuthorizations(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
@@ -78,7 +78,7 @@ class ClientAuthorizationControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
         // query api
-        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.clientId()).with(cookieHolder))
+        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.id()).with(cookieHolder))
                 .andDo(cookieHolder)
                 .andExpect(status().isOk())
                 .andReturn()
@@ -174,7 +174,7 @@ class ClientAuthorizationControllerTest {
 
     @WithGw2AuthLogin
     public void deleteClientAuthorization(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");

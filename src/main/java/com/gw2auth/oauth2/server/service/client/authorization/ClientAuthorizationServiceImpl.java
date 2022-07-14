@@ -107,14 +107,14 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public Optional<ClientAuthorization> getClientAuthorization(long accountId, String id) {
+    public Optional<ClientAuthorization> getClientAuthorization(UUID accountId, String id) {
         return this.clientAuthorizationRepository.findByAccountIdAndId(accountId, id)
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .flatMap(this::flatMapEntityToBusinessObject);
     }
 
     @Override
-    public Optional<ClientAuthorization> getLatestClientAuthorization(long accountId, long clientRegistrationId, Set<String> scopes) {
+    public Optional<ClientAuthorization> getLatestClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
         return this.clientAuthorizationRepository.findLatestByAccountIdAndClientRegistrationIdAndHavingScopes(accountId, clientRegistrationId, scopes)
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .flatMap(this::flatMapEntityToBusinessObject);
@@ -131,8 +131,8 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId, UUID clientId) {
-        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientId(accountId, clientId).stream()
+    public List<ClientAuthorization> getClientAuthorizations(UUID accountId, UUID clientRegistrationId) {
+        final List<ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientRegistrationId).stream()
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .toList();
 
@@ -157,7 +157,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public List<ClientAuthorization> getClientAuthorizations(long accountId, Set<UUID> gw2AccountIds) {
+    public List<ClientAuthorization> getClientAuthorizations(UUID accountId, Set<UUID> gw2AccountIds) {
         final Map<String, ClientAuthorizationEntity> clientAuthorizationEntities = this.clientAuthorizationRepository.findAllByAccountIdAndLinkedTokens(accountId, gw2AccountIds).stream()
                 .filter(ClientAuthorizationServiceImpl::isValidAuthorization)
                 .collect(Collectors.toMap(ClientAuthorizationEntity::id, Function.identity()));
@@ -179,7 +179,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     }
 
     @Override
-    public boolean deleteClientAuthorization(long accountId, String id) {
+    public boolean deleteClientAuthorization(UUID accountId, String id) {
         return this.clientAuthorizationRepository.deleteByAccountIdAndId(accountId, id);
     }
 
@@ -208,8 +208,8 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         }
 
         // actual logic
-        final long accountId = Long.parseLong(authorization.getPrincipalName());
-        final long clientRegistrationId = Long.parseLong(authorization.getRegisteredClientId());
+        final UUID accountId = UUID.fromString(authorization.getPrincipalName());
+        final UUID clientRegistrationId = UUID.fromString(authorization.getRegisteredClientId());
 
         this.clientConsentService.createEmptyClientConsentIfNotExists(accountId, clientRegistrationId);
 
@@ -238,8 +238,8 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final Instant now = this.clock.instant();
 
         final ClientAuthorizationEntity clientAuthorizationEntity = this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
-                accountId,
                 authorization.getId(),
+                accountId,
                 clientRegistrationId,
                 now,
                 now,
@@ -298,7 +298,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                     final List<ClientAuthorizationTokenEntity> tokensToAdd = new ArrayList<>(authorizedTokenGw2AccountIds.size());
 
                     for (UUID authorizedTokenGw2AccountId : authorizedTokenGw2AccountIds) {
-                        tokensToAdd.add(new ClientAuthorizationTokenEntity(accountId, clientAuthorizationEntity.id(), authorizedTokenGw2AccountId));
+                        tokensToAdd.add(new ClientAuthorizationTokenEntity(clientAuthorizationEntity.id(), accountId, authorizedTokenGw2AccountId));
                     }
 
                     this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorizationEntity.id());
@@ -314,7 +314,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Override
     public void remove(OAuth2Authorization authorization) {
-        this.clientAuthorizationRepository.deleteByAccountIdAndId(Long.parseLong(authorization.getPrincipalName()), authorization.getId());
+        this.clientAuthorizationRepository.deleteByAccountIdAndId(UUID.fromString(authorization.getPrincipalName()), authorization.getId());
     }
 
     @Override
@@ -342,7 +342,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
             return null;
         }
 
-        final RegisteredClient registeredClient = this.registeredClientRepository.findById(Long.toString(clientAuthorizationEntity.clientRegistrationId()));
+        final RegisteredClient registeredClient = this.registeredClientRepository.findById(clientAuthorizationEntity.clientRegistrationId().toString());
 
         if (registeredClient == null) {
             return null;
@@ -351,7 +351,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         OAuth2Authorization.Builder builder = OAuth2Authorization
                 .withRegisteredClient(registeredClient)
                 .id(clientAuthorizationEntity.id())
-                .principalName(Long.toString(clientAuthorizationEntity.accountId()))
+                .principalName(clientAuthorizationEntity.accountId().toString())
                 .authorizationGrantType(new AuthorizationGrantType(clientAuthorizationEntity.authorizationGrantType()));
 
         final Map<String, Object> attributes = readJson(clientAuthorizationEntity.attributes());

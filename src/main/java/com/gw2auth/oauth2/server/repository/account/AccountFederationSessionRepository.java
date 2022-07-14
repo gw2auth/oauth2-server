@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface AccountFederationSessionRepository extends BaseRepository<AccountFederationSessionEntity> {
@@ -28,6 +29,11 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     (id, issuer, id_at_issuer, creation_time, expiration_time)
     VALUES
     (:id, :issuer, :id_at_issuer, :creation_time, :expiration_time)
+    ON CONFLICT (id) DO UPDATE SET
+    issuer = EXCLUDED.issuer,
+    id_at_issuer = EXCLUDED.id_at_issuer,
+    creation_time = EXCLUDED.creation_time,
+    expiration_time = EXCLUDED.expiration_time
     RETURNING *
     """)
     AccountFederationSessionEntity save(@Param("id") String id,
@@ -61,7 +67,7 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     ON fed_sess.issuer = fed.issuer AND fed_sess.id_at_issuer = fed.id_at_issuer
     WHERE fed.account_id = :account_id AND NOW() BETWEEN fed_sess.creation_time AND fed_sess.expiration_time
     """)
-    List<AccountFederationSessionEntity> findAllByAccountId(@Param("account_id") long accountId);
+    List<AccountFederationSessionEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Modifying
     @Query("""
@@ -74,7 +80,7 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
         WHERE fed.account_id = :account_id
     )
     """)
-    boolean deleteByAccountIdAndId(@Param("account_id") long accountId, @Param("id") String id);
+    boolean deleteByAccountIdAndId(@Param("account_id") UUID accountId, @Param("id") String id);
 
     @Modifying
     @Query("""

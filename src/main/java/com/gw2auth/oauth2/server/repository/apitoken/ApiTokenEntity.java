@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Table("gw2_api_tokens")
-public record ApiTokenEntity(@Column("account_id") long accountId,
+public record ApiTokenEntity(@Column("account_id") UUID accountId,
                              @Column("gw2_account_id") UUID gw2AccountId,
                              @Column("creation_time") Instant creationTime,
                              @Column("gw2_api_token") String gw2ApiToken,

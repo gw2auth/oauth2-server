@@ -103,7 +103,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void getApiTokens(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
 
         final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
         final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Set.of(Gw2ApiPermission.TRADINGPOST), "TokenB");
@@ -241,7 +241,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiTokenLinkedToOtherAccountButNotVerified(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
 
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
@@ -275,7 +275,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiTokenLinkedAndVerifiedToOtherAccount(CookieHolder cookieHolder) throws Exception {
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
 
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Some Name");
@@ -302,7 +302,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void addApiTokenAlreadyVerified(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createAccountVerification(accountId, gw2AccountId);
 
@@ -377,8 +377,8 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiTokenThatHasBeenVerifiedByAnotherAccount(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final long otherUserAccountId = this.accountRepository.save(new AccountEntity(null, Instant.now())).id();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         final UUID gw2AccountId = UUID.randomUUID();
 
         // save key for the same gw2 account id on both accounts
@@ -422,7 +422,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiTokenInvalid(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -445,7 +445,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiTokenWithoutAccountPermission(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -468,7 +468,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiTokenForDifferentGw2AccountId(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountIdOriginal = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountIdOriginal, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -492,7 +492,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void updateApiToken(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         final ApiTokenEntity apiToken = this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -561,7 +561,7 @@ class ApiTokenControllerTest {
 
     @WithGw2AuthLogin
     public void deleteApiToken(CookieHolder cookieHolder) throws Exception {
-        final long accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
         final UUID gw2AccountId = UUID.randomUUID();
         this.testHelper.createApiToken(accountId, gw2AccountId, Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.GUILDS), "TokenA");
 
@@ -587,7 +587,7 @@ class ApiTokenControllerTest {
         assertTrue(this.apiTokenRepository.findAllByAccountIdAndGw2AccountIds(accountId, Set.of(gw2AccountId)).isEmpty());
 
         // the verification should still be there
-        assertTrue(this.gw2AccountVerificationRepository.findById(gw2AccountId).isPresent());
+        assertTrue(this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).isPresent());
 
         // the token should no longer be in the authorization
         assertTrue(this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationId).isEmpty());
@@ -663,7 +663,7 @@ class ApiTokenControllerTest {
 
         // authorizations
         final Map<UUID, ClientRegistrationEntity> expectedAuthorizations = expectedApiToken.authorizations().stream()
-                .collect(Collectors.toMap(ClientRegistrationEntity::clientId, Function.identity()));
+                .collect(Collectors.toMap(ClientRegistrationEntity::id, Function.identity()));
 
         final JsonNode authorizationsNode = apiTokenNode.get("authorizations");
         assertTrue(authorizationsNode.isArray());

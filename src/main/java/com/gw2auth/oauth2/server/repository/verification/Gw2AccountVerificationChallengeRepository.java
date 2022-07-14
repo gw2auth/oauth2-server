@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface Gw2AccountVerificationChallengeRepository extends BaseRepository<Gw2AccountVerificationChallengeEntity> {
@@ -31,7 +32,7 @@ public interface Gw2AccountVerificationChallengeRepository extends BaseRepositor
     timeout_at = EXCLUDED.timeout_at
     RETURNING *
     """)
-    Gw2AccountVerificationChallengeEntity save(@Param("account_id") long accountId,
+    Gw2AccountVerificationChallengeEntity save(@Param("account_id") UUID accountId,
                                                @Param("gw2_account_id") String gw2AccountId,
                                                @Param("challenge_id") long challengeId,
                                                @Param("state") String state,
@@ -40,15 +41,15 @@ public interface Gw2AccountVerificationChallengeRepository extends BaseRepositor
                                                @Param("timeout_at") Instant timeoutAt);
 
     @Query("SELECT * FROM gw2_account_verification_challenges WHERE account_id = :account_id")
-    List<Gw2AccountVerificationChallengeEntity> findAllByAccountId(@Param("account_id") long accountId);
+    List<Gw2AccountVerificationChallengeEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Query("SELECT * FROM gw2_account_verification_challenges WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
-    Optional<Gw2AccountVerificationChallengeEntity> findByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") String gw2AccountId);
+    Optional<Gw2AccountVerificationChallengeEntity> findByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") String gw2AccountId);
 
     @Query("SELECT * FROM gw2_account_verification_challenges WHERE gw2_account_id <> ''")
     List<Gw2AccountVerificationChallengeEntity> findAllPending();
 
     @Modifying
     @Query("DELETE FROM gw2_account_verification_challenges WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
-    void deleteByAccountIdAndGw2AccountId(@Param("account_id") long accountId, @Param("gw2_account_id") String gw2AccountId);
+    void deleteByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") String gw2AccountId);
 }

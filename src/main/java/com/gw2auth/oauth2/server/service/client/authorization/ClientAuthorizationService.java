@@ -9,13 +9,13 @@ public interface ClientAuthorizationService {
 
     String AUTHORIZATION_NAME_PARAM = "name";
 
-    Optional<ClientAuthorization> getClientAuthorization(long accountId, String id);
+    Optional<ClientAuthorization> getClientAuthorization(UUID accountId, String id);
 
-    Optional<ClientAuthorization> getLatestClientAuthorization(long accountId, long clientRegistrationId, Set<String> scopes);
+    Optional<ClientAuthorization> getLatestClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<String> scopes);
 
-    List<ClientAuthorization> getClientAuthorizations(long accountId, UUID clientId);
+    List<ClientAuthorization> getClientAuthorizations(UUID accountId, UUID clientRegistrationId);
 
-    List<ClientAuthorization> getClientAuthorizations(long accountId, Set<UUID> gw2AccountIds);
+    List<ClientAuthorization> getClientAuthorizations(UUID accountId, Set<UUID> gw2AccountIds);
 
-    boolean deleteClientAuthorization(long accountId, String id);
+    boolean deleteClientAuthorization(UUID accountId, String id);
 }

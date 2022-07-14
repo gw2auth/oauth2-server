@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-public record ClientConsent(long accountId, long clientRegistrationId, UUID accountSub, Set<String> authorizedScopes) {
+public record ClientConsent(UUID accountId, UUID clientRegistrationId, UUID accountSub, Set<String> authorizedScopes) {
 
     public static ClientConsent fromEntity(ClientConsentEntity entity) {
         final Set<String> authorizedScopes;
