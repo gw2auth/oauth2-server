@@ -67,3 +67,6 @@ testem.log
 .DS_Store
 Thumbs.db
 # endregion
+
+# cockroachdb
+root.crt
