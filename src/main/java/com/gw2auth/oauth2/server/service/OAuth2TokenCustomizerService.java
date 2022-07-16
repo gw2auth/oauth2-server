@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.service;
 
 import com.gw2auth.oauth2.server.repository.apisubtoken.ApiSubTokenEntity;
 import com.gw2auth.oauth2.server.repository.apisubtoken.ApiSubTokenRepository;
+import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
 import com.gw2auth.oauth2.server.service.apitoken.ApiTokenValidityUpdate;
@@ -44,6 +45,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
     private static final Duration AUTHORIZED_TOKEN_MIN_EXCESS_TIME = Duration.ofMinutes(20L);
 
+    private final AccountService accountService;
     private final ApiTokenService apiTokenService;
     private final ClientAuthorizationService clientAuthorizationService;
     private final ClientConsentService clientConsentService;
@@ -54,7 +56,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private Clock clock;
 
     @Autowired
-    public OAuth2TokenCustomizerService(ApiTokenService apiTokenService,
+    public OAuth2TokenCustomizerService(AccountService accountService,
+                                        ApiTokenService apiTokenService,
                                         ClientAuthorizationService clientAuthorizationService,
                                         ClientConsentService clientConsentService,
                                         VerificationService verificationService,
@@ -62,6 +65,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                                         ApiSubTokenRepository apiSubTokenRepository,
                                         @Qualifier("gw2-api-client-executor-service") ExecutorService gw2ApiClientExecutorService) {
 
+        this.accountService = accountService;
         this.apiTokenService = apiTokenService;
         this.clientAuthorizationService = clientAuthorizationService;
         this.clientConsentService = clientConsentService;
@@ -112,7 +116,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
-        try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.ACCESS_TOKEN)) {
+        try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "ACCESS_TOKEN", "client_id", clientRegistrationId))) {
             final Set<String> effectiveAuthorizedScopes = new HashSet<>(clientConsent.authorizedScopes());
             effectiveAuthorizedScopes.retainAll(clientAuthorization.authorizedScopes());
 
@@ -189,7 +193,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
                 if (potentialExistingSubToken != null && potentialExistingSubToken.expirationTime().equals(expirationTime)) {
                     tokenForJWT.put("token", potentialExistingSubToken.gw2ApiSubtoken());
-                    logging.log("Using existing and valid Subtoken for the Root-API-Token named '%s'", displayName);
+                    logging.log(String.format("Using existing and valid Subtoken for the Root-API-Token named '%s'", displayName));
                 } else {
                     if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
                         final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
@@ -210,7 +214,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                                 }
                         );
                     } else {
-                        logging.log("The Root-API-Token named '%s' has less permissions than the authorization", displayName);
+                        logging.log(String.format("The Root-API-Token named '%s' has less permissions than the authorization", displayName));
                     }
                 }
 
@@ -218,7 +222,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     final boolean isVerified = verifiedGw2AccountIds.contains(gw2AccountId);
                     tokenForJWT.put("verified", isVerified);
 
-                    logging.log("Including verified=%s for the Root-API-Token named '%s'", isVerified, displayName);
+                    logging.log(String.format("Including verified=%s for the Root-API-Token named '%s'", isVerified, displayName));
                 }
 
                 tokensForJWT.put(gw2AccountId, tokenForJWT);
@@ -239,16 +243,16 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                         apiSubTokenEntitiesToSave.add(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
 
                         tokenForJWT.put("token", gw2SubToken.value());
-                        logging.log("Added Subtoken for the Root-API-Token named '%s'", displayName);
+                        logging.log(String.format("Added Subtoken for the Root-API-Token named '%s'", displayName));
                     } else {
                         tokenForJWT.put("error", "Failed to obtain new subtoken");
-                        logging.log("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName);
+                        logging.log(String.format("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName));
                     }
 
                     apiTokenValidityUpdates.add(new ApiTokenValidityUpdate(accountId, gw2AccountId, true));
                 } else {
                     tokenForJWT.put("error", "Failed to obtain new subtoken");
-                    logging.log("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName);
+                    logging.log(String.format("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName));
                 }
             }
 

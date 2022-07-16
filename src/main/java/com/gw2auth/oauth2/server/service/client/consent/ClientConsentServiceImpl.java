@@ -3,14 +3,10 @@ package com.gw2auth.oauth2.server.service.client.consent;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
+import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsent;
@@ -18,40 +14,32 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
 public class ClientConsentServiceImpl implements ClientConsentService, OAuth2AuthorizationConsentService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClientConsentServiceImpl.class);
-    private static final int MAX_LOG_COUNT = 50;
-
+    private final AccountService accountService;
     private final ClientConsentRepository clientConsentRepository;
-    private final ClientConsentLogRepository clientConsentLogRepository;
     private final ClientAuthorizationRepository clientAuthorizationRepository;
     private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
 
-    public ClientConsentServiceImpl(ClientConsentRepository clientConsentRepository,
-                                    ClientConsentLogRepository clientConsentLogRepository,
+    public ClientConsentServiceImpl(AccountService accountService,
+                                    ClientConsentRepository clientConsentRepository,
                                     ClientAuthorizationRepository clientAuthorizationRepository,
                                     AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
 
+        this.accountService = accountService;
         this.clientConsentRepository = clientConsentRepository;
-        this.clientConsentLogRepository = clientConsentLogRepository;
         this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
     }
 
     @Autowired
-    public ClientConsentServiceImpl(ClientConsentRepository clientConsentRepository,
-                                    ClientConsentLogRepository clientConsentLogRepository,
-                                    ClientAuthorizationRepository clientAuthorizationRepository) {
-
-        this(clientConsentRepository, clientConsentLogRepository, clientAuthorizationRepository, AuthorizationCodeParamAccessor.DEFAULT);
+    public ClientConsentServiceImpl(AccountService accountService, ClientConsentRepository clientConsentRepository, ClientAuthorizationRepository clientAuthorizationRepository) {
+        this(accountService, clientConsentRepository, clientAuthorizationRepository, AuthorizationCodeParamAccessor.DEFAULT);
     }
 
     @Override
@@ -91,11 +79,6 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
         this.clientConsentRepository.save(new ClientConsentEntity(entity.accountId(), entity.clientRegistrationId(), entity.accountSub(), Set.of()));
     }
 
-    @Override
-    public LoggingContext log(UUID accountId, UUID clientRegistrationId, LogType logType) {
-        return new LoggingContextImpl(accountId, clientRegistrationId, logType);
-    }
-
     // region OAuth2AuthorizationConsentService
     @Override
     @Transactional
@@ -107,13 +90,14 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
         final UUID accountId = UUID.fromString(authorizationConsent.getPrincipalName());
         final UUID clientRegistrationId = UUID.fromString(authorizationConsent.getRegisteredClientId());
 
-        try (LoggingContext log = log(accountId, clientRegistrationId, LogType.CONSENT)) {
-            ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
-                    .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
-                    .withAdditionalScopes(authorizationConsent.getScopes());
+        ClientConsentEntity clientConsentEntity = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationId)
+                .orElseGet(() -> createAuthorizedClientEntity(accountId, clientRegistrationId))
+                .withAdditionalScopes(authorizationConsent.getScopes());
 
-            clientConsentEntity = this.clientConsentRepository.save(clientConsentEntity);
-            log.log("Updated consented oauth2-scopes to [%s]", String.join(", ", clientConsentEntity.authorizedScopes()));
+        clientConsentEntity = this.clientConsentRepository.save(clientConsentEntity);
+
+        try (AccountService.LoggingContext log = this.accountService.log(accountId, Map.of("type", "CONSENT", "client_id", clientRegistrationId))) {
+            log.log(String.format("Updated consented oauth2-scopes to [%s]", String.join(", ", clientConsentEntity.authorizedScopes())));
         }
     }
 
@@ -164,52 +148,5 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
 
     private static boolean isAuthorized(ClientConsentEntity clientConsentEntity) {
         return clientConsentEntity.authorizedScopes() != null && !clientConsentEntity.authorizedScopes().isEmpty();
-    }
-
-    private final class LoggingContextImpl implements LoggingContext {
-
-        private final UUID accountId;
-        private final UUID clientRegistrationId;
-        private final LogType logType;
-        private final Instant timestamp;
-        private final List<String> messages;
-        private final AtomicBoolean isValid;
-
-        private LoggingContextImpl(UUID accountId, UUID clientRegistrationId, LogType logType) {
-            this.accountId = accountId;
-            this.clientRegistrationId = clientRegistrationId;
-            this.logType = logType;
-            this.timestamp = Instant.now();
-            this.messages = new LinkedList<>();
-            this.isValid = new AtomicBoolean(true);
-        }
-
-        @Override
-        public void log(String message) {
-            // not truly thread-safe
-            // this is an optimistic variant. I'm in control of all users of these methods
-            if (this.isValid.get()) {
-                this.messages.add(message);
-            }
-        }
-
-        @Override
-        public void close() {
-            if (this.isValid.compareAndSet(true, false)) {
-                try {
-                    /*
-                    Preparation for CockroachDB
-                    Caused by: org.postgresql.util.PSQLException: ERROR: restart transaction: TransactionRetryWithProtoRefreshError: ReadWithinUncertaintyIntervalError: read at time 1657844930.854217895,0 encountered previous write with future timestamp 1657844930.854217895,1 within uncertainty interval [...]
-                    Hinweis: See: https://www.cockroachlabs.com/docs/v22.1/transaction-retry-error-reference.html#readwithinuncertaintyinterval
-                     */
-                    ClientConsentServiceImpl.this.clientConsentLogRepository.deleteAllByAccountIdAndClientRegistrationIdExceptLatestN(this.accountId, this.clientRegistrationId, MAX_LOG_COUNT - 1);
-                } catch (DataAccessException e) {
-                    LOG.info("failed to delete old logs", e);
-                }
-
-                ClientConsentServiceImpl.this.clientConsentLogRepository.save(new ClientConsentLogEntity(UUID.randomUUID(), this.accountId, this.clientRegistrationId, this.timestamp, this.logType.name(), this.messages));
-                this.messages.clear();
-            }
-        }
     }
 }

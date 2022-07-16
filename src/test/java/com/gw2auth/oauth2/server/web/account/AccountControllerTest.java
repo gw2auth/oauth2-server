@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.web.account;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
@@ -19,8 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
+import static com.gw2auth.oauth2.server.Assertions.assertJsonEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -136,6 +139,72 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.federations[0].sessions[0].id").value(sessionId))
                 .andExpect(jsonPath("$.federations[0].sessions[0].creationTime").isString())
                 .andExpect(jsonPath("$.federations[0].sessions[0].expirationTime").isString());
+    }
+
+    @Test
+    public void getAccountLogsUnauthenticated() throws Exception {
+        this.mockMvc.perform(get("/api/account/log"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @WithGw2AuthLogin
+    public void getAccountLogs(CookieHolder cookieHolder) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+
+        final Queue<AccountLogEntity> insertedLogs = new PriorityQueue<>(Comparator.comparing(AccountLogEntity::timestamp).reversed());
+        final UUID someId = UUID.randomUUID();
+
+        for (int i = 0; i < 143; i++) {
+            insertedLogs.offer(this.testHelper.createAccountLog(accountId, UUID.randomUUID().toString(), Map.of("some_id", someId)));
+        }
+
+        for (int i = 0; i < 10; i++) {
+            this.testHelper.createAccountLog(accountId, UUID.randomUUID().toString(), Map.of("some_id", UUID.randomUUID()));
+        }
+
+        final ObjectMapper mapper = new ObjectMapper();
+        int page = 0;
+
+        do {
+            final String responseJson = this.mockMvc.perform(
+                            get("/api/account/log")
+                                    .with(cookieHolder)
+                                    .queryParam("page", Integer.toString(page))
+                                    .queryParam("some_id", someId.toString())
+                    )
+                    .andDo(cookieHolder)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.page").exists())
+                    .andExpect(jsonPath("$.nextPage").exists())
+                    .andExpect(jsonPath("$.logs").exists())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            final JsonNode responseNode = mapper.readTree(responseJson);
+            final int nextPage = responseNode.get("nextPage").intValue();
+
+            assertEquals(page, responseNode.get("page").intValue());
+            assertTrue(nextPage == page + 1 || nextPage == -1);
+
+            final JsonNode logsNode = responseNode.get("logs");
+            assertTrue(logsNode.isArray());
+
+            for (int i = 0; i < logsNode.size(); i++) {
+                final AccountLogEntity expectedLog = insertedLogs.poll();
+                assertNotNull(expectedLog);
+
+                final JsonNode logNode = logsNode.get(i);
+
+                assertInstantEquals(expectedLog.timestamp(), logNode.get("timestamp").textValue());
+                assertJsonEquals(expectedLog.fields().toString(), logNode.get("fields"));
+                assertEquals(expectedLog.message(), logNode.get("message").textValue());
+            }
+
+            page = nextPage;
+        } while (page != -1);
+
+        assertTrue(insertedLogs.isEmpty());
     }
 
     @Test

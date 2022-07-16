@@ -5,6 +5,7 @@ import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationC
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeRepository;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
+import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import org.slf4j.Logger;
@@ -37,15 +38,23 @@ public class VerificationServiceImpl implements VerificationService {
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
     private final ApiTokenRepository apiTokenRepository;
     private final Gw2ApiService gw2ApiService;
+    private final AccountService accountService;
     private final Map<Long, VerificationChallenge<?>> challengesById;
     private volatile Clock clock;
 
     @Autowired
-    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges, Gw2AccountVerificationRepository gw2AccountVerificationRepository, Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository, ApiTokenRepository apiTokenRepository, Gw2ApiService gw2ApiService) {
+    public VerificationServiceImpl(Collection<VerificationChallenge<?>> verificationChallenges,
+                                   Gw2AccountVerificationRepository gw2AccountVerificationRepository,
+                                   Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository,
+                                   ApiTokenRepository apiTokenRepository,
+                                   Gw2ApiService gw2ApiService,
+                                   AccountService accountService) {
+
         this.gw2AccountVerificationRepository = gw2AccountVerificationRepository;
         this.gw2AccountVerificationChallengeRepository = gw2AccountVerificationChallengeRepository;
         this.apiTokenRepository = apiTokenRepository;
         this.gw2ApiService = gw2ApiService;
+        this.accountService = accountService;
         this.clock = Clock.systemDefaultZone();
 
         final Map<Long, VerificationChallenge<?>> challengesById = new HashMap<>(verificationChallenges.size());
@@ -194,19 +203,24 @@ public class VerificationServiceImpl implements VerificationService {
             throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.GW2_ACCOUNT_ALREADY_VERIFIED, HttpStatus.BAD_REQUEST);
         }
 
-        entity = new Gw2AccountVerificationChallengeEntity(
-                entity.accountId(),
-                gw2AccountId.toString(),
-                entity.challengeId(),
-                entity.state(),
-                gw2SubToken.value(),
-                startTime,
-                timeout
-        );
+        final boolean isVerified;
+        try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "gw2.verification.submit", "gw2_account_id", gw2AccountId, "challenge_id", entity.challengeId()))) {
+            logging.log("Received submit for GW2 account verification");
 
-        final boolean isVerified = verify(entity);
+            entity = new Gw2AccountVerificationChallengeEntity(
+                    entity.accountId(),
+                    gw2AccountId.toString(),
+                    entity.challengeId(),
+                    entity.state(),
+                    gw2SubToken.value(),
+                    startTime,
+                    timeout
+            );
+
+            isVerified = verify(logging, entity);
+        }
+
         final VerificationChallengePending verificationChallengePending;
-
         if (isVerified) {
             verificationChallengePending = null;
         } else {
@@ -218,7 +232,7 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Transactional(noRollbackFor = Gw2AccountVerificationServiceException.class)
-    protected boolean verify(Gw2AccountVerificationChallengeEntity entity) {
+    protected boolean verify(AccountService.LoggingContext logging, Gw2AccountVerificationChallengeEntity entity) {
         final UUID accountId = entity.accountId();
         final String gw2AccountId = entity.gw2AccountId();
 
@@ -247,6 +261,10 @@ public class VerificationServiceImpl implements VerificationService {
                             .map((e) -> e.withAccountId(accountId))
                             .orElseGet(() -> new Gw2AccountVerificationEntity(gw2AccountIdUUID, accountId))
             );
+
+            logging.log("GW2 account verification succeeded!");
+        } else {
+            logging.log("GW2 account verification could not be verified yet");
         }
 
         return isVerified;
@@ -265,31 +283,40 @@ public class VerificationServiceImpl implements VerificationService {
             LOG.info("processing {} pending challenges", entities.size());
 
             for (Gw2AccountVerificationChallengeEntity entity : entities) {
-                final boolean isExpired = now.isAfter(entity.timeoutAt());
-                final boolean isVerificationFailedChallenge = entity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID;
+                final UUID accountId = entity.accountId();
+                final String gw2AccountId = entity.gw2AccountId();
 
-                try {
-                    if (isExpired) {
-                        if (isVerificationFailedChallenge) {
-                            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "gw2.verification.attempt", "gw2_account_id", gw2AccountId, "challenge_id", entity.challengeId()))) {
+                    logging.log("Trying to verify GW2 account");
+
+                    final boolean isExpired = now.isAfter(entity.timeoutAt());
+                    final boolean isVerificationFailedChallenge = entity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID;
+
+                    try {
+                        if (isExpired) {
+                            if (isVerificationFailedChallenge) {
+                                this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                            } else {
+                                this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(
+                                        accountId,
+                                        gw2AccountId,
+                                        VERIFICATION_FAILED_CHALLENGE_ID,
+                                        null,
+                                        null,
+                                        now,
+                                        now.plus(VERIFICATION_FAILED_BLOCK_DURATION)
+                                ));
+
+                                logging.log("GW2 account failed to verify within the allowed period. You will be blocked for further verification attempts for this GW2 account for some time.");
+                            }
                         } else {
-                            this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(
-                                    entity.accountId(),
-                                    entity.gw2AccountId(),
-                                    VERIFICATION_FAILED_CHALLENGE_ID,
-                                    null,
-                                    null,
-                                    now,
-                                    now.plus(VERIFICATION_FAILED_BLOCK_DURATION)
-                            ));
+                            if (!isVerificationFailedChallenge) {
+                                verify(logging, entity);
+                            }
                         }
-                    } else {
-                        if (!isVerificationFailedChallenge) {
-                            verify(entity);
-                        }
+                    } catch (Exception e) {
+                        LOG.warn("unexpected exception during verification of challenge", e);
                     }
-                } catch (Exception e) {
-                    LOG.warn("unexpected exception during verification of challenge", e);
                 }
             }
         }

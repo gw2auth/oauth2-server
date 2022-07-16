@@ -1,6 +1,8 @@
 package com.gw2auth.oauth2.server;
 
 import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
+import com.gw2auth.oauth2.server.repository.account.AccountLogEntity;
+import com.gw2auth.oauth2.server.repository.account.AccountLogRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
@@ -8,8 +10,6 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
@@ -27,6 +27,7 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.shaded.json.JSONArray;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.jdbc.core.JdbcOperations;
@@ -51,7 +52,7 @@ public class TestHelper {
     private ClientConsentRepository clientConsentRepository;
 
     @Autowired
-    private ClientConsentLogRepository clientConsentLogRepository;
+    private AccountLogRepository accountLogRepository;
 
     @Autowired
     private ClientAuthorizationRepository clientAuthorizationRepository;
@@ -135,14 +136,14 @@ public class TestHelper {
         return this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationId, UUID.randomUUID(), scopes));
     }
 
-    public ClientConsentLogEntity createClientLog(UUID accountId, UUID clientRegistrationId, String type, List<String> messages) {
-        return this.clientConsentLogRepository.save(new ClientConsentLogEntity(
+    public AccountLogEntity createAccountLog(UUID accountId, String message, Map<String, ?> fields) {
+        return this.accountLogRepository.save(new AccountLogEntity(
                 UUID.randomUUID(),
                 accountId,
-                clientRegistrationId,
                 Instant.now(),
-                type,
-                messages
+                message,
+                new JSONObject(fields),
+                false
         ));
     }
 

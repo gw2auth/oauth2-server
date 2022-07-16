@@ -14,22 +14,26 @@ export enum ClientConsentLogType {
     ACCESS_TOKEN = 'ACCESS_TOKEN'
 }
 
-export function clientConsentLogTypeToString(clientAuthorizationLogType: ClientConsentLogType): string {
-    switch (clientAuthorizationLogType) {
-        case ClientConsentLogType.CONSENT: return 'Consent';
-        case ClientConsentLogType.AUTHORIZATION: return 'Authorization';
-        case ClientConsentLogType.ACCESS_TOKEN: return 'Access-Token request';
+export function tryGetLogType(log: AccountLog): string {
+    if (log.fields['type']) {
+        switch (log.fields['type']) {
+            case ClientConsentLogType.CONSENT: return 'Consent';
+            case ClientConsentLogType.AUTHORIZATION: return 'Authorization';
+            case ClientConsentLogType.ACCESS_TOKEN: return 'Access-Token request';
+        }
     }
+
+    return 'Unknown';
 }
 
-export interface ClientConsentLog {
+export interface AccountLog {
     timestamp: Date;
-    type: ClientConsentLogType;
-    messages: string[];
+    message: string;
+    fields: {[k: string]: any}
 }
 
-export interface ClientConsentLogs {
+export interface AccountLogs {
     page: number;
     nextPage: number;
-    logs: ClientConsentLog[];
+    logs: AccountLog[];
 }

@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import {ClientConsentService} from './client-consent.service';
 import {
+  AccountLog,
   ClientConsent,
-  ClientConsentLog, ClientConsentLogType,
-  clientConsentLogTypeToString
+  tryGetLogType
 } from './client-consent.model';
 import {faTrashAlt, faAngleDoubleDown, faAngleDoubleUp, faUserShield} from '@fortawesome/free-solid-svg-icons';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
@@ -26,7 +26,7 @@ class InternalClientConsent {
   authorizedVerifiedInformation: boolean;
   clientAuthorizationsState: -1 | 0 | 1 = 0;// loading, initial, loaded
   clientAuthorizations: ClientAuthorization[] = [];
-  logs: ClientConsentLog[];
+  logs: AccountLog[];
   nextLogPage: number;
 
   constructor(clientAuthorization: ClientConsent) {
@@ -70,8 +70,8 @@ export class ApplicationComponent implements OnInit {
     this.route.fragment.subscribe((fragment) => this.fragment = fragment);
   }
 
-  clientConsentLogTypeToString(clientConsentLogType: ClientConsentLogType): string {
-    return clientConsentLogTypeToString(clientConsentLogType);
+  tryGetLogType(log: AccountLog): string {
+    return tryGetLogType(log);
   }
 
   openDeleteClientConsentModal(clientConsent: InternalClientConsent): void {

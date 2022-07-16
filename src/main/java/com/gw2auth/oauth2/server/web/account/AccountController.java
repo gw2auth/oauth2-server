@@ -16,10 +16,16 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
 public class AccountController extends AbstractRestController {
+
+    private static final int LOG_PAGE_SIZE = 50;
+    private static final String LOG_PAGE_PARAM = "page";
 
     private final AccountService accountService;
     private final ClientRegistrationRepository clientRegistrationRepository;
@@ -73,6 +79,35 @@ public class AccountController extends AbstractRestController {
                                 .toUri()
                 )
                 .build();
+    }
+
+    @GetMapping(value = "/api/account/log", produces = MediaType.APPLICATION_JSON_VALUE)
+    public AccountLogsResponse getAccountLogs(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestParam Map<String, String> fields) {
+        fields = new HashMap<>(fields);
+        int page = 0;
+
+        if (fields.containsKey(LOG_PAGE_PARAM)) {
+            page = Integer.parseInt(fields.remove(LOG_PAGE_PARAM));
+        }
+
+        if (page < 0) {
+            page = 0;
+        }
+
+        final List<AccountLogsResponse.Log> logs = this.accountService.getAccountLogs(user.getAccountId(), fields, page, LOG_PAGE_SIZE)
+                .stream()
+                .map(AccountLogsResponse.Log::create)
+                .sorted(Comparator.comparing(AccountLogsResponse.Log::timestamp).reversed())
+                .toList();
+
+        final int nextPage;
+        if (logs.size() >= LOG_PAGE_SIZE) {
+            nextPage = page + 1;
+        } else {
+            nextPage = -1;
+        }
+
+        return new AccountLogsResponse(page, nextPage, logs);
     }
 
     @DeleteMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)

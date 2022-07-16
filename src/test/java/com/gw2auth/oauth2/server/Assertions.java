@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -40,5 +41,25 @@ public final class Assertions {
         }
 
         assertTrue(expectedValues.isEmpty());
+    }
+
+    public static void assertJsonEquals(Object expected, Object actual) throws Exception {
+        final ObjectMapper mapper = new ObjectMapper();
+        String expectedJson;
+        String actualJson;
+
+        if (expected instanceof String) {
+            expectedJson = (String) expected;
+        } else {
+            expectedJson = mapper.writeValueAsString(expected);
+        }
+
+        if (actual instanceof String) {
+            actualJson = (String) actual;
+        } else {
+            actualJson = mapper.writeValueAsString(actual);
+        }
+
+        assertEquals(mapper.readTree(expectedJson), mapper.readTree(actualJson));
     }
 }

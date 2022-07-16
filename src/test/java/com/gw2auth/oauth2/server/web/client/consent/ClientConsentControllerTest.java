@@ -4,15 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentLogRepository;
 import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import org.junit.jupiter.api.Test;
@@ -22,8 +17,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,22 +46,10 @@ class ClientConsentControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ClientRegistrationRepository clientRegistrationRepository;
-
-    @Autowired
     private ClientConsentRepository clientConsentRepository;
 
     @Autowired
-    private ClientAuthorizationRepository clientAuthorizationRepository;
-
-    @Autowired
     private ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
-
-    @Autowired
-    private ClientConsentLogRepository clientConsentLogRepository;
-
-    @Autowired
-    private ApiTokenRepository apiTokenRepository;
 
     @Autowired
     private TestHelper testHelper;
@@ -177,92 +161,6 @@ class ClientConsentControllerTest {
     }
 
     @Test
-    public void getClientConsentLogPageUnauthorized() throws Exception {
-        this.mockMvc.perform(get("/api/client/consent/someid/logs"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @WithGw2AuthLogin
-    public void getClientConsentLogPageEmpty(CookieHolder cookieHolder) throws Exception {
-        this.mockMvc.perform(get("/api/client/consent/{clientId}/logs", UUID.randomUUID()).with(cookieHolder))
-                .andDo(cookieHolder)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value("0"))
-                .andExpect(jsonPath("$.nextPage").value("-1"))
-                .andExpect(jsonPath("$.logs.length()").value("0"));
-    }
-
-    @WithGw2AuthLogin
-    public void getClientConsentLogPage(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-
-        final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(accountId, "Name");
-        final ClientConsentEntity clientAuthorization = this.testHelper.createClientConsent(accountId, clientRegistration.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
-
-        final Queue<ClientConsentLogEntity> insertedLogs = new PriorityQueue<>(Comparator.comparing(ClientConsentLogEntity::timestamp).reversed());
-
-        for (int i = 0; i < 143; i++) {
-            final int generateMessageCount = ThreadLocalRandom.current().nextInt(20);
-            final List<String> messages = new ArrayList<>(generateMessageCount);
-
-            for (int j = 0; j < generateMessageCount; j++) {
-                messages.add(UUID.randomUUID().toString());
-            }
-
-            insertedLogs.offer(this.testHelper.createClientLog(accountId, clientAuthorization.clientRegistrationId(), UUID.randomUUID().toString(), messages));
-        }
-
-        final ObjectMapper mapper = new ObjectMapper();
-        int page = 0;
-
-        do {
-            final String responseJson = this.mockMvc.perform(
-                    get("/api/client/consent/{clientId}/logs", clientRegistration.id())
-                            .with(cookieHolder)
-                            .queryParam("page", Integer.toString(page))
-            )
-                    .andDo(cookieHolder)
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.page").exists())
-                    .andExpect(jsonPath("$.nextPage").exists())
-                    .andExpect(jsonPath("$.logs").exists())
-                    .andReturn()
-                    .getResponse()
-                    .getContentAsString();
-
-            final JsonNode responseNode = mapper.readTree(responseJson);
-            final int nextPage = responseNode.get("nextPage").intValue();
-
-            assertEquals(page, responseNode.get("page").intValue());
-            assertTrue(nextPage == page + 1 || nextPage == -1);
-
-            final JsonNode logsNode = responseNode.get("logs");
-            assertTrue(logsNode.isArray());
-
-            for (int i = 0; i < logsNode.size(); i++) {
-                final ClientConsentLogEntity expectedLog = insertedLogs.poll();
-                assertNotNull(expectedLog);
-
-                final JsonNode logNode = logsNode.get(i);
-
-                assertInstantEquals(expectedLog.timestamp(), logNode.get("timestamp").textValue());
-                assertEquals(expectedLog.type(), logNode.get("type").textValue());
-
-                final JsonNode messagesNode = logNode.get("messages");
-                assertTrue(messagesNode.isArray());
-
-                for (int j = 0; j < messagesNode.size(); j++) {
-                    assertEquals(expectedLog.messages().get(j), messagesNode.get(j).textValue());
-                }
-            }
-
-            page = nextPage;
-        } while (page != -1);
-
-        assertTrue(insertedLogs.isEmpty());
-    }
-
-    @Test
     public void deleteClientConsentUnauthorized() throws Exception {
         this.mockMvc.perform(delete("/api/client/consent/someid").with(csrf()))
                 .andExpect(status().isUnauthorized());
@@ -291,13 +189,6 @@ class ClientConsentControllerTest {
         // tokens for authorization B
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdB, apiTokenB.gw2AccountId());
 
-        // logs for authorization A
-        this.testHelper.createClientLog(accountId, clientConsentA.clientRegistrationId(), "SomeTypeA", List.of());
-        this.testHelper.createClientLog(accountId, clientConsentA.clientRegistrationId(), "SomeTypeA", List.of());
-
-        // logs for authorization B
-        this.testHelper.createClientLog(accountId, clientConsentB.clientRegistrationId(), "SomeTypeA", List.of());
-
         // delete authorization A
         this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.id()).with(cookieHolder).with(csrf()))
                 .andDo(cookieHolder)
@@ -310,16 +201,14 @@ class ClientConsentControllerTest {
         assertTrue(clientConsent.authorizedScopes().isEmpty());
         assertEquals(clientConsentA.accountSub(), clientConsent.accountSub());
 
-        // logs and tokens should be deleted
+        // tokens should be deleted
         assertTrue(this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdA).isEmpty());
-        assertTrue(this.clientConsentLogRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationA.id(), 0, 10).findAny().isEmpty());
 
         // authorization B should still be there (and unchanged)
         clientConsent = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientConsentB.clientRegistrationId()).orElse(null);
         assertEquals(clientConsentB, clientConsent);
 
-        // logs and tokens of B should still be there
+        // tokens of B should still be there
         assertEquals(1, this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdB).size());
-        assertEquals(1L, this.clientConsentLogRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistrationB.id(), 0, 10).count());
     }
 }

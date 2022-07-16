@@ -9,6 +9,7 @@ import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthoriza
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenEntity;
 import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
+import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.client.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
@@ -50,6 +51,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     private static final Logger LOG = LoggerFactory.getLogger(ClientAuthorizationServiceImpl.class);
 
+    private final AccountService accountService;
     private final ClientAuthorizationRepository clientAuthorizationRepository;
     private final ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
     private final ClientConsentService clientConsentService;
@@ -59,13 +61,15 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
     private final boolean isTest;
     private Clock clock;
 
-    public ClientAuthorizationServiceImpl(ClientAuthorizationRepository clientAuthorizationRepository,
+    public ClientAuthorizationServiceImpl(AccountService accountService,
+                                          ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
                                           ClientConsentService clientConsentService,
                                           RegisteredClientRepository registeredClientRepository,
                                           AuthorizationCodeParamAccessor authorizationCodeParamAccessor,
                                           boolean isTest) {
 
+        this.accountService = accountService;
         this.clientAuthorizationRepository = clientAuthorizationRepository;
         this.clientAuthorizationTokenRepository = clientAuthorizationTokenRepository;
         this.clientConsentService = clientConsentService;
@@ -87,12 +91,14 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
 
     @Autowired
     public ClientAuthorizationServiceImpl(Environment environment,
+                                          AccountService accountService,
                                           ClientAuthorizationRepository clientAuthorizationRepository,
                                           ClientAuthorizationTokenRepository clientAuthorizationTokenRepository,
                                           ClientConsentService clientConsentService,
                                           RegisteredClientRepository registeredClientRepository) {
 
         this(
+                accountService,
                 clientAuthorizationRepository,
                 clientAuthorizationTokenRepository,
                 clientConsentService,
@@ -268,7 +274,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
             final String copyGw2AccountIdsFromClientAuthorizationId = this.authorizationCodeParamAccessor.<String>getValue("COPY_FROM_CLIENT_AUTHORIZATION_ID").orElse(null);
 
             if (copyGw2AccountIdsFromClientAuthorizationId != null || this.authorizationCodeParamAccessor.isInConsentContext()) {
-                try (ClientConsentService.LoggingContext logging = this.clientConsentService.log(accountId, clientRegistrationId, ClientConsentService.LogType.AUTHORIZATION)) {
+                try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "AUTHORIZATION", "client_id", clientRegistrationId))) {
                     final Set<UUID> authorizedTokenGw2AccountIds;
 
                     if (copyGw2AccountIdsFromClientAuthorizationId != null) {
@@ -304,9 +310,9 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
                     this.clientAuthorizationTokenRepository.deleteAllByAccountIdAndClientAuthorizationId(accountId, clientAuthorizationEntity.id());
                     this.clientAuthorizationTokenRepository.saveAll(tokensToAdd);
 
-                    logging.log("New authorization with name '%s' (id %s)", clientAuthorizationEntity.displayName(), clientAuthorizationEntity.id());
-                    logging.log("Authorized scopes for this authorization: %s", clientAuthorizationEntity.authorizedScopes());
-                    logging.log("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size());
+                    logging.log(String.format("New authorization with name '%s' (id %s)", clientAuthorizationEntity.displayName(), clientAuthorizationEntity.id()));
+                    logging.log(String.format("Authorized scopes for this authorization: %s", clientAuthorizationEntity.authorizedScopes()));
+                    logging.log(String.format("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size()));
                 }
             }
         }
