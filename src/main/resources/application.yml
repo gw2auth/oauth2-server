@@ -48,11 +48,11 @@ spring:
           google:
             user-name-attribute: sub
   datasource:
-    url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
+    url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}${SERVER_POSTGRES_OPTIONS}"
     username: ${SERVER_POSTGRES_USER}
     password: ${SERVER_POSTGRES_PASSWORD}
   flyway:
-    url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}"
+    url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}${SERVER_POSTGRES_OPTIONS}"
     user: ${SERVER_FLYWAY_POSTGRES_USER}
     password: ${SERVER_FLYWAY_POSTGRES_PASSWORD}
 

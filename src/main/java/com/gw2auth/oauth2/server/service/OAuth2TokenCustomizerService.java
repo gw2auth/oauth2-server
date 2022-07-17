@@ -17,8 +17,11 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.verification.VerificationService;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -43,6 +46,7 @@ import java.util.stream.Collectors;
 @Service
 public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEncodingContext> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OAuth2TokenCustomizerService.class);
     private static final Duration AUTHORIZED_TOKEN_MIN_EXCESS_TIME = Duration.ofMinutes(20L);
 
     private final AccountService accountService;
@@ -256,8 +260,18 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 }
             }
 
-            this.apiTokenService.updateApiTokensValid(this.clock.instant(), apiTokenValidityUpdates);
-            this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave);
+            final List<Runnable> failSafeRunnables = List.of(
+                    () -> this.apiTokenService.updateApiTokensValid(this.clock.instant(), apiTokenValidityUpdates),
+                    () -> this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave)
+            );
+
+            for (Runnable failSafeRunnable : failSafeRunnables) {
+                try {
+                    failSafeRunnable.run();
+                } catch (DataAccessException e) {
+                    LOG.info("failed to save low priority entity (one of [api token validity], [api subtoken])", e);
+                }
+            }
 
             customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
         }

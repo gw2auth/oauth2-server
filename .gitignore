@@ -69,4 +69,5 @@ Thumbs.db
 # endregion
 
 # cockroachdb
-root.crt
+cockroach_beta.crt
+cockroach_prod.crt

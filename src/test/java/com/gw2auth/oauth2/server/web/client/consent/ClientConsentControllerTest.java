@@ -120,9 +120,9 @@ class ClientConsentControllerTest {
             }
 
             // registration
-            final String registrationDisplayName = clientRegistrationNode.get("creationTime").textValue();
-            assertInstantEquals(clientRegistration.creationTime(), registrationDisplayName);
-            assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
+            final String registrationDisplayName = clientRegistrationNode.get("displayName").textValue();
+            assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
+            assertEquals(clientRegistration.displayName(), registrationDisplayName);
 
             if (previousRegistrationDisplayName != null) {
                 assertTrue(previousRegistrationDisplayName.compareTo(registrationDisplayName) <= 0);
