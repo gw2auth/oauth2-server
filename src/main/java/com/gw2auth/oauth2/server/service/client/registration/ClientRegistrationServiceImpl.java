@@ -55,7 +55,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
 
     @Override
     public List<ClientRegistration> getClientRegistrations(Collection<UUID> ids) {
-        return this.clientRegistrationRepository.findAllByIds(ids)
+        return this.clientRegistrationRepository.findAllByIds(ids).stream()
                 .map(ClientRegistration::fromEntity)
                 .collect(Collectors.toList());
     }

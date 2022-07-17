@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @Repository
 public interface AccountLogRepository extends BaseRepository<AccountLogEntity> {
@@ -50,10 +50,10 @@ public interface AccountLogRepository extends BaseRepository<AccountLogEntity> {
     ORDER BY timestamp DESC
     LIMIT :page_size OFFSET (:page * :page_size)
     """)
-    Stream<AccountLogEntity> findAllByAccountIdAndFields(@Param("account_id") UUID accountId,
-                                                         @Param("fields") JSONObject fields,
-                                                         @Param("page") int page,
-                                                         @Param("page_size") int pageSize);
+    List<AccountLogEntity> findAllByAccountIdAndFields(@Param("account_id") UUID accountId,
+                                                       @Param("fields") JSONObject fields,
+                                                       @Param("page") int page,
+                                                       @Param("page_size") int pageSize);
 
     @Modifying
     @Query("""

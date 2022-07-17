@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Stream;
 
 @Repository("jdbcClientRegistrationRepository")
 public interface ClientRegistrationRepository extends BaseRepository<ClientRegistrationEntity> {
@@ -48,7 +47,7 @@ public interface ClientRegistrationRepository extends BaseRepository<ClientRegis
     Optional<ClientRegistrationEntity> findById(@Param("id") UUID id);
 
     @Query("SELECT * FROM client_registrations WHERE id = ANY(ARRAY[ :ids ]::UUID[])")
-    Stream<ClientRegistrationEntity> findAllByIds(@Param("ids") Collection<UUID> ids);
+    List<ClientRegistrationEntity> findAllByIds(@Param("ids") Collection<UUID> ids);
 
     @Modifying
     @Query("DELETE FROM client_registrations WHERE account_id = :account_id AND id = :id")

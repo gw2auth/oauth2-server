@@ -186,12 +186,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public List<AccountLog> getAccountLogs(UUID accountId, Map<String, ?> fields, int page, int pageSize) {
-        try (Stream<AccountLogEntity> stream = this.accountLogRepository.findAllByAccountIdAndFields(accountId, new JSONObject(fields), page, pageSize)) {
-            return stream
-                    .map((entity) -> new AccountLog(entity.timestamp(), entity.message(), entity.fields().toMap()))
-                    .sorted(Comparator.comparing(AccountLog::timestamp).reversed())
-                    .toList();
-        }
+        return this.accountLogRepository.findAllByAccountIdAndFields(accountId, new JSONObject(fields), page, pageSize).stream()
+                .map((entity) -> new AccountLog(entity.timestamp(), entity.message(), entity.fields().toMap()))
+                .sorted(Comparator.comparing(AccountLog::timestamp).reversed())
+                .toList();
     }
 
     @Override
