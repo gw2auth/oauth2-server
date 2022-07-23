@@ -180,9 +180,9 @@ public interface ClientAuthorizationRepository extends BaseRepository<ClientAuth
     SELECT auth.*
     FROM client_authorizations auth
     INNER JOIN client_authorization_tokens auth_tk
-    ON auth.account_id = auth_tk.account_id AND auth.id = auth_tk.client_authorization_id
+    ON auth.id = auth_tk.client_authorization_id
     WHERE auth.account_id = :account_id AND auth_tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
-    GROUP BY auth.account_id, auth.id
+    GROUP BY auth.id
     """)
     List<ClientAuthorizationEntity> findAllByAccountIdAndLinkedTokens(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Set<UUID> gw2AccountIds);
 
