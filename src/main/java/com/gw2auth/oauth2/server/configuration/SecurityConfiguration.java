@@ -1,13 +1,13 @@
 package com.gw2auth.oauth2.server.configuration;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.gw2auth.oauth2.server.adapt.*;
-import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
+import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
+import com.gw2auth.oauth2.server.adapt.Gw2AuthSecurityContextRepository;
+import com.gw2auth.oauth2.server.adapt.Gw2AuthSessionDeletionLogoutHandler;
+import com.gw2auth.oauth2.server.adapt.S3AuthorizationRequestRepository;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.service.user.Gw2AuthLoginUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
-import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,16 +23,13 @@ import org.springframework.security.config.annotation.web.configurers.CsrfConfig
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.CookieRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
@@ -77,8 +74,8 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer() {
-        return (sc) -> sc.securityContextRepository(new RequestAttributeSecurityContextRepository());
+    public Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer(Gw2AuthInternalJwtConverter jwtConverter, Gw2AuthTokenUserService gw2AuthTokenUserService) {
+        return (sc) -> sc.securityContextRepository(new Gw2AuthSecurityContextRepository(jwtConverter, gw2AuthTokenUserService));
     }
 
     @Bean
@@ -94,33 +91,15 @@ public class SecurityConfiguration {
                                                                                  RequestCache requestCache) {
 
         final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository = new S3AuthorizationRequestRepository(s3, bucket, prefix);
-        final SavedRequestAwareAuthenticationSuccessHandler delegate = new SavedRequestAwareAuthenticationSuccessHandler();
-        delegate.setRequestCache(requestCache);
-        delegate.setDefaultTargetUrl("/account");
+        final SavedRequestAwareAuthenticationSuccessHandler successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
+        successHandler.setRequestCache(requestCache);
+        successHandler.setDefaultTargetUrl("/account");
 
         return (oauth2) -> {
             oauth2
                     .loginPage("/login")
                     .authorizationEndpoint(authEndpoint -> authEndpoint.authorizationRequestRepository(authorizationRequestRepository))
-                    .successHandler((request, response, authentication) -> {
-                        final Object principal = authentication.getPrincipal();
-                        if (principal instanceof Gw2AuthLoginUser user) {
-                            final AccountFederationSession session = user.session();
-                            final Jwt jwt = authenticationSerializer.writeJWT(session.id(), session.creationTime(), session.expirationTime());
-                            CookieHelper.addCookie(request, response, Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
-                        }
-
-                        delegate.onAuthenticationSuccess(request, response, authentication);
-                    });
-        };
-    }
-
-    @Bean
-    public Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>> oauth2ResourceServerCustomizer(Gw2AuthTokenUserService gw2AuthTokenUserService) {
-        return (oauth2) -> {
-            oauth2
-                    .bearerTokenResolver(new CookieBearerTokenResolver(Constants.ACCESS_TOKEN_COOKIE_NAME))
-                    .authenticationManagerResolver(new Gw2AuthAuthenticationManagerResolver(gw2AuthTokenUserService));
+                    .successHandler(successHandler);
         };
     }
 
@@ -150,7 +129,6 @@ public class SecurityConfiguration {
                                                                Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer,
                                                                Customizer<RequestCacheConfigurer<HttpSecurity>> requestCacheCustomizer,
                                                                Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer,
-                                                               Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>> oauth2ResourceServerCustomizer,
                                                                Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer) throws Exception {
 
         final LogoutHandler logoutHandler = new Gw2AuthSessionDeletionLogoutHandler(accountService);
@@ -175,7 +153,6 @@ public class SecurityConfiguration {
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
                 .oauth2Login(oauth2LoginCustomizer)
-                .oauth2ResourceServer(oauth2ResourceServerCustomizer)
                 .logout((logout) -> {
                     logout
                             .deleteCookies(Constants.ACCESS_TOKEN_COOKIE_NAME)
@@ -217,8 +194,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain apiHttpSecurityFilterChain(HttpSecurity http,
                                                           @Qualifier("api-request-matcher") RequestMatcher requestMatcher,
                                                           Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer,
-                                                          Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer,
-                                                          Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>> oauth2ResourceServerCustomizer) throws Exception {
+                                                          Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer) throws Exception {
 
         http
                 .requestMatcher(requestMatcher)
@@ -229,8 +205,7 @@ public class SecurityConfiguration {
                 })
                 .csrf(csrfCustomizer)
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .securityContext(securityContextCustomizer)
-                .oauth2ResourceServer(oauth2ResourceServerCustomizer);
+                .securityContext(securityContextCustomizer);
 
         return http.build();
     }

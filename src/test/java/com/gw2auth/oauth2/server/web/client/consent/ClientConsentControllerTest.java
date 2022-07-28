@@ -57,7 +57,7 @@ class ClientConsentControllerTest {
     @Test
     public void getClientConsentsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/consent"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -161,9 +161,9 @@ class ClientConsentControllerTest {
     }
 
     @Test
-    public void deleteClientConsentUnauthorized() throws Exception {
+    public void deleteClientConsentUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/client/consent/someid").with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

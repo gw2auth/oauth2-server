@@ -97,7 +97,7 @@ class VerificationControllerTest {
     @Test
     public void getBootstrapUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/verification/bootstrap"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -178,7 +178,7 @@ class VerificationControllerTest {
                         .with(csrf())
                         .queryParam("challengeId", "1")
         )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

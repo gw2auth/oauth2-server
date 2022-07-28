@@ -18,7 +18,6 @@ import org.springframework.security.config.annotation.web.configurers.RequestCac
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.OAuth2ResourceServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
 import org.springframework.security.web.SecurityFilterChain;
@@ -89,8 +88,7 @@ public class OAuth2ServerConfiguration {
                                                                    OAuth2AuthorizationServerConfigurer<HttpSecurity> configurer,
                                                                    Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer,
                                                                    Customizer<RequestCacheConfigurer<HttpSecurity>> requestCacheCustomizer,
-                                                                   Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer,
-                                                                   Customizer<OAuth2ResourceServerConfigurer<HttpSecurity>> oauth2ResourceServerCustomizer) throws Exception {
+                                                                   Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer) throws Exception {
 
         // This configuration is only for requests matched by the RequestMatcher
         // (that is, only OAuth2 AUTHORIZATION requests -> requests where this application acts as a OAuth2 server, not a client)
@@ -102,7 +100,6 @@ public class OAuth2ServerConfiguration {
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
                 .oauth2Login(oauth2LoginCustomizer)
-                .oauth2ResourceServer(oauth2ResourceServerCustomizer)
                 .apply(configurer);
 
         return http.build();

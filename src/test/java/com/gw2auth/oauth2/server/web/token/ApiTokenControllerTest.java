@@ -98,7 +98,7 @@ class ApiTokenControllerTest {
     @Test
     public void getApiTokensUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/token"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -161,7 +161,7 @@ class ApiTokenControllerTest {
     @Test
     public void addApiTokenUnauthenticated() throws Exception {
         this.mockMvc.perform(post("/api/token").with(csrf()).content(UUID.randomUUID().toString()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -372,7 +372,7 @@ class ApiTokenControllerTest {
                         .with(csrf())
                         .queryParam("gw2ApiToken", UUID.randomUUID().toString())
         )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -549,7 +549,7 @@ class ApiTokenControllerTest {
     @Test
     public void deleteApiTokenUnauthorized() throws Exception {
         this.mockMvc.perform(delete("/api/token/someid").with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

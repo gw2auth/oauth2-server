@@ -51,7 +51,7 @@ class ClientAuthorizationControllerTest {
     @Test
     public void getClientAuthorizationsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/authorization/someid"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -169,7 +169,7 @@ class ClientAuthorizationControllerTest {
     @Test
     public void deleteClientAuthorizationsUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/client/authorization/someid").with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

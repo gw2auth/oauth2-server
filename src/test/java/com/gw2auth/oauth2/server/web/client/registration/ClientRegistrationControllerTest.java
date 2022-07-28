@@ -54,9 +54,9 @@ class ClientRegistrationControllerTest {
     private TestHelper testHelper;
 
     @Test
-    public void getClientRegistrationsUnauthorized() throws Exception {
+    public void getClientRegistrationsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/registration"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -126,9 +126,9 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void getClientRegistrationUnauthorized() throws Exception {
+    public void getClientRegistrationUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/client/registration/someid"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -164,9 +164,9 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void deleteClientRegistrationUnauthorized() throws Exception {
+    public void deleteClientRegistrationUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/client/registration/someid").with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -199,7 +199,7 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void createClientRegistrationUnauthorized() throws Exception {
+    public void createClientRegistrationUnauthenticated() throws Exception {
         this.mockMvc.perform(
                 post("/api/client/registration")
                         .with(csrf())
@@ -208,7 +208,7 @@ class ClientRegistrationControllerTest {
                         {"displayName": "Test", "authorizationGrantTypes": ["authorization_code"], "redirectUri": "http://127.0.0.1/"}
                         """)
         )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -266,14 +266,14 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void addRedirectUriUnauthorized() throws Exception {
+    public void addRedirectUriUnauthenticated() throws Exception {
         this.mockMvc.perform(
                         put("/api/client/registration/some-id/redirect-uris")
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("http://127.0.0.1/account/client/debug")
                 )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -333,14 +333,14 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void removeRedirectUriUnauthorized() throws Exception {
+    public void removeRedirectUriUnauthenticated() throws Exception {
         this.mockMvc.perform(
                         delete("/api/client/registration/some-id/redirect-uris")
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .queryParam("redirectUri", "http://127.0.0.1/account/client/debug")
                 )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -400,12 +400,12 @@ class ClientRegistrationControllerTest {
     }
 
     @Test
-    public void regenerateClientSecretUnauthorized() throws Exception {
+    public void regenerateClientSecretUnauthenticated() throws Exception {
         this.mockMvc.perform(
                         patch("/api/client/registration/some-id/client-secret")
                                 .with(csrf())
                 )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

@@ -68,7 +68,7 @@ class AccountControllerTest {
     @Test
     public void getAccountSummaryUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/summary"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -119,7 +119,7 @@ class AccountControllerTest {
     @Test
     public void getAccountFederationsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/federation"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
@@ -144,7 +144,7 @@ class AccountControllerTest {
     @Test
     public void getAccountLogsUnauthenticated() throws Exception {
         this.mockMvc.perform(get("/api/account/log"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin
@@ -214,7 +214,7 @@ class AccountControllerTest {
                         .queryParam("issuer", "")
                         .queryParam("idAtIssuer", "")
                         .with(csrf())
-        ).andExpect(status().isUnauthorized());
+        ).andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
@@ -269,7 +269,7 @@ class AccountControllerTest {
                 delete("/api/account/session")
                         .queryParam("id", "")
                         .with(csrf())
-        ).andExpect(status().isUnauthorized());
+        ).andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
@@ -311,7 +311,7 @@ class AccountControllerTest {
     @Test
     public void deleteAccountUnauthenticated() throws Exception {
         this.mockMvc.perform(delete("/api/account").with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @WithGw2AuthLogin

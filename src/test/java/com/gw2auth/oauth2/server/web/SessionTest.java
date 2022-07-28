@@ -96,7 +96,7 @@ public class SessionTest {
         // expired: should not work
         this.mockMvc.perform(get("/api/account/summary").with(cookieHolder))
                 .andDo(cookieHolder)
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -151,7 +151,7 @@ public class SessionTest {
         cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).setValue(modifiedJwt);
         this.mockMvc.perform(get("/api/account/summary").with(cookieHolder))
                 .andDo(cookieHolder)
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         // the cookie should now be removed
         assertNull(cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME));
