@@ -5,9 +5,12 @@ import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.adapt.Gw2AuthSecurityContextRepository;
 import com.gw2auth.oauth2.server.adapt.Gw2AuthSessionDeletionLogoutHandler;
 import com.gw2auth.oauth2.server.adapt.S3AuthorizationRequestRepository;
+import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthLoginUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
+import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +29,7 @@ import org.springframework.security.config.annotation.web.configurers.oauth2.cli
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
@@ -74,8 +78,8 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer(Gw2AuthInternalJwtConverter jwtConverter, Gw2AuthTokenUserService gw2AuthTokenUserService) {
-        return (sc) -> sc.securityContextRepository(new Gw2AuthSecurityContextRepository(jwtConverter, gw2AuthTokenUserService));
+    public Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer(Gw2AuthTokenUserService gw2AuthTokenUserService) {
+        return (sc) -> sc.securityContextRepository(new Gw2AuthSecurityContextRepository(gw2AuthTokenUserService));
     }
 
     @Bean
@@ -87,19 +91,28 @@ public class SecurityConfiguration {
     public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2-authorization-s3-client") AmazonS3 s3,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.bucket}") String bucket,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.prefix}") String prefix,
-                                                                                 Gw2AuthInternalJwtConverter authenticationSerializer,
+                                                                                 Gw2AuthInternalJwtConverter jwtConverter,
                                                                                  RequestCache requestCache) {
 
         final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository = new S3AuthorizationRequestRepository(s3, bucket, prefix);
-        final SavedRequestAwareAuthenticationSuccessHandler successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
-        successHandler.setRequestCache(requestCache);
-        successHandler.setDefaultTargetUrl("/account");
+        final SavedRequestAwareAuthenticationSuccessHandler delegate = new SavedRequestAwareAuthenticationSuccessHandler();
+        delegate.setRequestCache(requestCache);
+        delegate.setDefaultTargetUrl("/account");
 
         return (oauth2) -> {
             oauth2
                     .loginPage("/login")
                     .authorizationEndpoint(authEndpoint -> authEndpoint.authorizationRequestRepository(authorizationRequestRepository))
-                    .successHandler(successHandler);
+                    .successHandler((request, response, authentication) -> {
+                        final Object principal = authentication.getPrincipal();
+                        if (principal instanceof Gw2AuthLoginUser user) {
+                            final AccountFederationSession session = user.session();
+                            final Jwt jwt = jwtConverter.writeJWT(session.id(), session.creationTime(), session.expirationTime());
+                            CookieHelper.addCookie(request, response, Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
+                        }
+
+                        delegate.onAuthenticationSuccess(request, response, authentication);
+                    });
         };
     }
 

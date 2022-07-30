@@ -152,8 +152,5 @@ public class SessionTest {
         this.mockMvc.perform(get("/api/account/summary").with(cookieHolder))
                 .andDo(cookieHolder)
                 .andExpect(status().isForbidden());
-
-        // the cookie should now be removed
-        assertNull(cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME));
     }
 }
