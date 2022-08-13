@@ -20,10 +20,12 @@ public class TpBuyOrderVerificationChallenge implements VerificationChallenge<Tp
     private static final long PRICE_RANGE_START = coins(1, 15, 0);
     private static final long PRICE_RANGE_END = coins(30, 0, 0);
     private static final List<Integer> ITEM_IDS = List.of(
-            30689,// eternity
-            30704,// twilight
-            30703,// sunrise
-            30699// zap
+            // gen1 legendaries
+            30684, 30687, 30692, 30693, 30695, 30699, 30688, 30696, 30700, 30702, 30703,
+            30704, 30689, 30690, 30685, 30694, 30686, 30698, 30697, 30691, 30701,
+            // gen3 legendaries
+            96937, 96203, 95612, 95808, 96221, 95675, 97165, 96028,
+            97099, 97783, 96356, 95684, 97590, 97377, 97077, 96652
     );
 
     private final Gw2ApiService gw2ApiService;
