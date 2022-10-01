@@ -1,5 +1,5 @@
-@import '~bootstrap/scss/functions';
-@import '~bootstrap/scss/variables';
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
 @import 'vars';
 
 $accent: $dark;
@@ -50,7 +50,7 @@ $list-group-action-active-bg: $list-group-active-bg;
 // endregion
 
 @import 'global_pre';
-@import '~bootstrap/scss/bootstrap';
+@import 'bootstrap/scss/bootstrap';
 @import 'global_post';
 
 // region inputs

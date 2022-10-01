@@ -1,5 +1,5 @@
-@import '~bootstrap/scss/functions';
-@import '~bootstrap/scss/variables';
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
 @import 'vars';
 
 $list-group-hover-bg: tint-color($list-group-active-bg, 60%);
@@ -17,5 +17,5 @@ $dropdown-dark-link-disabled-color: $dropdown-link-disabled-color;
 $dropdown-dark-header-color:        $dropdown-header-color;
 
 @import 'global_pre';
-@import '~bootstrap/scss/bootstrap';
+@import 'bootstrap/scss/bootstrap';
 @import 'global_post';

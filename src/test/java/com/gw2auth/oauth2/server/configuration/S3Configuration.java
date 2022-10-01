@@ -16,7 +16,7 @@ public class S3Configuration {
 
     @Bean
     public LocalStackContainer localStackContainer() {
-        final LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:0.14")).withServices(LocalStackContainer.Service.S3);
+        final LocalStackContainer localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:1.1.0")).withServices(LocalStackContainer.Service.S3);
         localStackContainer.start();
 
         return localStackContainer;
