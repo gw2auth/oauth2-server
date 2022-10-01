@@ -86,18 +86,6 @@ public class TpBuyOrderVerificationChallenge implements VerificationChallenge<Tp
                 .anyMatch((transaction) -> transaction.price() == state.price());
     }
 
-    private static long gold(long coins) {
-        return coins / 10000L;
-    }
-
-    private static long silver(long coins) {
-        return (coins / 100L) % 100L;
-    }
-
-    private static long copper(long coins) {
-        return coins % 100L;
-    }
-
     private static long coins(int gold, int silver, int copper) {
         long coins = copper;
         coins += silver * 100L;
