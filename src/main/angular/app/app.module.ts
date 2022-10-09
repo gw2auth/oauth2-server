@@ -56,8 +56,7 @@ import {ClientAuthorizationService} from './main/account/application/client-auth
 import {DeleteAuthorizationModalComponent} from './main/account/application/delete-authorization-modal.component';
 import {AuthorizationModalComponent} from './main/account/application/authorization-modal.component';
 import {RegenerateClientSecretModalComponent} from './main/account/client/regenerate-client-secret-modal.component';
-import {LogoWideComponent} from './general/logo-wide.component';
-import {LogoSmallComponent} from './general/logo-small.component';
+import {LogoComponent} from './general/logo.component';
 import {VerificationSetupSelectComponent} from './main/account/verification/verification-setup-select.component';
 import {VerificationSetupInstructionsComponent} from './main/account/verification/verification-setup-instructions.component';
 import {VerificationSetupSubmitComponent} from './main/account/verification/verification-setup-submit.component';
@@ -139,8 +138,7 @@ const cookieConfig: NgcCookieConsentConfig = {
     DeleteAuthorizationModalComponent,
     AuthorizationModalComponent,
     RegenerateClientSecretModalComponent,
-    LogoWideComponent,
-    LogoSmallComponent,
+    LogoComponent,
     VerificationSetupSelectComponent,
     VerificationSetupInstructionsComponent,
     VerificationSetupSubmitComponent,

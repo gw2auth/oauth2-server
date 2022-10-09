@@ -183,6 +183,7 @@ public class SecurityConfiguration {
                 new AntPathRequestMatcher("/**/*.js"),
                 new AntPathRequestMatcher("/assets/**"),
                 new AntPathRequestMatcher("/favicon.ico"),
+                new AntPathRequestMatcher("/favicon.svg"),
                 new AntPathRequestMatcher("/robots.txt")
         );
     }

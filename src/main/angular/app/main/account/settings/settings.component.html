@@ -25,7 +25,7 @@
                             <tr>
                                 <td>
                                     <ng-container [ngSwitch]="federation.issuer">
-                                        <app-logo-small *ngSwitchCase="'cognito'"></app-logo-small>
+                                        <app-logo *ngSwitchCase="'cognito'"></app-logo>
                                         <fa-icon *ngSwitchDefault [icon]="getIssuerIcon(federation.issuer)"></fa-icon>
                                     </ng-container>
                                     <span [textContent]="' ' + getIssuerName(federation.issuer)"></span>
@@ -97,7 +97,7 @@
                         <a href="/api/account/federation/google" role="button" class="btn btn-secondary w-100"><fa-icon [icon]="faGoogle"></fa-icon> Google</a>
                     </div>
                     <div class="col">
-                        <a href="/api/account/federation/cognito" role="button" class="btn btn-primary w-100"><app-logo-small></app-logo-small> E-Mail &amp; Password</a>
+                        <a href="/api/account/federation/cognito" role="button" class="btn btn-primary w-100"><app-logo></app-logo> E-Mail &amp; Password</a>
                     </div>
                 </div>
             </div>

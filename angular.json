@@ -31,6 +31,7 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/main/angular/favicon.ico",
+              "src/main/angular/favicon.svg",
               "src/main/angular/robots.txt",
               "src/main/angular/assets"
             ],
@@ -113,6 +114,7 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/main/angular/favicon.ico",
+              "src/main/angular/favicon.svg",
               "src/main/angular/robots.txt",
               "src/main/angular/assets"
             ],
