@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {ClientRegistrationCreation, ClientRegistrationCreationRequest, ClientRegistrationPrivate} from './client-registration.model';
+import {
+  ClientRegistrationCreation,
+  ClientRegistrationCreationRequest,
+  ClientRegistrationPrivate,
+  ClientRegistrationPrivateSummary
+} from './client-registration.model';
 
 @Injectable()
 export class ClientRegistrationService {
@@ -14,6 +19,10 @@ export class ClientRegistrationService {
 
   getClientRegistration(clientId: string): Observable<ClientRegistrationPrivate> {
     return this.http.get<ClientRegistrationPrivate>('/api/client/registration/' + encodeURIComponent(clientId));
+  }
+
+  getClientRegistrationSummary(clientId: string): Observable<ClientRegistrationPrivateSummary> {
+    return this.http.get<ClientRegistrationPrivateSummary>('/api/client/registration/' + encodeURIComponent(clientId) + '/summary');
   }
 
   createClientRegistration(request: ClientRegistrationCreationRequest): Observable<ClientRegistrationCreation> {

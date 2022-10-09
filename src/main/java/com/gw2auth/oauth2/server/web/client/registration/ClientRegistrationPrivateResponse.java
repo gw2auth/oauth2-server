@@ -17,6 +17,12 @@ public record ClientRegistrationPrivateResponse(@JsonProperty("creationTime") In
                                                 @JsonProperty("redirectUris") Set<String> redirectUris) {
 
     public static ClientRegistrationPrivateResponse create(ClientRegistration clientRegistration) {
-        return new ClientRegistrationPrivateResponse(clientRegistration.creationTime(), clientRegistration.displayName(), clientRegistration.id(), clientRegistration.authorizationGrantTypes(), clientRegistration.redirectUris());
+        return new ClientRegistrationPrivateResponse(
+                clientRegistration.creationTime(),
+                clientRegistration.displayName(),
+                clientRegistration.id(),
+                clientRegistration.authorizationGrantTypes(),
+                clientRegistration.redirectUris()
+        );
     }
 }

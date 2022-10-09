@@ -1,6 +1,6 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import {ClientRegistrationService} from './client-registration.service';
-import {AuthorizationGrantType, ClientRegistrationPrivate, authorizationGrantTypeDisplayName} from './client-registration.model';
+import {AuthorizationGrantType, ClientRegistrationPrivate, ClientRegistrationPrivateSummary, authorizationGrantTypeDisplayName} from './client-registration.model';
 import {faAngleDoubleDown, faAngleDoubleUp, faTrashAlt, faCopy, faRedo, faPlusSquare} from '@fortawesome/free-solid-svg-icons';
 import {DeleteModalComponent} from '../../../general/delete-modal.component';
 import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
@@ -26,6 +26,8 @@ export class ClientComponent implements OnInit {
 
   clientRegistrations: ClientRegistrationPrivate[] = [];
   clientSecretsByClientId = new Map<string, string>();
+  clientRegistrationSummaryByClientId = new Map<string, ClientRegistrationPrivateSummary>();
+  clientRegistrationSummaryLoadingByClientId = new Map<string, boolean>();
 
   constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly modalService: NgbModal, private readonly toastService: ToastService, @Inject(DOCUMENT) private readonly document: Document) { }
 
@@ -78,6 +80,23 @@ export class ClientComponent implements OnInit {
           })
           .catch((apiError: ApiError) => {
               this.toastService.show('Redirect-URI addition failed', 'The Redirect-URI addition failed: ' + apiError.message);
+          });
+  }
+
+  onLoadSummaryClick(clientRegistration: ClientRegistrationPrivate): void {
+      const clientId = clientRegistration.clientId;
+
+      this.clientRegistrationSummaryLoadingByClientId.set(clientId, true);
+
+      firstValueFrom(this.clientRegistrationService.getClientRegistrationSummary(clientId))
+          .then((clientRegistrationSummary) => {
+              this.clientRegistrationSummaryByClientId.set(clientId, clientRegistrationSummary);
+          })
+          .catch((apiError: ApiError) => {
+              this.toastService.show('Loading summary failed', 'Failed to load client summary: ' + apiError.message);
+          })
+          .finally(() => {
+              this.clientRegistrationSummaryLoadingByClientId.delete(clientId);
           });
   }
 

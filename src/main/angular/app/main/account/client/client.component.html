@@ -85,8 +85,41 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col">
-                                            <a *ngIf="hasTestRedirectUri(clientRegistration)" role="button" class="btn btn-primary" [routerLink]="['', 'account', 'client', clientRegistration.clientId, 'debug']">Debug</a>
+                                        <div *ngIf="clientRegistrationSummaryByClientId.get(clientRegistration.clientId); let summary" class="col">
+                                            <div class="container-fluid">
+                                                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryAccounts'" class="form-label">Accounts</label>
+                                                        <input [id]="'summaryAccounts'" type="number" class="form-control" disabled [valueAsNumber]="summary.accounts">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryGw2Accounts'" class="form-label">GW2-Accounts</label>
+                                                        <input [id]="'summaryGw2Accounts'" type="number" class="form-control" disabled [valueAsNumber]="summary.gw2Accounts">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryAuthsPast1d'" class="form-label">Logins past 24h</label>
+                                                        <input [id]="'summaryAuthsPast1d'" type="number" class="form-control" disabled [valueAsNumber]="summary.authPast1d">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryAuthsPast3d'" class="form-label">Logins past 3d</label>
+                                                        <input [id]="'summaryAuthsPast3d'" type="number" class="form-control" disabled [valueAsNumber]="summary.authPast3d">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryAuthsPast7d'" class="form-label">Logins past 7d</label>
+                                                        <input [id]="'summaryAuthsPast7d'" type="number" class="form-control" disabled [valueAsNumber]="summary.authPast7d">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label [htmlFor]="'summaryAuthsPast30d'" class="form-label">Logins past 30d</label>
+                                                        <input [id]="'summaryAuthsPast30d'" type="number" class="form-control" disabled [valueAsNumber]="summary.authPast30d">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col" *ngIf="!clientRegistrationSummaryByClientId.get(clientRegistration.clientId)">
+                                            <app-button-loadable [class]="['btn', 'btn-primary']" [loading]="clientRegistrationSummaryLoadingByClientId.get(clientRegistration.clientId) || false" (click)="onLoadSummaryClick(clientRegistration)">Load summary</app-button-loadable>
+                                        </div>
+                                        <div *ngIf="hasTestRedirectUri(clientRegistration)" class="col">
+                                            <a role="button" class="btn btn-primary" [routerLink]="['', 'account', 'client', clientRegistration.clientId, 'debug']">Debug</a>
                                         </div>
                                     </div>
                                 </div>

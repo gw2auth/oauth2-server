@@ -5,8 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
+import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
+import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
+import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.summary.SummaryServiceImpl;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +21,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,7 +61,15 @@ class ClientRegistrationControllerTest {
     private AccountRepository accountRepository;
 
     @Autowired
+    private SummaryServiceImpl summaryService;
+
+    @Autowired
     private TestHelper testHelper;
+
+    @AfterEach
+    public void resetClock() {
+        this.summaryService.setClock(Clock.systemUTC());
+    }
 
     @Test
     public void getClientRegistrationsUnauthenticated() throws Exception {
@@ -161,6 +179,72 @@ class ClientRegistrationControllerTest {
                 .andExpect(jsonPath("$.redirectUris").value(containingAll(clientRegistration.redirectUris())))
                 .andExpect(jsonPath("$.authorizationGrantTypes").isArray())
                 .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("0"));
+    }
+
+    @Test
+    public void getClientRegistrationSummaryUnauthenticated() throws Exception {
+        this.mockMvc.perform(get("/api/client/registration/someid/summary"))
+                .andExpect(status().isForbidden());
+    }
+
+    @WithGw2AuthLogin
+    public void getClientRegistrationSummaryOfOtherUser(CookieHolder cookieHolder) throws Exception {
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
+
+        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", clientRegistration.id()).with(cookieHolder))
+                .andDo(cookieHolder)
+                .andExpect(status().isNotFound());
+    }
+
+    @WithGw2AuthLogin
+    public void getClientRegistrationSummaryNotExisting(CookieHolder cookieHolder) throws Exception {
+        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", UUID.randomUUID()).with(cookieHolder))
+                .andDo(cookieHolder)
+                .andExpect(status().isNotFound());
+    }
+
+    @WithGw2AuthLogin
+    public void getClientRegistrationSummary(CookieHolder cookieHolder) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final Instant now = Instant.now();
+        final Clock clock = Clock.fixed(now, ZoneId.systemDefault());
+        this.summaryService.setClock(clock);
+
+        final List<ApiTokenEntity> apiTokens = List.of(
+                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenA"),
+                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenB")
+        );
+
+        final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(accountId, "NameA");
+        final ClientConsentEntity clientConsent = this.testHelper.createClientConsent(accountId, clientRegistration.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+
+        final List<ClientAuthorizationEntity> clientAuthorizations = List.of(
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now, clientConsent.authorizedScopes(), false), // this one should not be counted (no tokens)
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(31L)), clientConsent.authorizedScopes(), true), // this one should not be counted (too long ago)
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(29L)), clientConsent.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(8L)), clientConsent.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(6L)), clientConsent.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(4L)), clientConsent.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(2L)), clientConsent.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now, clientConsent.authorizedScopes(), true)
+        );
+
+        for (ClientAuthorizationEntity clientAuthorization : clientAuthorizations) {
+            for (ApiTokenEntity apiToken : apiTokens) {
+                this.testHelper.createClientAuthorizationTokens(clientAuthorization.accountId(), clientAuthorization.id(), apiToken.gw2AccountId());
+            }
+        }
+
+        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", clientRegistration.id()).with(cookieHolder))
+                .andDo(cookieHolder)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accounts").value(1L))
+                .andExpect(jsonPath("$.gw2Accounts").value(2L))
+                .andExpect(jsonPath("$.authPast1d").value(1L))
+                .andExpect(jsonPath("$.authPast3d").value(2L))
+                .andExpect(jsonPath("$.authPast7d").value(4L))
+                .andExpect(jsonPath("$.authPast30d").value(6L));
     }
 
     @Test

@@ -6,4 +6,6 @@ public interface SummaryService {
 
     ApplicationSummary getApplicationSummary();
     AccountSummary getAccountSummary(UUID accountId);
+
+    ClientSummary getClientSummary(UUID clientId);
 }

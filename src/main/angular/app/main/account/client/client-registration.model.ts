@@ -24,6 +24,15 @@ export interface ClientRegistrationPrivate {
     redirectUris: string[];
 }
 
+export interface ClientRegistrationPrivateSummary {
+    accounts: number;
+    gw2Accounts: number;
+    authPast1d: number;
+    authPast3d: number;
+    authPast7d: number;
+    authPast30d: number;
+}
+
 export interface ClientRegistrationCreation {
     clientRegistration: ClientRegistrationPrivate;
     clientSecret: string;

@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.web.client.registration;
 
 import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
+import com.gw2auth.oauth2.server.service.summary.SummaryService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +19,12 @@ import java.util.UUID;
 public class ClientRegistrationController extends AbstractRestController {
 
     private final ClientRegistrationService clientRegistrationService;
+    private final SummaryService summaryService;
 
     @Autowired
-    public ClientRegistrationController(ClientRegistrationService clientRegistrationService) {
+    public ClientRegistrationController(ClientRegistrationService clientRegistrationService, SummaryService summaryService) {
         this.clientRegistrationService = clientRegistrationService;
+        this.summaryService = summaryService;
     }
 
     @GetMapping(value = "/api/client/registration", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -35,6 +38,15 @@ public class ClientRegistrationController extends AbstractRestController {
     @GetMapping(value = "/api/client/registration/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> getClientRegistration(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
         return fromOptional(this.clientRegistrationService.getClientRegistration(user.getAccountId(), clientId).map(ClientRegistrationPrivateResponse::create));
+    }
+
+    @GetMapping(value = "/api/client/registration/{clientId}/summary", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> getClientRegistrationSummary(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
+        return fromOptional(
+                this.clientRegistrationService.getClientRegistration(user.getAccountId(), clientId)// ensure to only proceed if owner matches
+                        .map((v) -> this.summaryService.getClientSummary(v.id()))
+                        .map(ClientRegistrationPrivateSummary::create)
+        );
     }
 
     @PostMapping(value = "/api/client/registration", produces = MediaType.APPLICATION_JSON_VALUE)

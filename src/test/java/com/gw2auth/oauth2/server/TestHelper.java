@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 import javax.servlet.http.Cookie;
 import java.time.Duration;
@@ -148,33 +149,65 @@ public class TestHelper {
     }
 
     public ClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
-        final Instant now = Instant.now();
+        return createClientAuthorization(accountId, clientRegistrationId, Instant.now(), scopes, false);
+    }
+
+    public ClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, Set<String> scopes, boolean fillTokens) {
+        String authorizationCodeValue = null;
+        Instant authorizationCodeIssuedAt = null;
+        Instant authorizationCodeExpiresAt = null;
+        String authorizationCodeMetadata = null;
+        String accessTokenValue = null;
+        Instant accessTokenIssuedAt = null;
+        Instant accessTokenExpiresAt = null;
+        String accessTokenMetadata = null;
+        String accessTokenType = null;
+        String refreshTokenValue = null;
+        Instant refreshTokenIssuedAt = null;
+        Instant refreshTokenExpiresAt = null;
+        String refreshTokenMetadata = null;
+
+        if (fillTokens) {
+            authorizationCodeValue = UUID.randomUUID().toString();
+            authorizationCodeIssuedAt = creationTime;
+            authorizationCodeExpiresAt = creationTime.plus(Duration.ofMinutes(60L));
+            authorizationCodeMetadata = "{}";
+            accessTokenValue = UUID.randomUUID().toString();
+            accessTokenIssuedAt = creationTime;
+            accessTokenExpiresAt = creationTime.plus(Duration.ofMinutes(30L));
+            accessTokenMetadata = "{}";
+            accessTokenType = OAuth2AccessToken.TokenType.BEARER.getValue();
+            refreshTokenValue = UUID.randomUUID().toString();
+            refreshTokenIssuedAt = creationTime;
+            refreshTokenExpiresAt = creationTime.plus(Duration.ofDays(180L));
+            refreshTokenMetadata = "{}";
+        }
 
         return this.clientAuthorizationRepository.save(new ClientAuthorizationEntity(
                 UUID.randomUUID().toString(),
                 accountId,
                 clientRegistrationId,
-                now,
-                now,
+                creationTime,
+                creationTime,
                 "Name",
                 AuthorizationGrantType.JWT_BEARER.getValue(),
                 scopes,
                 "",
                 UUID.randomUUID().toString(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                authorizationCodeValue,
+                authorizationCodeIssuedAt,
+                authorizationCodeExpiresAt,
+                authorizationCodeMetadata,
+                accessTokenValue,
+                accessTokenIssuedAt,
+                accessTokenExpiresAt,
+                accessTokenMetadata,
+                accessTokenType,
                 scopes,
-                null,
-                null,
-                null,
-                null
+                refreshTokenValue,
+                refreshTokenIssuedAt,
+                refreshTokenExpiresAt,
+                refreshTokenMetadata
         ));
     }
 
@@ -183,7 +216,11 @@ public class TestHelper {
     }
 
     public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(UUID accountId, String clientAuthorizationId, UUID... gw2AccountIds) {
-        return Arrays.stream(gw2AccountIds)
+        return createClientAuthorizationTokens(accountId, clientAuthorizationId, List.of(gw2AccountIds));
+    }
+
+    public List<ClientAuthorizationTokenEntity> createClientAuthorizationTokens(UUID accountId, String clientAuthorizationId, Collection<UUID> gw2AccountIds) {
+        return gw2AccountIds.stream()
                 .map((gw2AccountId) -> createClientAuthorizationToken(accountId, clientAuthorizationId, gw2AccountId))
                 .collect(Collectors.toList());
     }
