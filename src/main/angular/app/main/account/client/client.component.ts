@@ -67,7 +67,7 @@ export class ClientComponent implements OnInit {
   onAddRedirectUriClick(clientRegistration: ClientRegistrationPrivate, redirectUriElement: HTMLInputElement): void {
       firstValueFrom(this.clientRegistrationService.addRedirectUri(clientRegistration.clientId, redirectUriElement.value))
           .then((clientRegistration) => {
-              this.toastService.show('Redirect-URI added', 'The Redirect-URI has been added successfully');
+              this.toastService.show('Redirect URI added', 'The redirect URI has been added successfully');
 
               for (let i = 0; i < this.clientRegistrations.length; i++) {
                   if (this.clientRegistrations[i].clientId == clientRegistration.clientId) {
@@ -79,7 +79,7 @@ export class ClientComponent implements OnInit {
               redirectUriElement.value = '';
           })
           .catch((apiError: ApiError) => {
-              this.toastService.show('Redirect-URI addition failed', 'The Redirect-URI addition failed: ' + apiError.message);
+              this.toastService.show('Redirect URI addition failed', 'The redirect URI addition failed: ' + apiError.message);
           });
   }
 
@@ -113,11 +113,11 @@ export class ClientComponent implements OnInit {
               if (confirmed) {
                   firstValueFrom(this.clientRegistrationService.regenerateClientSecret(clientRegistration.clientId))
                       .then((clientRegistrationCreation) => {
-                          this.toastService.show('Client-Secret generated', 'The Client-Secret has been generated successfully');
+                          this.toastService.show('Client Secret generated', 'The client secret has been generated successfully');
                           this.clientSecretsByClientId.set(clientRegistrationCreation.clientRegistration.clientId, clientRegistrationCreation.clientSecret);
                       })
                       .catch((apiError: ApiError) => {
-                          this.toastService.show('Client-Secret generation failed', apiError.message);
+                          this.toastService.show('Client Secret generation failed', apiError.message);
                       });
               }
           })
@@ -126,7 +126,7 @@ export class ClientComponent implements OnInit {
 
   openDeleteRedirectUriModal(clientRegistration: ClientRegistrationPrivate, redirectUri: string): void {
       const modalRef = this.modalService.open(DeleteModalComponent);
-      modalRef.componentInstance.entityType = 'Redirect-URI';
+      modalRef.componentInstance.entityType = 'Redirect URI';
       modalRef.componentInstance.entityName = redirectUri;
 
       const clientId = clientRegistration.clientId;
@@ -136,7 +136,7 @@ export class ClientComponent implements OnInit {
               if (confirmed) {
                   firstValueFrom(this.clientRegistrationService.removeRedirectUri(clientId, redirectUri))
                       .then((clientRegistration) => {
-                          this.toastService.show('Redirect-URI deleted', 'The Redirect-URI has been deleted successfully');
+                          this.toastService.show('Redirect URI deleted', 'The redirect URI has been deleted successfully');
 
                           this.clientRegistrations = this.clientRegistrations.map((v, index, arr) => {
                               if (v.clientId == clientId) {
@@ -147,7 +147,7 @@ export class ClientComponent implements OnInit {
                           });
                       })
                       .catch((apiError: ApiError) => {
-                          this.toastService.show('Redirect-URI deletion failed', 'The Redirect-URI deletion failed: ' + apiError.message);
+                          this.toastService.show('Redirect URI deletion failed', 'The redirect URI deletion failed: ' + apiError.message);
                       })
               }
           })
@@ -166,11 +166,11 @@ export class ClientComponent implements OnInit {
             if (confirmed) {
                 firstValueFrom(this.clientRegistrationService.deleteClientRegistration(clientId))
                     .then(() => {
-                        this.toastService.show('Client deleted', 'The Client has been deleted successfully');
+                        this.toastService.show('Client deleted', 'The client has been deleted successfully');
                         this.clientRegistrations = this.clientRegistrations.filter((v: ClientRegistrationPrivate) => v.clientId != clientId);
                     })
                     .catch((apiError: ApiError) => {
-                        this.toastService.show('Client deletion failed', 'The Client deletion failed: ' + apiError.message);
+                        this.toastService.show('Client deletion failed', 'The client deletion failed: ' + apiError.message);
                     })
             }
         })

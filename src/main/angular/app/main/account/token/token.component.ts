@@ -93,15 +93,15 @@ export class TokenComponent implements OnInit, OnDestroy {
                 this.tokens[index] = updatedToken;
             }
 
-            this.toastService.show('API-Token updated', 'The API-Token has been updated successfully');
+            this.toastService.show('API Token updated', 'The API Token has been updated successfully');
             this.sendNotificationToOpener(Type.UPDATE_TOKEN, updatedToken);
         })
         .catch((e) => {
             if (e) {
                 if (e.error != undefined) {
-                    this.toastService.show('API-Token update failed', 'The API-Token update failed: ' + e.error.message);
+                    this.toastService.show('API Token update failed', 'The API Token update failed: ' + e.error.message);
                 } else {
-                    this.toastService.show('API-Token update failed', 'The API-Token update failed for an unknown reason');
+                    this.toastService.show('API Token update failed', 'The API Token update failed for an unknown reason');
                 }
             }
         });
@@ -123,7 +123,7 @@ export class TokenComponent implements OnInit, OnDestroy {
         })
         .then((apiError: ApiError | null) => {
             if (apiError == null) {
-                this.toastService.show('API-Token deleted', 'The API-Token has been deleted successfully');
+                this.toastService.show('API Token deleted', 'The API Token has been deleted successfully');
                 this.tokens = this.tokens.filter((v: Token) => v.gw2AccountId != gw2AccountId);
 
                 if (this.tokens.length < 1) {
@@ -132,12 +132,12 @@ export class TokenComponent implements OnInit, OnDestroy {
 
                 this.sendNotificationToOpener(Type.DELETE_TOKEN, token);
             } else {
-                this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed: ' + apiError.message);
+                this.toastService.show('API Token deletion failed', 'The API Token deletion failed: ' + apiError.message);
             }
         })
         .catch((e) => {
             if (e) {
-                this.toastService.show('API-Token deletion failed', 'The API-Token deletion failed for an unknown reason');
+                this.toastService.show('API Token deletion failed', 'The API Token deletion failed for an unknown reason');
             }
         });
   }
@@ -151,9 +151,9 @@ export class TokenComponent implements OnInit, OnDestroy {
               this.addTokenLoading = false;
 
               if (token == null) {
-                  this.toastService.show('API-Token not added', 'Failed to add the API-Token');
+                  this.toastService.show('API Token not added', 'Failed to add the API Token');
               } else {
-                  this.toastService.show('API-Token added', 'The API-Token was added to your account successfully');
+                  this.toastService.show('API Token added', 'The API Token was added to your account successfully');
                   this.addTokenValue = '';
                   this.tokens.push(token);
                   this.tokensState = 1;

@@ -34,26 +34,26 @@
                                 <div class="container-fluid p-2">
                                     <div class="row row-cols-1 g-3">
                                         <div class="col">
-                                            <label [htmlFor]="'creationTime'" class="form-label">Created At</label>
+                                            <label [htmlFor]="'creationTime'" class="form-label">Created at</label>
                                             <input type="text" class="form-control" [id]="'creationTime'" [(ngModel)]="clientRegistration.creationTime" name="creationTime" disabled />
                                         </div>
                                         <div class="col">
-                                            <label [htmlFor]="'clientId'" class="form-label">Client-ID</label>
+                                            <label [htmlFor]="'clientId'" class="form-label">Client ID</label>
                                             <app-input-copyable [inputId]="'clientId'" [inputValue]="clientRegistration.clientId"></app-input-copyable>
                                         </div>
                                         <div class="col">
-                                            <label [htmlFor]="'clientSecret'" class="form-label">Client-Secret</label>
+                                            <label [htmlFor]="'clientSecret'" class="form-label">Client secret</label>
                                             <ng-container [ngSwitch]="clientSecretsByClientId.has(clientRegistration.clientId)">
                                                 <ng-container *ngSwitchCase="true">
                                                     <app-input-copyable [inputId]="'clientSecret'" [aria-describedby]="'clientSecretDescription'" [inputValue]="getClientSecretSafe(clientRegistration)"></app-input-copyable>
-                                                    <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation. Make sure to copy it now!</div>
+                                                    <div [id]="'clientSecretDescription'" class="form-text">The client secret is only visible after creation. Make sure to copy it now!</div>
                                                 </ng-container>
                                                 <ng-container *ngSwitchDefault>
                                                     <div class="input-group">
                                                         <input type="text" class="form-control" [id]="'clientSecret'" [attr.aria-describedby]="'clientSecretDescription'" disabled value="***************" />
                                                         <button class="btn btn-accent-inner" (click)="openRegenerateClientSecretModal(clientRegistration)"><fa-icon [icon]="faRedo"></fa-icon></button>
                                                     </div>
-                                                    <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation</div>
+                                                    <div [id]="'clientSecretDescription'" class="form-text">The client secret is only visible after creation</div>
                                                 </ng-container>
                                             </ng-container>
                                         </div>
@@ -93,7 +93,7 @@
                                                         <input [id]="'summaryAccounts'" type="number" class="form-control" disabled [valueAsNumber]="summary.accounts">
                                                     </div>
                                                     <div class="col">
-                                                        <label [htmlFor]="'summaryGw2Accounts'" class="form-label">GW2-Accounts</label>
+                                                        <label [htmlFor]="'summaryGw2Accounts'" class="form-label">Guild Wars 2 Accounts</label>
                                                         <input [id]="'summaryGw2Accounts'" type="number" class="form-control" disabled [valueAsNumber]="summary.gw2Accounts">
                                                     </div>
                                                     <div class="col">

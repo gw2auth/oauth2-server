@@ -8,16 +8,16 @@ import {ClientRegistrationPrivate} from "./client-registration.model";
     selector: 'app-regenerate-client-secret-modal',
     template: `
         <div class="modal-header">
-            <h5 class="modal-title">Regenerate Client-Secret for {{clientRegistration.displayName}}</h5>
+            <h5 class="modal-title">Regenerate client secret for {{clientRegistration.displayName}}</h5>
             <button type="button" class="btn btn-sm" (click)="dismiss()" aria-label="Close"><fa-icon [icon]="faTimes"></fa-icon></button>
         </div>
         <div class="modal-body">
-            <p>Do you really want to regenerate the Client-Secret for <strong>{{clientRegistration.displayName}}</strong>?</p>
-            <p>This action cannot be undone. The Client-Secret will be updated immediately and currently active applications using this Client-Secret will no longer work until you update their configuration accordingly!</p>
+            <p>Do you really want to regenerate the client secret for <strong>{{clientRegistration.displayName}}</strong>?</p>
+            <p>This action cannot be undone. The client secret will be updated immediately and currently active applications using this client secret will no longer work until you update their configuration accordingly!</p>
             <form>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" value="" [id]="'regenerate-client-secret-confirm'" [(ngModel)]="confirmed" name="confirmed" />
-                    <label [htmlFor]="'regenerate-client-secret-confirm'">Yes, regenerate Client-Secret</label>
+                    <label [htmlFor]="'regenerate-client-secret-confirm'">Yes, regenerate client secret</label>
                 </div>
             </form>
         </div>

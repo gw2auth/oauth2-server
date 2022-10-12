@@ -7,19 +7,19 @@ import {Token} from '../../../common/token.model';
     template: `
         <app-delete-abstract-modal [entityName]="entityName">
             <div class="mb-3" *ngIf="token.authorizations.length > 0">
-                <label [htmlFor]="'applications'" class="form-label">This API-Token is currently used by the following Applications</label>
+                <label [htmlFor]="'applications'" class="form-label">This API Token is currently used by the following applications</label>
                 <div class="list-group" [id]="'applications'" [attr.aria-describedby]="'applicationsDescription'">
                     <a *ngFor="let authorization of token.authorizations" class="list-group-item">
                         {{authorization.displayName}}
                     </a>
                 </div>
                 <div [id]="'applicationsDescription'" class="form-text">
-                    Removing this API-Token will also remove the Applications access to this GW2-Account.
-                    After removing this API-Token, authorized Applications will still have access to this GW2-Account for at most 30 minutes
+                    Removing this API Token will also remove the listed applications access to this Guild Wars 2 Account.
+                    Upon removing this API Token, authorized applications will still have access to this Guild Wars 2 Account for at most 30 minutes.
                 </div>
             </div>
             
-            <p>Do you really want to delete the API-Token <strong>{{token.displayName}}</strong>?</p>
+            <p>Do you really want to delete the API Token <strong>{{token.displayName}}</strong>?</p>
         </app-delete-abstract-modal>
     `
 })

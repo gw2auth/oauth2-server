@@ -90,15 +90,15 @@ export class ApplicationComponent implements OnInit {
         })
         .then((apiError: ApiError | null) => {
           if (apiError == null) {
-            this.toastService.show('Application deleted', 'The Application consent has been deleted successfully');
+            this.toastService.show('Application deleted', 'The application consent has been deleted successfully');
             this.clientConsents = this.clientConsents.filter((v: ClientConsent) => v.clientRegistration.clientId != clientId);
           } else {
-            this.toastService.show('Application deletion failed', 'The Application consent deletion failed: ' + apiError.message);
+            this.toastService.show('Application deletion failed', 'The application consent deletion failed: ' + apiError.message);
           }
         })
         .catch((e) => {
           if (e) {
-            this.toastService.show('Application deletion failed', 'The Application consent deletion failed for an unknown reason');
+            this.toastService.show('Application deletion failed', 'The application consent deletion failed for an unknown reason');
           }
         });
   }

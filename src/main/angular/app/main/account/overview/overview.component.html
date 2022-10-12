@@ -6,33 +6,33 @@
             </div>
             <ng-container *ngSwitchDefault>
                 <div class="col">
-                    <app-summary-element [title]="summary!.apiTokens + ' API-Tokens'">
-                        <p class="mb-1">You have linked <strong>{{summary!.apiTokens}}</strong> API-Tokens to your account.</p>
-                        <p class="mb-0">API-Tokens are used to grant external applications access to the GW2-API.</p>
+                    <app-summary-element [title]="summary!.apiTokens + ' API Tokens'">
+                        <p class="mb-1">You have linked <strong>{{summary!.apiTokens}}</strong> API Tokens to your account.</p>
+                        <p class="mb-0">API Tokens are used to grant applications access to the Guild Wars 2 API.</p>
                     </app-summary-element>
                 </div>
                 <div class="col">
-                    <app-summary-element [title]="summary!.clientAuthorizations + ' Applications'">
-                        <p class="mb-1">You authorized <strong>{{summary!.clientAuthorizations}}</strong> external applications using GW2Auth.</p>
-                        <p class="mb-0">External applications receive GW2-API-Subtokens to access the GW2-API on your behalf.</p>
+                    <app-summary-element [title]="summary!.clientAuthorizations + ' Authorizations'">
+                        <p class="mb-1">You authorized <strong>{{summary!.clientAuthorizations}}</strong> applications to use your Guild Wars 2 API Tokens through GW2Auth.</p>
+                        <p class="mb-0">When logging in at an application through GW2Auth we provide them with subtokens they may use at the official Guild Wars 2 API.</p>
                     </app-summary-element>
                 </div>
                 <div class="col">
-                    <app-summary-element [title]="summary!.verifiedGw2Accounts + ' verified GW2-Accounts'">
-                        <p class="mb-1">You verified <strong>{{summary!.verifiedGw2Accounts}}</strong> of your GW2-Accounts at GW2Auth.</p>
-                        <p class="mb-0">By verifying your GW2-Account we make sure that nobody else adds an API-Token of one of your GW2-Accounts to their GW2Auth-Account.</p>
+                    <app-summary-element [title]="summary!.verifiedGw2Accounts + ' verified Guild Wars 2 Accounts'">
+                        <p class="mb-1">You verified <strong>{{summary!.verifiedGw2Accounts}}</strong> of your Guild Wars 2 Accounts at GW2Auth.</p>
+                        <p class="mb-0">By verifying a Guild Wars 2 Account at GW2Auth we make sure that nobody but the verified GW2Auth Account is able to add API Tokens for the verified Guild Wars 2 Account.</p>
                     </app-summary-element>
                 </div>
                 <div class="col">
                     <app-summary-element [title]="summary!.accountFederations + ' Login Providers'">
-                        <p class="mb-1">You added <strong>{{summary!.accountFederations}}</strong> login Providers to your GW2Auth-Account.</p>
-                        <p class="mb-0">Adding login providers grants you access to your GW2Auth-Account through multiple providers.</p>
+                        <p class="mb-1">You added <strong>{{summary!.accountFederations}}</strong> login providers to your GW2Auth Account.</p>
+                        <p class="mb-0">Adding login providers grants you access to your GW2Auth Account through multiple providers.</p>
                     </app-summary-element>
                 </div>
                 <div class="col">
                     <app-summary-element [title]="summary!.clientRegistrations + ' Clients'">
-                        <p class="mb-1">You registered <strong>{{summary!.clientRegistrations}}</strong> Developer-Clients at GW2Auth.</p>
-                        <p class="mb-0">Clients are used by developers to integrate GW2Auth into their application.</p>
+                        <p class="mb-1">You registered <strong>{{summary!.clientRegistrations}}</strong> clients at GW2Auth.</p>
+                        <p class="mb-0">Clients allow developers to integrate GW2Auth into their application.</p>
                     </app-summary-element>
                 </div>
             </ng-container>

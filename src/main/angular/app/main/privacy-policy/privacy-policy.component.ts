@@ -37,18 +37,10 @@ export class PrivacyPolicyComponent implements OnInit {
     {
       name: 'REDIRECT_URI',
       type: 'Strictly necessary',
-      expiration: '30 Days',
+      expiration: 'Session',
       description: `
       The REDIRECT_URI cookie keeps information of a page you attempted to access while not being logged in.
       This cookie is required to send you back to the page you initially requested once you successfully logged in.
-      `
-    },
-    {
-      name: 'JSESSIONID',
-      type: 'Strictly necessary',
-      expiration: 'Session',
-      description: `
-      (HISTORICAL) This cookie is no longer used and will no longer be created.
       `
     },
     {
@@ -68,7 +60,15 @@ export class PrivacyPolicyComponent implements OnInit {
       description: `
       Used to remember your decision of the Cookie-Consent Banner on this device.
       `
-    }
+    },
+    {
+      name: 'JSESSIONID',
+      type: 'Strictly necessary',
+      expiration: 'Session',
+      description: `
+      (HISTORICAL) This cookie is no longer used and will no longer be created.
+      `
+    },
   ];
 
   localStorageInformations: LocalStorageInformation[] = [

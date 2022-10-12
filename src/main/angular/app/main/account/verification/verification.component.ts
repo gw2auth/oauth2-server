@@ -6,9 +6,8 @@ import {
   VerificationChallenge, VerificationChallengeStart, VerificationChallengePending
 } from './verification.model';
 import {faCheck} from '@fortawesome/free-solid-svg-icons';
-import {ApiError, Gw2ApiPermission} from '../../../common/common.model';
+import {Gw2ApiPermission} from '../../../common/common.model';
 import {Gw2ApiService} from '../../../common/gw2-api.service';
-import {firstValueFrom} from 'rxjs';
 import {ToastService} from '../../../toast/toast.service';
 
 

@@ -78,3 +78,15 @@ iframe.yt-embed {
   height: auto;
   aspect-ratio: 16 / 9;
 }
+
+// region carousel
+.carousel-item {
+  padding: 1.5em;
+}
+
+.carousel-item > .carousel-content-html {
+  text-align: center;
+  overflow: hidden;
+  display: block;
+}
+// endregion

@@ -39,7 +39,7 @@ const routes: Routes = [
         data: { title: 'Account' },
         children: [
           { path: '', component: OverviewComponent },
-          { path: 'token', component: TokenComponent, data: { title: 'API-Tokens' } },
+          { path: 'token', component: TokenComponent, data: { title: 'API Tokens' } },
           { path: 'application', component: ApplicationComponent, data: { title: 'Applications' } },
           { path: 'client', component: ClientComponent, data: { title: 'Clients' } },
           { path: 'client/create', component: ClientCreateComponent, data: { title: 'Create Client' } },

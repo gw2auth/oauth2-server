@@ -9,17 +9,17 @@
                 <div class="container-fluid">
                     <div class="row row-cols-1 gy-3">
                         <div class="col">
-                            <label [htmlFor]="'grantType'" class="form-label">Grant-Type</label>
+                            <label [htmlFor]="'grantType'" class="form-label">Grant Type</label>
                             <app-input-copyable [inputId]="'grantType'" [inputValue]="grantType"></app-input-copyable>
                         </div>
 
                         <div class="col">
-                            <label [htmlFor]="'codeOrRefreshToken'" class="form-label">Code / Refresh-Token</label>
+                            <label [htmlFor]="'codeOrRefreshToken'" class="form-label">Code / Refresh Token</label>
                             <app-input-copyable [inputId]="'codeOrRefreshToken'" [inputValue]="codeOrRefreshToken"></app-input-copyable>
                         </div>
 
                         <div class="col">
-                            <label [htmlFor]="'clientSecret'" class="form-label">Client-Secret</label>
+                            <label [htmlFor]="'clientSecret'" class="form-label">Client Secret</label>
                             <input type="text" class="form-control" [id]="'clientSecret'" [attr.aria-describedby]="'clientSecretDescription'" [(ngModel)]="clientSecret" name="clientSecret" [disabled]="codeRequestInProgress" />
                             <div [id]="'clientSecretDescription'" class="form-text">Paste your Client-Secret to request an Access-Token and Refresh-Token</div>
                         </div>
@@ -40,11 +40,11 @@
                             <textarea class="form-control" rows="10" [id]="'codeRequestResponseAccessToken'">{{codeRequestResponseAccessToken}}</textarea>
                         </div>
                         <div *ngIf="codeRequestResponseRefreshToken != null" class="col">
-                            <label [htmlFor]="'codeRequestResponseRefreshToken'" class="form-label">Refresh-Token</label>
+                            <label [htmlFor]="'codeRequestResponseRefreshToken'" class="form-label">Refresh Token</label>
                             <app-input-copyable [inputId]="'codeRequestResponseRefreshToken'" [inputValue]="codeRequestResponseRefreshToken"></app-input-copyable>
                         </div>
                         <div *ngIf="codeRequestResponseTokenType != null" class="col">
-                            <label [htmlFor]="'codeRequestResponseTokenType'" class="form-label">Token-Type</label>
+                            <label [htmlFor]="'codeRequestResponseTokenType'" class="form-label">Token Type</label>
                             <app-input-copyable [inputId]="'codeRequestResponseTokenType'" [inputValue]="codeRequestResponseTokenType"></app-input-copyable>
                         </div>
                         <div *ngIf="codeRequestResponseScope != null" class="col">
@@ -52,7 +52,7 @@
                             <app-input-copyable [inputId]="'codeRequestResponseScope'" [inputValue]="codeRequestResponseScope"></app-input-copyable>
                         </div>
                         <div *ngIf="codeRequestResponseExpiresIn != null" class="col">
-                            <label [htmlFor]="'codeRequestResponseExpiresIn'" class="form-label">Expires-In</label>
+                            <label [htmlFor]="'codeRequestResponseExpiresIn'" class="form-label">Expires in</label>
                             <app-input-copyable [inputId]="'codeRequestResponseExpiresIn'" [inputValue]="codeRequestResponseExpiresIn.toString()"></app-input-copyable>
                         </div>
                     </div>
@@ -60,7 +60,7 @@
             </div>
 
             <div class="col">
-                <app-button-loadable [class]="['btn-primary', 'w-100']" [loading]="codeRequestInProgress" (click)="onRequestTokensClick()">Request Access-Token and Refresh-Token</app-button-loadable>
+                <app-button-loadable [class]="['btn-primary', 'w-100']" [loading]="codeRequestInProgress" (click)="onRequestTokensClick()">Request Access Token and Refresh Token</app-button-loadable>
             </div>
         </ng-container>
         <ng-container *ngIf="error != null">
@@ -69,7 +69,7 @@
                 <app-input-copyable [inputId]="'error'" [inputValue]="error"></app-input-copyable>
             </div>
             <div *ngIf="errorDescription != null">
-                <label [htmlFor]="'errorDescription'" class="form-label">Error-Description</label>
+                <label [htmlFor]="'errorDescription'" class="form-label">Error description</label>
                 <app-input-copyable [inputId]="'errorDescription'" [inputValue]="errorDescription"></app-input-copyable>
             </div>
         </ng-container>

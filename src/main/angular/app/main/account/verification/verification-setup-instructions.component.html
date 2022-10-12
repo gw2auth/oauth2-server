@@ -4,7 +4,7 @@
         <div class="row row-cols-1 g-3">
             <div class="col">
                 <h3 class="mb-3">Account verification</h3>
-                <p>Perform the steps described below using the GuildWars2 account you wish to verify</p>
+                <p>Perform the steps described below using the Guild Wars2 account you wish to verify</p>
             </div>
 
             <div class="col">
@@ -31,7 +31,7 @@
                             </ng-container>
                             <ng-container *ngSwitchCase="2">
                                 <ol *ngIf="asTpBuyOrderMessage(startedChallenge) | async; let message" class="list-group list-group-numbered">
-                                    <li class="list-group-item">Login to the game using the GuildWars2 account you wish to verify</li>
+                                    <li class="list-group-item">Login to the game using the Guild Wars2 account you wish to verify</li>
                                     <li class="list-group-item">Open the ingame tradingpost</li>
                                     <li class="list-group-item">
                                         <span class="mb-2">Search for the item</span>
@@ -52,7 +52,7 @@
                             </ng-container>
                             <ng-container *ngSwitchCase="3">
                                 <ol *ngIf="asCharacterMessage(startedChallenge) as characterName" class="list-group list-group-numbered">
-                                    <li class="list-group-item">Login to the game using the GuildWars2 account you wish to verify</li>
+                                    <li class="list-group-item">Login to the game using the Guild Wars2 account you wish to verify</li>
                                     <li class="list-group-item">In the character selection screen, create a new character</li>
                                     <li class="list-group-item">Proceed with any choice you like until the character name screen</li>
                                     <li class="list-group-item">Name the character <app-text-copyable><strong>{{characterName}}</strong></app-text-copyable></li>

@@ -62,7 +62,7 @@ export class SettingsComponent implements OnInit {
     const idAtIssuer = federation.idAtIssuer;
 
     const modalRef = this.modalService.open(DeleteModalComponent);
-    modalRef.componentInstance.entityType = 'Login provider';
+    modalRef.componentInstance.entityType = 'Login Provider';
     modalRef.componentInstance.entityName = this.getIssuerName(federation.issuer) + ' - ' + federation.idAtIssuer;
 
     modalRef.result
@@ -75,7 +75,7 @@ export class SettingsComponent implements OnInit {
         })
         .then((success) => {
           if (success) {
-            this.toastService.show('Login provider deleted', 'The Login provider has been deleted successfully');
+            this.toastService.show('Login provider deleted', 'The login provider has been deleted successfully');
 
             this.federations!.federations = this.federations!.federations.filter((v) => !(v.issuer == issuer && v.idAtIssuer == idAtIssuer));
 
@@ -86,7 +86,7 @@ export class SettingsComponent implements OnInit {
         })
         .catch((e) => {
           if (e) {
-            this.toastService.show('Login provider deletion failed', 'The Login provider deletion failed for an unknown reason');
+            this.toastService.show('Login provider deletion failed', 'The login provider deletion failed for an unknown reason');
           }
         });
   }
@@ -141,7 +141,7 @@ export class SettingsComponent implements OnInit {
         })
         .then((success) => {
           if (success) {
-            this.toastService.show('Account deleted', 'Your Account has been deleted successfully');
+            this.toastService.show('Account deleted', 'Your account has been deleted successfully');
             this.authService.logout();
 
             return null;
@@ -151,7 +151,7 @@ export class SettingsComponent implements OnInit {
         })
         .catch((e) => {
           if (e) {
-            this.toastService.show('Account deletion failed', 'The Account deletion failed for an unknown reason');
+            this.toastService.show('Account deletion failed', 'The account deletion failed for an unknown reason');
           }
         });
   }

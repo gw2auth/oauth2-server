@@ -39,7 +39,7 @@ export class ClientCreateComponent implements OnInit {
         .pipe(catchError((e) => {
           const error = e.error as ApiError;
 
-          this.toastService.show('Failed to create client', 'The Client could not be created: ' + error.message);
+          this.toastService.show('Failed to create client', 'The client could not be created: ' + error.message);
           this.createInProgress = false;
 
           return of<ClientRegistrationCreation>();

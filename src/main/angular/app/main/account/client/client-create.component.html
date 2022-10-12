@@ -4,7 +4,7 @@
             <h3>Create Client</h3>
         </div>
         <div class="col" *ngIf="creationTime != null">
-            <label [htmlFor]="'creationTime'" class="form-label">Created At</label>
+            <label [htmlFor]="'creationTime'" class="form-label">Created at</label>
             <input type="text" class="form-control" [id]="'creationTime'" [(ngModel)]="creationTime" name="creationTime" [disabled]="createInProgress" />
         </div>
         <div class="col">
@@ -13,11 +13,11 @@
             <div [id]="'displayNameDescription'" class="form-text">This will be the name of your application shown to the users</div>
         </div>
         <div class="col" *ngIf="clientId != null">
-            <label [htmlFor]="'clientId'" class="form-label">Client-ID</label>
+            <label [htmlFor]="'clientId'" class="form-label">Client ID</label>
             <app-input-copyable [inputId]="'clientId'" [inputValue]="clientId"></app-input-copyable>
         </div>
         <div class="col" *ngIf="clientSecret != null">
-            <label [htmlFor]="'clientSecret'" class="form-label">Client-Secret</label>
+            <label [htmlFor]="'clientSecret'" class="form-label">Client Secret</label>
             <app-input-copyable [inputId]="'clientSecret'" [aria-describedby]="'clientSecretDescription'" [inputValue]="clientSecret"></app-input-copyable>
             <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation. Make sure to copy it now!</div>
         </div>

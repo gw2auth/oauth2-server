@@ -52,7 +52,7 @@ import { firstValueFrom } from 'rxjs';
                                 {{token.displayName}}
                             </a>
                         </div>
-                        <div [id]="'tokensDescription'" class="form-text">The application receives subtokens which are created using the authorized API-Tokens. It will never receive your actual API-Token. Subtokens are short-lived API-Tokens with reduced permissions</div>
+                        <div [id]="'tokensDescription'" class="form-text">The application receives subtokens which are created using the authorized API Tokens. It will never receive your actual API Token. Subtokens are short-lived API Tokens with reduced permissions</div>
                     </div>
                 </div>
             </div>
