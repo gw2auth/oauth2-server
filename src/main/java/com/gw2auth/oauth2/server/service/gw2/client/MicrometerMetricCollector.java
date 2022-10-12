@@ -21,9 +21,13 @@ import java.util.stream.Collectors;
 public class MicrometerMetricCollector implements MetricCollector {
 
     private final MeterRegistry meterRegistry;
+    private final String metricName;
+    private final String clientName;
 
-    public MicrometerMetricCollector(MeterRegistry meterRegistry) {
+    public MicrometerMetricCollector(MeterRegistry meterRegistry, String metricName, String clientName) {
         this.meterRegistry = meterRegistry;
+        this.metricName = metricName;
+        this.clientName = clientName;
     }
 
     @Override
@@ -37,11 +41,12 @@ public class MicrometerMetricCollector implements MetricCollector {
     }
 
     private void collectMetrics(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, ResponseEntity<Resource> response, Exception exc, Duration duration) {
-        this.meterRegistry.timer("gw2_lambda_client_requests", createTags(requestPath, requestQuery, requestHeaders, response, exc)).record(duration);
+        this.meterRegistry.timer(this.metricName, createTags(requestPath, requestQuery, requestHeaders, response, exc)).record(duration);
     }
 
     private Collection<Tag> createTags(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, ResponseEntity<Resource> response, Exception exc) {
         return List.of(
+                Tag.of("client.name", this.clientName),
                 Tag.of("method", HttpMethod.GET.name()),
                 Tag.of("uri", buildRequestUriTemplate(requestPath, requestQuery)),
                 Tag.of("status", response == null ? exc.getClass().getSimpleName() : Integer.toString(response.getStatusCode().value())),

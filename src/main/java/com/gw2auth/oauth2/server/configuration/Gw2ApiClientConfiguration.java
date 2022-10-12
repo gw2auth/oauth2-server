@@ -10,8 +10,6 @@ import com.gw2auth.oauth2.server.service.gw2.client.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.metrics.web.client.MetricsRestTemplateCustomizer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,22 +31,11 @@ public class Gw2ApiClientConfiguration {
             .withClientExecutionTimeout((int) READ_TIMEOUT.toMillis());
 
     @Bean
-    @ConditionalOnExpression("${management.endpoint.prometheus.enabled:false}")
-    public MetricCollector lambdaMetricCollector(MeterRegistry meterRegistry) {
-        return new MicrometerMetricCollector(meterRegistry);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public MetricCollector lambdaMetricCollector() {
-        return MetricCollector.NONE;
-    }
-
-    @Bean
     public Gw2ApiClient gw2ApiClient(MetricsRestTemplateCustomizer metricsRestTemplateCustomizer,
                                      ObjectMapper objectMapper,
                                      @Value("${com.gw2auth.gw2.client.aws-lambda-proxy.arns}") List<String> awsLambdaProxyARNs,
-                                     MetricCollector lambdaMetricCollector) {
+                                     @Value("${management.endpoint.prometheus.enabled:false}") boolean metricsEnabled,
+                                     MeterRegistry meterRegistry) {
 
         final RestTemplate restTemplate = new RestTemplateBuilder()
                 .rootUri("https://api.guildwars2.com")
@@ -58,14 +45,28 @@ public class Gw2ApiClientConfiguration {
                 .build();
 
         final List<Gw2ApiClient> chain = new ArrayList<>(awsLambdaProxyARNs.size() + 1);
-        chain.add(new RestOperationsGw2ApiClient(restTemplate));
+        chain.add(new RestOperationsGw2ApiClient(restTemplate, createMetricCollector(metricsEnabled, meterRegistry, "http.local")));
 
         for (String awsLambdaProxyARN : awsLambdaProxyARNs) {
             final AWSLambda lambdaClient = createLambdaClientForARN(awsLambdaProxyARN);
-            chain.add(new AwsLambdaGw2ApiClient(lambdaClient, awsLambdaProxyARN, objectMapper, lambdaMetricCollector));
+
+            chain.add(new AwsLambdaGw2ApiClient(
+                    lambdaClient,
+                    awsLambdaProxyARN,
+                    objectMapper,
+                    createMetricCollector(metricsEnabled, meterRegistry, "lambda." + Arn.fromString(awsLambdaProxyARN).getRegion())
+            ));
         }
 
         return new ChainedGw2ApiClient(chain, Duration.ofMinutes(1L));
+    }
+
+    private MetricCollector createMetricCollector(boolean enabled, MeterRegistry meterRegistry, String clientName) {
+        if (!enabled) {
+            return MetricCollector.NONE;
+        }
+
+        return new MicrometerMetricCollector(meterRegistry, "gw2_api_requests", clientName);
     }
 
     private AWSLambda createLambdaClientForARN(String awsLambdaProxyARN) {
