@@ -52,8 +52,8 @@ spring:
     username: ${SERVER_POSTGRES_USER}
     password: ${SERVER_POSTGRES_PASSWORD}
     hikari:
-      keepalive-time: 150000
-      max-lifetime: 1500000
+      keepalive-time: 60000
+      max-lifetime: 600000
   flyway:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}${SERVER_POSTGRES_OPTIONS}"
     user: ${SERVER_FLYWAY_POSTGRES_USER}
