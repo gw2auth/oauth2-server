@@ -19,7 +19,7 @@
         <div class="col" *ngIf="clientSecret != null">
             <label [htmlFor]="'clientSecret'" class="form-label">Client Secret</label>
             <app-input-copyable [inputId]="'clientSecret'" [aria-describedby]="'clientSecretDescription'" [inputValue]="clientSecret"></app-input-copyable>
-            <div [id]="'clientSecretDescription'" class="form-text">The Client-Secret is only visible after creation. Make sure to copy it now!</div>
+            <div [id]="'clientSecretDescription'" class="form-text">The Client secret is only visible after creation. Make sure to copy it now!</div>
         </div>
         <div class="col">
             <label [htmlFor]="'authorizationGrantTypes'" class="form-label">Authorization Grant Types</label>

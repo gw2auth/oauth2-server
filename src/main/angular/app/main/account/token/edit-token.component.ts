@@ -19,7 +19,7 @@ import {Token} from '../../../common/token.model';
                 </div>
 
                 <div class="mb-3">
-                    <label [htmlFor]="'edit-api-token-modal-api-token'" class="form-label">API-Token</label>
+                    <label [htmlFor]="'edit-api-token-modal-api-token'" class="form-label">API Token</label>
                     <input type="text" class="form-control" [id]="'edit-api-token-modal-api-token'" [attr.aria-describedby]="'edit-api-token-modal-api-token-description'" [(ngModel)]="gw2ApiToken" name="gw2ApiToken" />
                     <div [id]="'edit-api-token-modal-api-token-description'" class="form-text">The API Token must be linked to the same Guild Wars 2 Account as the current API Token.</div>
                 </div>

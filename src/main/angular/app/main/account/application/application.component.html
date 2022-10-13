@@ -37,9 +37,9 @@
                                         <div class="container-fluid p-2">
                                             <div class="row row-cols-1 g-3">
                                                 <div class="col">
-                                                    <label [htmlFor]="'accountSub'" class="form-label">User-ID</label>
+                                                    <label [htmlFor]="'accountSub'" class="form-label">User ID</label>
                                                     <app-input-copyable [inputId]="'accountSub'" [aria-describedby]="'accountSubDescription'" [inputValue]="clientConsent.accountSub"></app-input-copyable>
-                                                    <div [id]="'accountSubDescription'" class="form-text">Your unique User-ID at this application. If the application admin asks for your User-ID, send him this one</div>
+                                                    <div [id]="'accountSubDescription'" class="form-text">Your unique User ID at this application. If the application admin asks for your User ID, send him this one</div>
                                                 </div>
                                                 <div class="col">
                                                     <label [htmlFor]="'authorizedGw2ApiPermissions'" class="form-label">Permissions</label>
@@ -56,7 +56,7 @@
                                                 <div class="col">
                                                     <label [htmlFor]="'authorizedVerifiedInformation'" class="form-label">Read account verification</label>
                                                     <input type="text" class="form-control" [id]="'authorizedVerifiedInformation'" [value]="clientConsent.authorizedVerifiedInformation ? 'Yes' : 'No'" [attr.aria-describedby]="'authorizedVerifiedInformationDescription'" disabled />
-                                                    <div [id]="'authorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API-Tokens</div>
+                                                    <div [id]="'authorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API Tokens</div>
                                                 </div>
                                                 <div class="col">
                                                     <ng-container [ngSwitch]="clientConsent.clientAuthorizationsState">

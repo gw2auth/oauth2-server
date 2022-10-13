@@ -43,10 +43,10 @@ import { firstValueFrom } from 'rxjs';
                     <div class="col">
                         <label [htmlFor]="'authorizationAuthorizedVerifiedInformation'" class="form-label">Read account verification</label>
                         <input type="text" class="form-control" [id]="'authorizationAuthorizedVerifiedInformation'" [value]="clientAuthorization.authorizedVerifiedInformation ? 'Yes' : 'No'" [attr.aria-describedby]="'authorizationAuthorizedVerifiedInformationDescription'" disabled />
-                        <div [id]="'authorizationAuthorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API-Tokens</div>
+                        <div [id]="'authorizationAuthorizedVerifiedInformationDescription'" class="form-text">If yes, the application can read your account verification status for the linked API Tokens</div>
                     </div>
                     <div class="col">
-                        <label [htmlFor]="'tokens'" class="form-label">API-Tokens</label>
+                        <label [htmlFor]="'tokens'" class="form-label">API Tokens</label>
                         <div class="list-group" [id]="'tokens'" [attr.aria-describedby]="'tokensDescription'">
                             <a *ngFor="let token of clientAuthorization.tokens" [routerLink]="['', 'account', 'token']" [fragment]="token.gw2AccountId" class="list-group-item list-group-item-action">
                                 {{token.displayName}}

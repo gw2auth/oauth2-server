@@ -56,7 +56,7 @@ export class VerificationService {
 
         switch (v.id) {
             case 1: {
-                name = 'API-Token name';
+                name = 'API Token name';
                 this.addYoutubeEmbedSrc('https://www.youtube.com/embed/xgaG9ysH3is', null, youtubeEmbedSrcs, youtubeEmbedSrcsByType);
                 break;
             }

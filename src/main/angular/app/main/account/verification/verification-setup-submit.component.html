@@ -22,10 +22,10 @@
                                         <iframe *ngFor="let youtubeEmbedSrc of getYoutubeEmbedSrcs(this.startedChallenge, 'new')" class="yt-embed" [src]="youtubeEmbedSrc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                     </div>
 
-                                    <p>Create a new API-Token using <a href="https://account.arena.net/applications" target="_blank">this link</a>. Make sure to login using the Guild Wars2 account you performed the previous steps with.</p>
+                                    <p>Create a new API Token using <a href="https://account.arena.net/applications" target="_blank">this link</a>. Make sure to login using the Guild Wars2 account you performed the previous steps with.</p>
 
                                     <form>
-                                        <label for="verificationNewApiToken" class="form-label">API-Token</label>
+                                        <label for="verificationNewApiToken" class="form-label">API Token</label>
                                         <input type="text" class="form-control" id="verificationNewApiToken" name="verificationNewApiToken" aria-describedby="verificationNewApiTokenDescription" [(ngModel)]="verificationNewApiToken" (ngModelChange)="onNewTokenChange($event)" />
                                         <div id="verificationNewApiTokenDescription" class="form-text">The API Token added here will only be used for the verification process</div>
                                     </form>
