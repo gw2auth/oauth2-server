@@ -1,10 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import {ClientRegistrationService} from './client-registration.service';
-import {AuthorizationGrantType, authorizationGrantTypeDisplayName, ClientRegistrationCreation,} from './client-registration.model';
-import {catchError} from 'rxjs/operators';
+import {AuthorizationGrantType, authorizationGrantTypeDisplayName} from './client-registration.model';
 import {ToastService} from '../../../toast/toast.service';
 import {ApiError} from '../../../common/common.model';
-import {of} from 'rxjs';
+import {firstValueFrom} from 'rxjs';
 
 @Component({
   selector: 'app-client-create',
@@ -35,24 +34,22 @@ export class ClientCreateComponent implements OnInit {
   onCreateClientClick(): void {
     this.createInProgress = true;
 
-    this.clientRegistrationService.createClientRegistration({displayName: this.displayName, authorizationGrantTypes: this.authorizationGrantTypes, redirectUris: [this.redirectUri]})
-        .pipe(catchError((e) => {
-          const error = e.error as ApiError;
+    firstValueFrom(this.clientRegistrationService.createClientRegistration({displayName: this.displayName, authorizationGrantTypes: this.authorizationGrantTypes, redirectUris: [this.redirectUri]}))
+        .then((response) => {
+            this.showCreateButton = false;
 
-          this.toastService.show('Failed to create client', 'The client could not be created: ' + error.message);
-          this.createInProgress = false;
-
-          return of<ClientRegistrationCreation>();
-        }))
-        .subscribe((response: ClientRegistrationCreation) => {
-          this.showCreateButton = false;
-
-          this.displayName = response.clientRegistration.displayName;
-          this.authorizationGrantTypes = response.clientRegistration.authorizationGrantTypes;
-          this.redirectUri = response.clientRegistration.redirectUris.join(',');
-          this.creationTime = response.clientRegistration.creationTime;
-          this.clientId = response.clientRegistration.clientId;
-          this.clientSecret = response.clientSecret;
+            this.displayName = response.clientRegistration.displayName;
+            this.authorizationGrantTypes = response.clientRegistration.authorizationGrantTypes;
+            this.redirectUri = response.clientRegistration.redirectUris.join(',');
+            this.creationTime = response.clientRegistration.creationTime;
+            this.clientId = response.clientRegistration.clientId;
+            this.clientSecret = response.clientSecret;
+        })
+        .catch((apiError: ApiError) => {
+            this.toastService.show('Failed to create client', 'The client could not be created: ' + apiError.message);
+        })
+        .finally(() => {
+            this.createInProgress = false;
         });
   }
 }
