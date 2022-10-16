@@ -6,22 +6,13 @@ import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface AccountLogRepository extends BaseRepository<AccountLogEntity> {
-
-    @Transactional
-    default void saveAll(Collection<AccountLogEntity> entities) {
-        for (AccountLogEntity entity : entities) {
-            save(entity);
-        }
-    }
+public interface AccountLogRepository extends BaseRepository<AccountLogEntity>, CustomAccountLogRepository {
 
     @Override
     default AccountLogEntity save(AccountLogEntity entity) {
