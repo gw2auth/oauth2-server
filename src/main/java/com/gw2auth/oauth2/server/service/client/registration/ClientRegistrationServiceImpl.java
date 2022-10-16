@@ -4,8 +4,6 @@ import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrati
 import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,7 +25,6 @@ import java.util.stream.Collectors;
 @Service
 public class ClientRegistrationServiceImpl implements ClientRegistrationService, RegisteredClientRepository {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClientRegistrationServiceImpl.class);
     private static final int CLIENT_SECRET_LENGTH = 64;
     private static final String CLIENT_SECRET_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final Set<AuthorizationGrantType> ALLOWED_GRANT_TYPES = Set.of(AuthorizationGrantType.AUTHORIZATION_CODE, AuthorizationGrantType.REFRESH_TOKEN, AuthorizationGrantType.CLIENT_CREDENTIALS);
@@ -195,7 +192,7 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
 
         builder.scope(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
 
-        return builder.build();
+        return new SpringRegisteredClient(builder.build(), ClientRegistration.fromEntity(entity));
     }
 
     // region spring RegisteredClientRepository

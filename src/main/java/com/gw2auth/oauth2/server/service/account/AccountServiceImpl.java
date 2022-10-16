@@ -27,14 +27,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @EnableScheduling
 public class AccountServiceImpl implements AccountService {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccountServiceImpl.class);
-    private static final int MAX_LOG_COUNT = 2500;
+    private static final int MAX_LOG_COUNT = 10_000;
 
     private final AccountRepository accountRepository;
     private final AccountFederationRepository accountFederationRepository;
@@ -289,14 +288,18 @@ public class AccountServiceImpl implements AccountService {
             combinedFields.putAll(this.fields);
             combinedFields.putAll(fields);
 
+            final JSONObject fieldsJson = new JSONObject(combinedFields);
+
             this.logs.add(new AccountLogEntity(
                     UUID.randomUUID(),
                     this.accountId,
                     AccountServiceImpl.this.clock.instant(),
                     message,
-                    new JSONObject(combinedFields),
+                    fieldsJson,
                     persistent
             ));
+
+            LOG.info("account log; account_id={} fields={} persistent={}; {}", this.accountId, fieldsJson, persistent, message);
         }
 
         @Transactional

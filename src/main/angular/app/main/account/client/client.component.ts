@@ -9,6 +9,8 @@ import {ApiError} from '../../../common/common.model';
 import {DOCUMENT} from '@angular/common';
 import {firstValueFrom} from 'rxjs';
 import {RegenerateClientSecretModalComponent} from './regenerate-client-secret-modal.component';
+import {AccountLog} from '../../../common/account-log.model';
+import {AccountLogService} from '../../../common/account-log.service';
 
 
 @Component({
@@ -28,8 +30,14 @@ export class ClientComponent implements OnInit {
   clientSecretsByClientId = new Map<string, string>();
   clientRegistrationSummaryByClientId = new Map<string, ClientRegistrationPrivateSummary>();
   clientRegistrationSummaryLoadingByClientId = new Map<string, boolean>();
+  accountLogsByClientId = new Map<string, AccountLog[]>();
+  nextLogPageByClientId = new Map<string, number>();
 
-  constructor(private readonly clientRegistrationService: ClientRegistrationService, private readonly modalService: NgbModal, private readonly toastService: ToastService, @Inject(DOCUMENT) private readonly document: Document) { }
+  constructor(private readonly clientRegistrationService: ClientRegistrationService,
+              private readonly modalService: NgbModal,
+              private readonly toastService: ToastService,
+              private readonly accountLogService: AccountLogService,
+              @Inject(DOCUMENT) private readonly document: Document) { }
 
   ngOnInit(): void {
     this.clientRegistrationService.getClientRegistrations().subscribe((clientRegistrations) => this.clientRegistrations = clientRegistrations);
@@ -98,6 +106,33 @@ export class ClientComponent implements OnInit {
           .finally(() => {
               this.clientRegistrationSummaryLoadingByClientId.delete(clientId);
           });
+  }
+
+  onLoadNextLogPageClick(clientRegistration: ClientRegistrationPrivate): void {
+      let nextLogPage = this.nextLogPageByClientId.get(clientRegistration.clientId);
+      if (nextLogPage == undefined) {
+          nextLogPage = 0;
+      }
+
+      if (nextLogPage >= 0) {
+          this.nextLogPageByClientId.set(clientRegistration.clientId, -2);
+
+          firstValueFrom(this.accountLogService.getAccountLogs({'type': 'oauth2.user.token.refresh', 'client_id': clientRegistration.clientId}, nextLogPage))
+              .then((logs) => {
+                  this.nextLogPageByClientId.set(clientRegistration.clientId, logs.nextPage);
+
+                  const allLogs = this.accountLogsByClientId.get(clientRegistration.clientId) || [];
+                  allLogs.push(...logs.logs);
+
+                  if (!this.accountLogsByClientId.has(clientRegistration.clientId)) {
+                      this.accountLogsByClientId.set(clientRegistration.clientId, allLogs);
+                  }
+              })
+              .catch((e) => {
+                  this.nextLogPageByClientId.set(clientRegistration.clientId, nextLogPage || 0);
+                  this.toastService.show('Failed to load logs', 'There was an error while trying to load the logs for this client');
+              });
+    }
   }
 
   trackByClientRegistration(idx: number, clientRegistration: ClientRegistrationPrivate): string {

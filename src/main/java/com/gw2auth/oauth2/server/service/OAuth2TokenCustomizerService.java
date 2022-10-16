@@ -10,6 +10,7 @@ import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizatio
 import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsent;
 import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
+import com.gw2auth.oauth2.server.service.client.registration.SpringRegisteredClient;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
@@ -27,7 +28,6 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.stereotype.Service;
@@ -90,7 +90,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         if (ctx.getTokenType().equals(OAuth2TokenType.ACCESS_TOKEN)) {
             final OAuth2Authorization authorization = ctx.getAuthorization();
 
-            final RegisteredClient registeredClient = ctx.getRegisteredClient();// the client of the application the user wants to access
+            final SpringRegisteredClient registeredClient = (SpringRegisteredClient) ctx.getRegisteredClient();// the client of the application the user wants to access
             final Object oauth2User = ctx.getPrincipal().getPrincipal();// the user (intended double getPrincipal())
 
             if (authorization != null) {
@@ -105,176 +105,182 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR));
                 }
 
-                customize(ctx, authorization.getId(), accountId, clientRegistrationId);
+                customize(ctx, authorization.getId(), accountId, clientRegistrationId, registeredClient.getGw2AuthClientRegistration().accountId());
             } else {
                 throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR));
             }
         }
     }
 
-    private void customize(JwtEncodingContext ctx, String clientAuthorizationId, UUID accountId, UUID clientRegistrationId) {
-        final ClientAuthorization clientAuthorization = this.clientAuthorizationService.getClientAuthorization(accountId, clientAuthorizationId).orElse(null);
-        final ClientConsent clientConsent = this.clientConsentService.getClientConsent(accountId, clientRegistrationId).orElse(null);
+    private void customize(JwtEncodingContext ctx, String clientAuthorizationId, UUID userAccountId, UUID clientRegistrationId, UUID clientOwnerAccountId) {
+        final ClientAuthorization clientAuthorization = this.clientAuthorizationService.getClientAuthorization(userAccountId, clientAuthorizationId).orElse(null);
+        final ClientConsent clientConsent = this.clientConsentService.getClientConsent(userAccountId, clientRegistrationId).orElse(null);
 
         if (clientAuthorization == null || clientConsent == null) {
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
-        try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "ACCESS_TOKEN", "client_id", clientRegistrationId))) {
-            final Set<String> effectiveAuthorizedScopes = new HashSet<>(clientConsent.authorizedScopes());
-            effectiveAuthorizedScopes.retainAll(clientAuthorization.authorizedScopes());
-
-            final Set<UUID> authorizedGw2AccountIds = clientAuthorization.gw2AccountIds();
-            final Set<Gw2ApiPermission> authorizedGw2ApiPermissions = effectiveAuthorizedScopes.stream()
-                    .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
-                    .collect(Collectors.toSet());
-
-            if (authorizedGw2ApiPermissions.isEmpty() || authorizedGw2AccountIds.isEmpty()) {
-                logging.log("The Consent has been removed: responding with ACCESS_DENIED");
-                throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+        try (AccountService.LoggingContext userLogging = this.accountService.log(userAccountId, Map.of("type", "ACCESS_TOKEN", "client_id", clientRegistrationId))) {
+            try (AccountService.LoggingContext clientOwnerLogging = this.accountService.log(clientOwnerAccountId, Map.of("type", "oauth2.user.token.refresh", "client_id", clientRegistrationId, "user_id", clientConsent.accountSub()))) {
+                customize(ctx, userAccountId, clientAuthorization, clientConsent, userLogging, clientOwnerLogging);
             }
+        }
+    }
 
-            final List<ApiToken> authorizedRootTokens = this.apiTokenService.getApiTokens(accountId, authorizedGw2AccountIds);
+    private void customize(JwtEncodingContext ctx, UUID userAccountId, ClientAuthorization clientAuthorization, ClientConsent clientConsent, AccountService.LoggingContext userLogging, AccountService.LoggingContext clientOwnerLogging) {
+        final Set<String> effectiveAuthorizedScopes = new HashSet<>(clientConsent.authorizedScopes());
+        effectiveAuthorizedScopes.retainAll(clientAuthorization.authorizedScopes());
 
-            // in theory, this should not happen since authorized-tokens and root-tokens are related via foreign key
-            if (authorizedRootTokens.isEmpty()) {
-                logging.log("All linked Root-API-Tokens have been removed: responding with ACCESS_DENIED");
-                throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
-            }
+        final Set<UUID> authorizedGw2AccountIds = clientAuthorization.gw2AccountIds();
+        final Set<Gw2ApiPermission> authorizedGw2ApiPermissions = effectiveAuthorizedScopes.stream()
+                .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
+                .collect(Collectors.toSet());
 
-            final Set<UUID> verifiedGw2AccountIds;
-            final boolean hasGw2AuthVerifiedScope = effectiveAuthorizedScopes.contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
+        if (authorizedGw2ApiPermissions.isEmpty() || authorizedGw2AccountIds.isEmpty()) {
+            logForBoth(userLogging, clientOwnerLogging, "The consent has been removed: responding with ACCESS_DENIED");
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+        }
 
-            if (hasGw2AuthVerifiedScope) {
-                verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(accountId);
-            } else {
-                verifiedGw2AccountIds = Set.of();
-            }
+        final List<ApiToken> authorizedRootTokens = this.apiTokenService.getApiTokens(userAccountId, authorizedGw2AccountIds);
 
-            final int gw2ApiPermissionsBitSet = Gw2ApiPermission.toBitSet(authorizedGw2ApiPermissions);
-            final List<ApiSubTokenEntity> savedSubTokens = this.apiSubTokenRepository.findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(accountId, authorizedGw2AccountIds, gw2ApiPermissionsBitSet);
-            final Instant atLeastValidUntil = this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME);
-            final Map<UUID, ApiSubTokenEntity> savedSubTokenByGw2AccountId = new HashMap<>(savedSubTokens.size());
-            final Map<Instant, Integer> savedSubTokenCountByExpirationTime = new HashMap<>(savedSubTokens.size());
-            Instant expirationTimeWithMostSavedSubTokens = null;
+        // in theory, this should not happen since authorized-tokens and root-tokens are related via foreign key
+        if (authorizedRootTokens.isEmpty()) {
+            logForBoth(userLogging, clientOwnerLogging, "All linked root API Tokens have been removed: responding with ACCESS_DENIED");
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+        }
 
-            // check all saved subtokens with the same permissions as this authorization
-            // find the expiration time for which the most subtokens are still valid
+        final Set<UUID> verifiedGw2AccountIds;
+        final boolean hasGw2AuthVerifiedScope = effectiveAuthorizedScopes.contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE);
 
-            for (ApiSubTokenEntity savedSubToken : savedSubTokens) {
-                if (savedSubToken.expirationTime().isAfter(atLeastValidUntil)) {
-                    savedSubTokenByGw2AccountId.put(savedSubToken.gw2AccountId(), savedSubToken);
+        if (hasGw2AuthVerifiedScope) {
+            verifiedGw2AccountIds = this.verificationService.getVerifiedGw2AccountIds(userAccountId);
+        } else {
+            verifiedGw2AccountIds = Set.of();
+        }
 
-                    final int groupCount = savedSubTokenCountByExpirationTime.merge(savedSubToken.expirationTime(), 1, Integer::sum);
+        final int gw2ApiPermissionsBitSet = Gw2ApiPermission.toBitSet(authorizedGw2ApiPermissions);
+        final List<ApiSubTokenEntity> savedSubTokens = this.apiSubTokenRepository.findAllByAccountIdGw2AccountIdsAndGw2ApiPermissionsBitSet(userAccountId, authorizedGw2AccountIds, gw2ApiPermissionsBitSet);
+        final Instant atLeastValidUntil = this.clock.instant().plus(AUTHORIZED_TOKEN_MIN_EXCESS_TIME);
+        final Map<UUID, ApiSubTokenEntity> savedSubTokenByGw2AccountId = new HashMap<>(savedSubTokens.size());
+        final Map<Instant, Integer> savedSubTokenCountByExpirationTime = new HashMap<>(savedSubTokens.size());
+        Instant expirationTimeWithMostSavedSubTokens = null;
 
-                    if (expirationTimeWithMostSavedSubTokens == null || groupCount > savedSubTokenCountByExpirationTime.get(expirationTimeWithMostSavedSubTokens)) {
-                        expirationTimeWithMostSavedSubTokens = savedSubToken.expirationTime();
-                    }
+        // check all saved subtokens with the same permissions as this authorization
+        // find the expiration time for which the most subtokens are still valid
+
+        for (ApiSubTokenEntity savedSubToken : savedSubTokens) {
+            if (savedSubToken.expirationTime().isAfter(atLeastValidUntil)) {
+                savedSubTokenByGw2AccountId.put(savedSubToken.gw2AccountId(), savedSubToken);
+
+                final int groupCount = savedSubTokenCountByExpirationTime.merge(savedSubToken.expirationTime(), 1, Integer::sum);
+
+                if (expirationTimeWithMostSavedSubTokens == null || groupCount > savedSubTokenCountByExpirationTime.get(expirationTimeWithMostSavedSubTokens)) {
+                    expirationTimeWithMostSavedSubTokens = savedSubToken.expirationTime();
                 }
             }
+        }
 
-            final Instant expirationTime;
+        final Instant expirationTime;
 
-            if (expirationTimeWithMostSavedSubTokens != null) {
-                // if existing subtokens which are still valid for at least AUTHORIZED_TOKEN_MIN_EXCESS_TIME could be found, use this expiration time
-                ctx.getClaims().expiresAt(expirationTimeWithMostSavedSubTokens);
-                expirationTime = expirationTimeWithMostSavedSubTokens;
+        if (expirationTimeWithMostSavedSubTokens != null) {
+            // if existing subtokens which are still valid for at least AUTHORIZED_TOKEN_MIN_EXCESS_TIME could be found, use this expiration time
+            ctx.getClaims().expiresAt(expirationTimeWithMostSavedSubTokens);
+            expirationTime = expirationTimeWithMostSavedSubTokens;
+        } else {
+            expirationTime = ctx.getClaims().build().getExpiresAt();
+        }
+
+        final Map<UUID, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
+        final Batch.Builder<Map<UUID, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
+
+        for (ApiToken authorizedRootToken : authorizedRootTokens) {
+            final Map<String, Object> tokenForJWT = new HashMap<>(3);
+
+            final UUID gw2AccountId = authorizedRootToken.gw2AccountId();
+            final String displayName = authorizedRootToken.displayName();
+            final ApiSubTokenEntity potentialExistingSubToken = savedSubTokenByGw2AccountId.get(gw2AccountId);
+
+            tokenForJWT.put("name", displayName);
+
+            if (potentialExistingSubToken != null && potentialExistingSubToken.expirationTime().equals(expirationTime)) {
+                tokenForJWT.put("token", potentialExistingSubToken.gw2ApiSubtoken());
+                logForBoth(userLogging, clientOwnerLogging, String.format("Using existing and valid subtoken for the root API Token named '%s'", displayName));
             } else {
-                expirationTime = ctx.getClaims().build().getExpiresAt();
-            }
+                if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
+                    final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
 
-            final Map<UUID, Map<String, Object>> tokensForJWT = new LinkedHashMap<>(authorizedGw2AccountIds.size());
-            final Batch.Builder<Map<UUID, Pair<ApiToken, Gw2SubToken>>> batch = Batch.builder();
-
-            for (ApiToken authorizedRootToken : authorizedRootTokens) {
-                final Map<String, Object> tokenForJWT = new HashMap<>(3);
-
-                final UUID gw2AccountId = authorizedRootToken.gw2AccountId();
-                final String displayName = authorizedRootToken.displayName();
-                final ApiSubTokenEntity potentialExistingSubToken = savedSubTokenByGw2AccountId.get(gw2AccountId);
-
-                tokenForJWT.put("name", displayName);
-
-                if (potentialExistingSubToken != null && potentialExistingSubToken.expirationTime().equals(expirationTime)) {
-                    tokenForJWT.put("token", potentialExistingSubToken.gw2ApiSubtoken());
-                    logging.log(String.format("Using existing and valid Subtoken for the Root-API-Token named '%s'", displayName));
-                } else {
-                    if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
-                        final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
-
-                        batch.add(
-                                (timeout) -> this.gw2APIService.withTimeout(timeout, () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime)),
-                                (accumulator, context) -> {
-                                    try {
-                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
-                                    } catch (ExecutionException | TimeoutException e) {
-                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
-                                    } catch (InterruptedException e) {
-                                        Thread.currentThread().interrupt();
-                                        accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
-                                    }
-
-                                    return accumulator;
+                    batch.add(
+                            (timeout) -> this.gw2APIService.withTimeout(timeout, () -> this.gw2APIService.createSubToken(gw2ApiToken, authorizedGw2ApiPermissions, expirationTime)),
+                            (accumulator, context) -> {
+                                try {
+                                    accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, context.get()));
+                                } catch (ExecutionException | TimeoutException e) {
+                                    accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    accumulator.put(gw2AccountId, new Pair<>(authorizedRootToken, null));
                                 }
-                        );
-                    } else {
-                        logging.log(String.format("The Root-API-Token named '%s' has less permissions than the authorization", displayName));
-                    }
-                }
 
-                if (hasGw2AuthVerifiedScope) {
-                    final boolean isVerified = verifiedGw2AccountIds.contains(gw2AccountId);
-                    tokenForJWT.put("verified", isVerified);
-
-                    logging.log(String.format("Including verified=%s for the Root-API-Token named '%s'", isVerified, displayName));
-                }
-
-                tokensForJWT.put(gw2AccountId, tokenForJWT);
-            }
-
-            final Map<UUID, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
-            final List<ApiTokenValidityUpdate> apiTokenValidityUpdates = new ArrayList<>(result.size());
-            final List<ApiSubTokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(result.size());
-
-            for (Map.Entry<UUID, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
-                final UUID gw2AccountId = entry.getKey();
-                final Map<String, Object> tokenForJWT = tokensForJWT.get(gw2AccountId);
-                final String displayName = entry.getValue().v1().displayName();
-                final Gw2SubToken gw2SubToken = entry.getValue().v2();
-
-                if (gw2SubToken != null) {
-                    if (gw2SubToken.permissions().equals(authorizedGw2ApiPermissions)) {
-                        apiSubTokenEntitiesToSave.add(new ApiSubTokenEntity(accountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
-
-                        tokenForJWT.put("token", gw2SubToken.value());
-                        logging.log(String.format("Added Subtoken for the Root-API-Token named '%s'", displayName));
-                    } else {
-                        tokenForJWT.put("error", "Failed to obtain new subtoken");
-                        logging.log(String.format("The retrieved Subtoken for the Root-API-Token named '%s' appears to have less permissions than the authorization", displayName));
-                    }
-
-                    apiTokenValidityUpdates.add(new ApiTokenValidityUpdate(accountId, gw2AccountId, true));
+                                return accumulator;
+                            }
+                    );
                 } else {
                     tokenForJWT.put("error", "Failed to obtain new subtoken");
-                    logging.log(String.format("Failed to retrieve a new Subtoken for the Root-API-Token named '%s' from the GW2-API", displayName));
+                    logForBoth(userLogging, clientOwnerLogging, String.format("The root API Token named '%s' has less permissions than the authorization", displayName));
                 }
             }
 
-            final List<Runnable> failSafeRunnables = List.of(
-                    () -> this.apiTokenService.updateApiTokensValid(this.clock.instant(), apiTokenValidityUpdates),
-                    () -> this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave)
-            );
-
-            for (Runnable failSafeRunnable : failSafeRunnables) {
-                try {
-                    failSafeRunnable.run();
-                } catch (DataAccessException e) {
-                    LOG.info("failed to save low priority entity (one of [api token validity], [api subtoken])", e);
-                }
+            if (hasGw2AuthVerifiedScope) {
+                final boolean isVerified = verifiedGw2AccountIds.contains(gw2AccountId);
+                tokenForJWT.put("verified", isVerified);
+                logForBoth(userLogging, clientOwnerLogging, String.format("Including verified=%s for the root API Token named '%s'", isVerified, displayName));
             }
 
-            customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
+            tokensForJWT.put(gw2AccountId, tokenForJWT);
         }
+
+        final Map<UUID, Pair<ApiToken, Gw2SubToken>> result = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+        final List<ApiTokenValidityUpdate> apiTokenValidityUpdates = new ArrayList<>(result.size());
+        final List<ApiSubTokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(result.size());
+
+        for (Map.Entry<UUID, Pair<ApiToken, Gw2SubToken>> entry : result.entrySet()) {
+            final UUID gw2AccountId = entry.getKey();
+            final Map<String, Object> tokenForJWT = tokensForJWT.get(gw2AccountId);
+            final String displayName = entry.getValue().v1().displayName();
+            final Gw2SubToken gw2SubToken = entry.getValue().v2();
+
+            if (gw2SubToken != null) {
+                if (gw2SubToken.permissions().equals(authorizedGw2ApiPermissions)) {
+                    apiSubTokenEntitiesToSave.add(new ApiSubTokenEntity(userAccountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
+
+                    tokenForJWT.put("token", gw2SubToken.value());
+                    logForBoth(userLogging, clientOwnerLogging, String.format("Added subtoken for the root API Token named '%s'", displayName));
+                } else {
+                    tokenForJWT.put("error", "Failed to obtain new subtoken");
+                    logForBoth(userLogging, clientOwnerLogging, String.format("The retrieved subtoken for the root API Token named '%s' appears to have less permissions than the authorization", displayName));
+                }
+
+                apiTokenValidityUpdates.add(new ApiTokenValidityUpdate(userAccountId, gw2AccountId, true));
+            } else {
+                tokenForJWT.put("error", "Failed to obtain new subtoken");
+                logForBoth(userLogging, clientOwnerLogging, String.format("Failed to retrieve a new subtoken for the root API Token named '%s' from the GW2 API", displayName));
+            }
+        }
+
+        final List<Runnable> failSafeRunnables = List.of(
+                () -> this.apiTokenService.updateApiTokensValid(this.clock.instant(), apiTokenValidityUpdates),
+                () -> this.apiSubTokenRepository.saveAll(apiSubTokenEntitiesToSave)
+        );
+
+        for (Runnable failSafeRunnable : failSafeRunnables) {
+            try {
+                failSafeRunnable.run();
+            } catch (DataAccessException e) {
+                LOG.info("failed to save low priority entity (one of [api token validity], [api subtoken])", e);
+            }
+        }
+
+        customize(ctx, clientConsent.accountSub(), authorizedGw2ApiPermissions, tokensForJWT);
     }
 
     private void customize(JwtEncodingContext ctx, UUID accountSub, Set<Gw2ApiPermission> authorizedGw2ApiPermissions, Map<UUID, Map<String, Object>> tokensForJWT) {
@@ -286,5 +292,10 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 .subject(accountSub.toString())
                 .claim("gw2:permissions", permissionsForJWT)
                 .claim("gw2:tokens", tokensForJWT);
+    }
+
+    private static void logForBoth(AccountService.LoggingContext log1, AccountService.LoggingContext log2, String message) {
+        log1.log(message);
+        log2.log(message);
     }
 }

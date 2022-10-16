@@ -1,12 +1,15 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {ClientConsent, AccountLogs} from './client-consent.model';
+import {ClientConsent, tryGetLogType} from './client-consent.model';
+import {AccountLogs} from '../../../common/account-log.model';
+import {AccountLogService} from '../../../common/account-log.service';
+import {map} from 'rxjs/operators';
 
 @Injectable()
 export class ClientConsentService {
 
-    constructor(private readonly http: HttpClient) {
+    constructor(private readonly http: HttpClient, private readonly accountLogService: AccountLogService) {
     }
 
     getClientConsents(): Observable<ClientConsent[]> {
@@ -14,12 +17,11 @@ export class ClientConsentService {
     }
 
     getClientConsentLogs(clientId: string, page?: number): Observable<AccountLogs> {
-        let params: {[k: string]: any} = {'client_id': clientId};
-        if (page != undefined) {
-            params['page'] = page;
-        }
-
-        return this.http.get<AccountLogs>('/api/account/log', { params: params })
+        return this.accountLogService.getAccountLogs({'client_id': clientId}, page)
+            .pipe(map((value) => {
+                value.logs = value.logs.filter((log) => tryGetLogType(log) != 'Unknown');
+                return value;
+            }));
     }
 
     deleteClientConsent(clientId: string): Observable<void> {

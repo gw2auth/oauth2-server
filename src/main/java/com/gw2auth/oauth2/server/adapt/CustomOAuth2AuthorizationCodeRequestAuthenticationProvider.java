@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.adapt;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
@@ -27,6 +29,7 @@ import java.util.stream.Stream;
 
 public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implements AuthenticationProvider {
 
+    private static final Logger LOG = LoggerFactory.getLogger(CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.class);
     private static final ThreadLocal<Map<String, Object>> CONTEXT_MAP = new ThreadLocal<>();
 
     private final OAuth2AuthorizationCodeRequestAuthenticationProvider delegate;
@@ -49,6 +52,9 @@ public class CustomOAuth2AuthorizationCodeRequestAuthenticationProvider implemen
         CONTEXT_MAP.set(map);
         try {
             return this.delegate.authenticate(authorizationCodeRequestAuthentication);
+        } catch (Exception e) {
+            LOG.warn("caught exception during oauth2 authenticate (any oauth2 context call)", e);
+            throw e;
         } finally {
             CONTEXT_MAP.remove();
         }

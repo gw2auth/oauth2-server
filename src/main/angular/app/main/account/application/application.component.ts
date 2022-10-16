@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {ClientConsentService} from './client-consent.service';
 import {
-  AccountLog,
   ClientConsent,
   tryGetLogType
 } from './client-consent.model';
@@ -16,6 +15,7 @@ import {ClientAuthorization} from './client-authorization.model';
 import {ClientAuthorizationService} from './client-authorization.service';
 import {AuthorizationModalComponent} from './authorization-modal.component';
 import {firstValueFrom} from 'rxjs';
+import {AccountLog} from '../../../common/account-log.model';
 
 
 class InternalClientConsent {
@@ -132,10 +132,14 @@ export class ApplicationComponent implements OnInit {
     if (nextLogPage >= 0) {
       clientConsent.nextLogPage = -2;
 
-      this.clientConsentService.getClientConsentLogs(clientConsent.clientRegistration.clientId, nextLogPage).subscribe((clientConsentLogs) => {
-        clientConsent.nextLogPage = clientConsentLogs.nextPage;
-        clientConsent.logs.push(...clientConsentLogs.logs);
-      });
+      firstValueFrom(this.clientConsentService.getClientConsentLogs(clientConsent.clientRegistration.clientId, nextLogPage))
+          .then((clientConsentLogs) => {
+            clientConsent.nextLogPage = clientConsentLogs.nextPage;
+            clientConsent.logs.push(...clientConsentLogs.logs);
+          })
+          .catch((e) => {
+            clientConsent.nextLogPage = nextLogPage;
+          });
     }
   }
 }

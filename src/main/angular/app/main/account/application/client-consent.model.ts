@@ -1,5 +1,6 @@
 import {ClientRegistrationPublic} from '../client/client-registration.model';
 import {Gw2ApiPermission} from '../../../common/common.model';
+import {AccountLog} from '../../../common/account-log.model';
 
 export interface ClientConsent {
     clientRegistration: ClientRegistrationPublic;
@@ -24,16 +25,4 @@ export function tryGetLogType(log: AccountLog): string {
     }
 
     return 'Unknown';
-}
-
-export interface AccountLog {
-    timestamp: Date;
-    message: string;
-    fields: {[k: string]: any}
-}
-
-export interface AccountLogs {
-    page: number;
-    nextPage: number;
-    logs: AccountLog[];
 }

@@ -61,6 +61,7 @@ import {VerificationSetupSelectComponent} from './main/account/verification/veri
 import {VerificationSetupInstructionsComponent} from './main/account/verification/verification-setup-instructions.component';
 import {VerificationSetupSubmitComponent} from './main/account/verification/verification-setup-submit.component';
 import {TextCopyableComponent} from './general/text-copyable.component';
+import {AccountLogService} from './common/account-log.service';
 
 
 export const WINDOW = new InjectionToken<Window>('Window', {
@@ -168,7 +169,8 @@ const cookieConfig: NgcCookieConsentConfig = {
     BrowserStorageService,
     ColorSchemeService,
     AccountSummaryService,
-    ApplicationSummaryService
+    ApplicationSummaryService,
+    AccountLogService
   ],
   bootstrap: [AppComponent]
 })
