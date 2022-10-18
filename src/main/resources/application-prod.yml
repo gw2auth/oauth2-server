@@ -10,7 +10,7 @@ com.gw2auth:
       path: "/opt/app/id_rsa"
 
 server:
-  forward-headers-strategy: native
+  forward-headers-strategy: framework
   tomcat:
     redirect-context-root: false
 
