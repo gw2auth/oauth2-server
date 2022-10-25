@@ -24,21 +24,21 @@ spring:
             client-id: ${AMZ_COGNITO_CLIENT_ID}
             client-secret: ${AMZ_COGNITO_CLIENT_SECRET}
             scope: "openid"
-            redirect-uri: "{baseUrl}/login/oauth2/code/cognito"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/cognito"
           github:
             provider: github
             client-name: "GitHub"
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
             scope: [""]
-            redirect-uri: "{baseUrl}/login/oauth2/code/github"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/github"
           google:
             provider: google
             client-name: "Google"
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: "openid"
-            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/google"
         provider:
           cognito:
             issuer-uri: "https://cognito-idp.${AMZ_COGNITO_REGION}.amazonaws.com/${AMZ_COGNITO_POOL_ID}"

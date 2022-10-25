@@ -72,7 +72,7 @@ public class AccountController extends AbstractRestController {
                 .location(
                         UriComponentsBuilder
                                 .fromUriString(request.getRequestURI())
-                                .replacePath("/oauth2/authorization/")
+                                .replacePath("/auth/oauth2/authorization/")
                                 .path(provider)
                                 .replaceQuery(null)
                                 .build()

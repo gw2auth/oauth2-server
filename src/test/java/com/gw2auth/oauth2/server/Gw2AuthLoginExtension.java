@@ -114,7 +114,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     }
 
     private ResultActions loginInternal(CookieHolder cookieHolder, String issuer, String idAtIssuer) throws Exception {
-        return loginInternal(cookieHolder, "/oauth2/authorization/" + URLEncoder.encode(issuer, StandardCharsets.UTF_8), issuer, idAtIssuer);
+        return loginInternal(cookieHolder, "/auth/oauth2/authorization/" + URLEncoder.encode(issuer, StandardCharsets.UTF_8), issuer, idAtIssuer);
     }
 
     private ResultActions loginInternal(CookieHolder cookieHolder, String loginURL, String issuer, String idAtIssuer) throws Exception {
@@ -133,7 +133,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 .orElseThrow();
 
         return this.mockMvc.perform(
-                get("/login/oauth2/code/{issuer}", issuer)
+                get("/auth/oauth2/code/{issuer}", issuer)
                         .with(cookieHolder)
                         .queryParam("code", idAtIssuer)
                         .queryParam("state", state)
@@ -150,7 +150,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     }
 
     public ResultActions logout(CookieHolder cookieHolder) throws Exception {
-        return this.mockMvc.perform(post("/logout").with(cookieHolder).with(csrf()))
+        return this.mockMvc.perform(post("/auth/logout").with(cookieHolder).with(csrf()))
                 .andDo(cookieHolder);
     }
 }

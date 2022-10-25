@@ -78,7 +78,7 @@ public class OAuth2ClientConfiguration {
                     .authorizationUri("https://dummy.gw2auth.com/oauth2/authorize")
                     .tokenUri("https://dummy.gw2auth.com/oauth2/token")
                     .userInfoUri("https://dummy.gw2auth.com/oauth2/userinfo")
-                    .redirectUri("http://localhost/login/oauth2/code/" + registrationId)
+                    .redirectUri("http://localhost/auth/oauth2/code/" + registrationId)
                     .userNameAttributeName("sub")
                     .build();
 

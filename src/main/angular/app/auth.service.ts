@@ -61,7 +61,7 @@ export class AuthService {
   }
 
   logout(navigateTo: string | null = '/'): void {
-      this.http.post('/logout', null, {observe: 'response'})
+      this.http.post('/auth/logout', null, {observe: 'response'})
           .pipe(
               // 2xx codes -> logout success, 403 -> was already logged out
               map((resp: HttpResponse<any>) => resp.status >= 200 && resp.status < 300),

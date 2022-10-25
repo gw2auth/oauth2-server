@@ -102,7 +102,12 @@ public class SecurityConfiguration {
         return (oauth2) -> {
             oauth2
                     .loginPage("/login")
-                    .authorizationEndpoint(authEndpoint -> authEndpoint.authorizationRequestRepository(authorizationRequestRepository))
+                    .loginProcessingUrl("/auth/oauth2/code/*")
+                    .authorizationEndpoint(authEndpoint -> {
+                        authEndpoint
+                                .baseUri("/auth/oauth2/authorization")
+                                .authorizationRequestRepository(authorizationRequestRepository);
+                    })
                     .successHandler((request, response, authentication) -> {
                         final Object principal = authentication.getPrincipal();
                         if (principal instanceof Gw2AuthLoginUser user) {
@@ -168,6 +173,7 @@ public class SecurityConfiguration {
                 .oauth2Login(oauth2LoginCustomizer)
                 .logout((logout) -> {
                     logout
+                            .logoutUrl("/auth/logout")
                             .deleteCookies(Constants.ACCESS_TOKEN_COOKIE_NAME)
                             .addLogoutHandler(logoutHandler)
                             .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler());
