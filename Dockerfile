@@ -1,5 +1,5 @@
 FROM eclipse-temurin:17-alpine
 RUN mkdir /opt/app
-COPY docker-entrypoint.sh /opt/app
+COPY docker-entrypoint.sh /opt/app/docker-entrypoint.sh
 COPY target/oauth2-server.jar /opt/app/application.jar
 ENTRYPOINT ["/opt/app/docker-entrypoint.sh"]
