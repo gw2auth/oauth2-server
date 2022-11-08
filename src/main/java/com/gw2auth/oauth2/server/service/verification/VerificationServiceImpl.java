@@ -32,7 +32,6 @@ public class VerificationServiceImpl implements VerificationService {
     private static final String STARTED_CHALLENGE_GW2_ACCOUNT_ID = "";
     private static final Duration TIME_BETWEEN_UNFINISHED_STARTS = Duration.ofMinutes(30L);
     private static final long VERIFICATION_FAILED_CHALLENGE_ID = -1L;
-    private static final Duration VERIFICATION_FAILED_BLOCK_DURATION = Duration.ofHours(2L);
 
     private final Gw2AccountVerificationRepository gw2AccountVerificationRepository;
     private final Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository;
@@ -114,7 +113,7 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     public List<VerificationChallengePending> getPendingChallenges(UUID accountId) {
         return this.gw2AccountVerificationChallengeRepository.findAllByAccountId(accountId).stream()
-                .filter((e) -> e.challengeId() != VERIFICATION_FAILED_CHALLENGE_ID)
+                .filter((e) -> e.challengeId() != VERIFICATION_FAILED_CHALLENGE_ID)// TODO: remove this condition once all VERIFICATION_FAILED_CHALLENGE_ID have naturally been removed
                 .filter((e) -> !e.gw2AccountId().equals(STARTED_CHALLENGE_GW2_ACCOUNT_ID))
                 .map((e) -> new VerificationChallengePending(e.challengeId(), UUID.fromString(e.gw2AccountId()), e.startedAt()))
                 .collect(Collectors.toList());
@@ -188,6 +187,7 @@ public class VerificationServiceImpl implements VerificationService {
         final Gw2AccountVerificationChallengeEntity pendingChallengeEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
 
         if (pendingChallengeEntity != null) {
+            // TODO: remove this condition once all VERIFICATION_FAILED_CHALLENGE_ID have naturally been removed
             if (pendingChallengeEntity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID) {
                 final Duration timeUntilAvailable = Duration.between(this.clock.instant(), pendingChallengeEntity.timeoutAt());
                 final long minutes = timeUntilAvailable.toMinutes();
@@ -229,6 +229,13 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         return new VerificationChallengeSubmit(verificationChallengePending, isVerified);
+    }
+
+    @Override
+    public void cancelPendingChallenge(UUID accountId, UUID gw2AccountId) {
+        if (!this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString())) {
+            throw new Gw2AccountVerificationServiceException(Gw2AccountVerificationServiceException.CHALLENGE_NOT_FOUND, HttpStatus.NOT_FOUND);
+        }
     }
 
     @Transactional(noRollbackFor = Gw2AccountVerificationServiceException.class)
@@ -289,30 +296,13 @@ public class VerificationServiceImpl implements VerificationService {
                 try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "gw2.verification.attempt", "gw2_account_id", gw2AccountId, "challenge_id", entity.challengeId()))) {
                     logging.log("Trying to verify GW2 account");
 
-                    final boolean isExpired = now.isAfter(entity.timeoutAt());
-                    final boolean isVerificationFailedChallenge = entity.challengeId() == VERIFICATION_FAILED_CHALLENGE_ID;
-
                     try {
-                        if (isExpired) {
-                            if (isVerificationFailedChallenge) {
-                                this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
-                            } else {
-                                this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(
-                                        accountId,
-                                        gw2AccountId,
-                                        VERIFICATION_FAILED_CHALLENGE_ID,
-                                        null,
-                                        null,
-                                        now,
-                                        now.plus(VERIFICATION_FAILED_BLOCK_DURATION)
-                                ));
-
-                                logging.log("GW2 account failed to verify within the allowed period. You will be blocked for further verification attempts for this GW2 account for some time.");
-                            }
-                        } else {
-                            if (!isVerificationFailedChallenge) {
-                                verify(logging, entity);
-                            }
+                        if (now.isAfter(entity.timeoutAt())) {
+                            this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
+                            logging.log("GW2 account failed to verify within the allowed period.");
+                        } else if (entity.challengeId() != VERIFICATION_FAILED_CHALLENGE_ID) {
+                            // TODO: remove this condition once all VERIFICATION_FAILED_CHALLENGE_ID have naturally been removed
+                            verify(logging, entity);
                         }
                     } catch (Exception e) {
                         LOG.warn("unexpected exception during verification of challenge", e);

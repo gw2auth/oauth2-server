@@ -61,4 +61,5 @@ export interface VerificationChallengePending {
     readonly name: string;
     readonly gw2AccountId: string;
     readonly startedAt: Date;
+    cancellationInProgress: boolean;
 }

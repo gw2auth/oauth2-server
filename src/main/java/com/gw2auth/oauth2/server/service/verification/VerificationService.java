@@ -11,4 +11,5 @@ public interface VerificationService {
     List<VerificationChallengePending> getPendingChallenges(UUID accountId);
     VerificationChallengeStart startChallenge(UUID accountId, long challengeId);
     VerificationChallengeSubmit submitChallenge(UUID accountId, String gw2ApiToken);
+    void cancelPendingChallenge(UUID accountId, UUID gw2AccountId);
 }

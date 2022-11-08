@@ -49,6 +49,10 @@ export class VerificationService {
         return this.httpClient.post<VerificationChallengeSubmitResponse>('/api/verification/pending', undefined, { params: { 'token': token } });
     }
 
+    cancelPendingChallenge(gw2AccountId: string): Observable<void> {
+        return this.httpClient.delete<void>('/api/verification/pending/' + encodeURIComponent(gw2AccountId));
+    }
+
     challengeFromResponse(v: VerificationChallengeResponse): VerificationChallenge {
         let name: string;
         const youtubeEmbedSrcs: SafeResourceUrl[] = [];
@@ -132,7 +136,8 @@ export class VerificationService {
             challenge: challenge,
             name: name,
             gw2AccountId: v.gw2AccountId,
-            startedAt: v.startedAt
+            startedAt: v.startedAt,
+            cancellationInProgress: false,
         }
     }
 

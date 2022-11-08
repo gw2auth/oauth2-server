@@ -48,6 +48,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -347,11 +348,9 @@ class VerificationControllerTest {
         // simulate scheduled check
         this.verificationService.tryVerifyAllPending();
 
-        // pending challenge should be updated to verification failed entity
-        final Gw2AccountVerificationChallengeEntity verificationFailedEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
-        assertNotNull(verificationFailedEntity);
-        assertEquals(-1L, verificationFailedEntity.challengeId());
-        assertInstantEquals(testingClock.instant().plus(Duration.ofHours(2L)), verificationFailedEntity.timeoutAt());
+        // pending challenge should be removed
+        final Gw2AccountVerificationChallengeEntity verificationChallengeEntity = this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null);
+        assertNull(verificationChallengeEntity);
     }
 
     @WithGw2AuthLogin
@@ -803,6 +802,69 @@ class VerificationControllerTest {
                 )
                 .andDo(cookieHolder)
                 .andExpect(status().isBadRequest());
+    }
+
+    @WithGw2AuthLogin
+    public void startSubmitAndCancelChallenge(CookieHolder cookieHolder) throws Exception {
+        final UUID gw2AccountId = UUID.randomUUID();
+
+        // insert an api token for another account but for the same gw2 account id
+        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
+
+        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+
+        // prepare the testing clock
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.verificationService.setClock(testingClock);
+
+        final String gw2ApiToken = TestHelper.randomRootToken();
+        final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
+
+        // start the challenge
+        final VerificationChallengeStart challengeStart = this.verificationService.startChallenge(accountId, 1L);
+
+        // prepare the gw2 api
+        this.gw2RestServer.reset();
+        preparedGw2RestServerForCreateSubtoken(gw2ApiToken, gw2ApiSubtoken, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant().plus(Duration.ofMinutes(90L)));
+        preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiSubtoken);
+        prepareGw2RestServerForTokenInfoRequest(gw2ApiSubtoken, "Not the name that was requested", Set.of(Gw2ApiPermission.ACCOUNT));
+
+        // submit the challenge
+        this.mockMvc.perform(
+                        post("/api/verification/pending")
+                                .with(cookieHolder)
+                                .with(csrf())
+                                .queryParam("token", gw2ApiToken)
+                )
+                .andDo(cookieHolder)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value("false"));
+
+        // started challenge should be removed
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isEmpty());
+
+        // pending challenge should be present
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isPresent());
+
+        // cancel the challenge
+        this.mockMvc.perform(
+                        delete("/api/verification/pending/{gw2AccountId}", gw2AccountId)
+                                .with(cookieHolder)
+                                .with(csrf())
+                )
+                .andDo(cookieHolder)
+                .andExpect(status().isOk());
+
+        // account should not be verified
+        final Gw2AccountVerificationEntity accountVerification = this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId).orElse(null);
+        assertNull(accountVerification);
+
+        // the other users api token should not be removed
+        assertFalse(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+
+        // the challenge should be removed
+        assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());
     }
 
     private void prepareGw2RestServerForTransactionsRequest(String gw2ApiToken, int addDummyValues, int itemId, int quantity, long price, Instant created) {

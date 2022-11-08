@@ -8,14 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 public class VerificationController extends AbstractRestController {
@@ -70,5 +68,11 @@ public class VerificationController extends AbstractRestController {
     @PostMapping(value = "/api/verification/pending", produces = MediaType.APPLICATION_JSON_VALUE)
     public VerificationChallengeSubmitResponse submitChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestParam("token") String gw2ApiToken) {
         return VerificationChallengeSubmitResponse.create(this.verificationService.submitChallenge(user.getAccountId(), gw2ApiToken));
+    }
+
+    @DeleteMapping(value = "/api/verification/pending/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> cancelPendingChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("gw2AccountId") UUID gw2AccountId) {
+        this.verificationService.cancelPendingChallenge(user.getAccountId(), gw2AccountId);
+        return ResponseEntity.ok(null);
     }
 }

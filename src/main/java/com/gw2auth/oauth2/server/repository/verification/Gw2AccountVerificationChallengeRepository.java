@@ -51,5 +51,5 @@ public interface Gw2AccountVerificationChallengeRepository extends BaseRepositor
 
     @Modifying
     @Query("DELETE FROM gw2_account_verification_challenges WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
-    void deleteByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") String gw2AccountId);
+    boolean deleteByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") String gw2AccountId);
 }

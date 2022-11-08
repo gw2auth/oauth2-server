@@ -54,9 +54,21 @@
 
                     <div class="list-group">
                         <div *ngFor="let pendingChallenge of pendingChallenges" class="list-group-item">
-                            <h5 class="mb-1">{{pendingChallenge.challenge.name}}</h5>
-                            <p class="mb-1">for {{pendingChallenge.name}}</p>
-                            <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
+
+                            <div class="container-fluid h-100">
+                                <div class="row">
+                                    <div class="col text-start">
+                                        <h5 class="mb-1">{{pendingChallenge.challenge.name}}</h5>
+                                        <p class="mb-1">for {{pendingChallenge.name}}</p>
+                                        <small class="text-muted">Started at {{pendingChallenge.startedAt.toLocaleString()}}</small>
+                                    </div>
+                                    <div class="col-auto align-self-center text-end">
+                                        <app-button-loadable (click)="openCancelPendingChallengeModal(pendingChallenge)" [loading]="pendingChallenge.cancellationInProgress" [class]="['btn-danger']">
+                                            <span><fa-icon [icon]="faBan"></fa-icon> Cancel</span>
+                                        </app-button-loadable>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
