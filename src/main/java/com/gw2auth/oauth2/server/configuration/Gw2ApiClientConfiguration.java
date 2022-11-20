@@ -45,20 +45,24 @@ public class Gw2ApiClientConfiguration {
                 .build();
 
         final List<Gw2ApiClient> chain = new ArrayList<>(awsLambdaProxyARNs.size() + 1);
-        chain.add(new RestOperationsGw2ApiClient(restTemplate, createMetricCollector(metricsEnabled, meterRegistry, "http.local")));
+        chain.add(new InstrumentedGw2ApiClient(
+                new RestOperationsGw2ApiClient(restTemplate),
+                createMetricCollector(metricsEnabled, meterRegistry, "http.local")
+        ));
 
         for (String awsLambdaProxyARN : awsLambdaProxyARNs) {
             final AWSLambda lambdaClient = createLambdaClientForARN(awsLambdaProxyARN);
 
-            chain.add(new AwsLambdaGw2ApiClient(
-                    lambdaClient,
-                    awsLambdaProxyARN,
-                    objectMapper,
+            chain.add(new InstrumentedGw2ApiClient(
+                    new AwsLambdaGw2ApiClient(lambdaClient, awsLambdaProxyARN, objectMapper),
                     createMetricCollector(metricsEnabled, meterRegistry, "lambda." + Arn.fromString(awsLambdaProxyARN).getRegion())
             ));
         }
 
-        return new ChainedGw2ApiClient(chain, Duration.ofMinutes(1L));
+        return new InstrumentedGw2ApiClient(
+                new ChainedGw2ApiClient(chain, Duration.ofMinutes(1L)),
+                createMetricCollector(metricsEnabled, meterRegistry, "chain")
+        );
     }
 
     private MetricCollector createMetricCollector(boolean enabled, MeterRegistry meterRegistry, String clientName) {

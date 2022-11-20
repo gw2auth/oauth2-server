@@ -12,12 +12,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 
@@ -26,35 +24,24 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
     private final AWSLambda awsLambda;
     private final String functionName;
     private final ObjectMapper mapper;
-    private final MetricCollector metricCollector;
 
-    public AwsLambdaGw2ApiClient(AWSLambda awsLambda, String functionName, ObjectMapper mapper, MetricCollector metricCollector) {
+    public AwsLambdaGw2ApiClient(AWSLambda awsLambda, String functionName, ObjectMapper mapper) {
         this.awsLambda = awsLambda;
         this.functionName = functionName;
         this.mapper = mapper;
-        this.metricCollector = metricCollector;
     }
 
     @Override
     public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
-        return getWithMetrics(null, path, query, headers);
+        return get(null, path, query, headers);
     }
 
     @Override
     public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
-        return getWithMetrics(timeout, path, query, headers);
-    }
-
-    private ResponseEntity<Resource> getWithMetrics(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
-        final Instant start = Instant.now();
-
         try {
-            final ResponseEntity<Resource> response = get(buildInvokeRequest(timeout, buildPayloadJson(path, query, headers)));
-            this.metricCollector.collectMetrics(path, query, headers, response, Duration.between(start, Instant.now()));
-            return response;
+            return get(buildInvokeRequest(timeout, buildPayloadJson(path, query, headers)));
         } catch (Exception e) {
-            this.metricCollector.collectMetrics(path, query, headers, e, Duration.between(start, Instant.now()));
-            throw new RuntimeException("unexpected Exception thrown by AwsLambdaGw2ApiClient.get", e);
+            throw new RuntimeException("unexpected Exception during AwsLambdaGw2ApiClient.get", e);
         }
     }
 
