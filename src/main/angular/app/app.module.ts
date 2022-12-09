@@ -51,7 +51,6 @@ import {ApplicationSummaryService} from './main/home/application-summary.service
 import {DeleteAbstractModalComponent} from './general/delete-abstract-modal.component';
 import {DeleteTokenModalComponent} from './main/account/token/delete-token-modal.component';
 import {DeleteApplicationModalComponent} from './main/account/application/delete-application-modal.component';
-import { FaqComponent } from './main/faq/faq.component';
 import {ClientAuthorizationService} from './main/account/application/client-authorization.service';
 import {DeleteAuthorizationModalComponent} from './main/account/application/delete-authorization-modal.component';
 import {AuthorizationModalComponent} from './main/account/application/authorization-modal.component';
@@ -135,7 +134,6 @@ const cookieConfig: NgcCookieConsentConfig = {
     SummaryElementComponent,
     DeleteTokenModalComponent,
     DeleteApplicationModalComponent,
-    FaqComponent,
     DeleteAuthorizationModalComponent,
     AuthorizationModalComponent,
     RegenerateClientSecretModalComponent,
