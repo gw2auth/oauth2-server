@@ -32,7 +32,7 @@ export class Oauth2ClientService {
         }
 
         return this.httpClient.post<string>(
-            '/api/oauth2/token',
+            '/oauth2/token',
             undefined,
             {params: params, observe: 'response', responseType: 'text' as 'json'}
         ).pipe(catchError((e) => of(e as HttpErrorResponse)));

@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.gw2.client.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.metrics.web.client.MetricsRestTemplateCustomizer;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,17 +30,16 @@ public class Gw2ApiClientConfiguration {
             .withClientExecutionTimeout((int) READ_TIMEOUT.toMillis());
 
     @Bean
-    public Gw2ApiClient gw2ApiClient(MetricsRestTemplateCustomizer metricsRestTemplateCustomizer,
+    public Gw2ApiClient gw2ApiClient(RestTemplateBuilder restTemplateBuilder,
                                      ObjectMapper objectMapper,
                                      @Value("${com.gw2auth.gw2.client.aws-lambda-proxy.arns}") List<String> awsLambdaProxyARNs,
                                      @Value("${management.endpoint.prometheus.enabled:false}") boolean metricsEnabled,
                                      MeterRegistry meterRegistry) {
 
-        final RestTemplate restTemplate = new RestTemplateBuilder()
+        final RestTemplate restTemplate = restTemplateBuilder
                 .rootUri("https://api.guildwars2.com")
                 .setConnectTimeout(CONNECT_TIMEOUT)
                 .setReadTimeout(READ_TIMEOUT)
-                .customizers(metricsRestTemplateCustomizer)
                 .build();
 
         final List<Gw2ApiClient> chain = new ArrayList<>(awsLambdaProxyARNs.size() + 1);

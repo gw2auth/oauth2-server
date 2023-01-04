@@ -24,9 +24,9 @@ import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.shaded.json.JSONArray;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import jakarta.servlet.http.Cookie;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
@@ -34,7 +34,6 @@ import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
-import javax.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -78,7 +77,7 @@ public class TestHelper {
     }
 
     public static String createSubtokenJWT(UUID sub, Set<Gw2ApiPermission> permissions, Instant issuedAt, Duration expiresIn) {
-        final JSONArray jsonPermissions = new JSONArray();
+        final List<String> jsonPermissions = new ArrayList<>();
         permissions.stream().map(Gw2ApiPermission::gw2).forEach(jsonPermissions::add);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()

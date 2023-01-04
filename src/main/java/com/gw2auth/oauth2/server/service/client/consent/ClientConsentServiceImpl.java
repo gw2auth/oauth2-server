@@ -84,7 +84,7 @@ public class ClientConsentServiceImpl implements ClientConsentService, OAuth2Aut
     @Transactional
     public void save(OAuth2AuthorizationConsent authorizationConsent) {
         if (!authorizationConsent.getScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes())) {
-            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
+            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.INSUFFICIENT_SCOPE));
         }
 
         final UUID accountId = UUID.fromString(authorizationConsent.getPrincipalName());

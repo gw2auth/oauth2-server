@@ -28,7 +28,9 @@ import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2AuthorizationServerJackson2Module;
@@ -201,7 +203,6 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final Set<String> authorizationAttributesKeys = new HashSet<>(authorization.getAttributes().keySet());
         authorizationAttributesKeys.remove(OAuth2AuthorizationRequest.class.getName());
         authorizationAttributesKeys.remove(Principal.class.getName());
-        authorizationAttributesKeys.remove(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
         authorizationAttributesKeys.remove(OAuth2ParameterNames.STATE);
 
         if (!authorizationAttributesKeys.isEmpty()) {
@@ -224,8 +225,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final Optional<OAuth2Authorization.Token<OAuth2RefreshToken>> refreshToken = Optional.ofNullable(authorization.getRefreshToken());
 
         final Map<String, Object> attributes = new HashMap<>(authorization.getAttributes());
-        final Set<String> authorizedScopes = authorization.getAttribute(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
-        attributes.remove(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME);
+        final Set<String> authorizedScopes = authorization.getAuthorizedScopes();
 
         final String name;
 
@@ -363,7 +363,7 @@ public class ClientAuthorizationServiceImpl implements ClientAuthorizationServic
         final Map<String, Object> attributes = readJson(clientAuthorizationEntity.attributes());
 
         if (clientAuthorizationEntity.authorizedScopes() != null) {
-            attributes.put(OAuth2Authorization.AUTHORIZED_SCOPE_ATTRIBUTE_NAME, clientAuthorizationEntity.authorizedScopes());
+            builder.authorizedScopes(clientAuthorizationEntity.authorizedScopes());
         }
 
         builder.attributes((attrs) -> attrs.putAll(attributes));

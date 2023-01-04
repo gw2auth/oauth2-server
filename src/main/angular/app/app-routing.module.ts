@@ -53,7 +53,7 @@ const routes: Routes = [
     ]
   },
   { path: 'login', component: LoginComponent, canActivate: [NonAuthGuard], data: { title: 'Login' } },
-  { path: 'oauth2/consent', component: OAuth2ConsentComponent, canActivate: [AuthGuard], data: { title: 'Authorize' } }
+  { path: 'oauth2-consent', component: OAuth2ConsentComponent, canActivate: [AuthGuard], data: { title: 'Authorize' } }
 ];
 
 @NgModule({

@@ -1,10 +1,14 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import com.gw2auth.oauth2.server.adapt.CustomOAuth2AuthorizationCodeRequestAuthenticationProvider;
+import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,9 +21,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
-import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.server.authorization.config.ProviderSettings;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -27,9 +33,6 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -38,7 +41,7 @@ import java.util.UUID;
 @Configuration
 public class OAuth2ServerConfiguration {
 
-    public static final String OAUTH2_CONSENT_PAGE = "/oauth2/consent";
+    public static final String OAUTH2_CONSENT_PAGE = "/oauth2-consent";
 
     @Bean("oidc-server-request-matcher")
     public RequestMatcher oidcServerRequestMatcher() {
@@ -53,10 +56,10 @@ public class OAuth2ServerConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain oidcServerHttpSecurityFilterChain(HttpSecurity http, @Qualifier("oidc-server-request-matcher") RequestMatcher requestMatcher) throws Exception {
         http
-                .requestMatcher(requestMatcher)
+                .securityMatcher(requestMatcher)
                 .addFilterBefore(new OncePerRequestFilter() {
                     @Override
-                    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) {
+                    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
                         response.setStatus(HttpStatus.NOT_FOUND.value());
                     }
                 }, SecurityContextHolderFilter.class);
@@ -65,11 +68,17 @@ public class OAuth2ServerConfiguration {
     }
 
     @Bean
-    public OAuth2AuthorizationServerConfigurer<HttpSecurity> oAuth2AuthorizationServerConfigurer(HttpSecurity http) {
-        final OAuth2AuthorizationServerConfigurer<HttpSecurity> authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer<>();
+    public OAuth2AuthorizationServerConfigurer oAuth2AuthorizationServerConfigurer(HttpSecurity http) {
+        final OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
         authorizationServerConfigurer.authorizationEndpoint((authorizationEndpoint) -> {
             authorizationEndpoint
-                    .authenticationProvider(CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.create(http))
+                    .authenticationProviders((authenticationProviders) -> {
+                        authenticationProviders.removeIf((v) -> OAuth2AuthorizationCodeRequestAuthenticationProvider.class.isAssignableFrom(v.getClass()));
+                        authenticationProviders.removeIf((v) -> OAuth2AuthorizationConsentAuthenticationProvider.class.isAssignableFrom(v.getClass()));
+
+                        authenticationProviders.add(CustomOAuth2ServerAuthenticationProviders.createCodeRequestAuthenticationProvider(http));
+                        authenticationProviders.add(CustomOAuth2ServerAuthenticationProviders.createConsentAuthenticationProvider(http));
+                    })
                     .consentPage(OAUTH2_CONSENT_PAGE);
         });
 
@@ -77,7 +86,7 @@ public class OAuth2ServerConfiguration {
     }
 
     @Bean("oauth2-server-request-matcher")
-    public RequestMatcher oauth2ServerRequestMatcher(OAuth2AuthorizationServerConfigurer<HttpSecurity> configurer) {
+    public RequestMatcher oauth2ServerRequestMatcher(OAuth2AuthorizationServerConfigurer configurer) {
         return configurer.getEndpointsMatcher();
     }
 
@@ -85,7 +94,7 @@ public class OAuth2ServerConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE + 1)
     public SecurityFilterChain oauth2ServerHttpSecurityFilterChain(HttpSecurity http,
                                                                    @Qualifier("oauth2-server-request-matcher") RequestMatcher requestMatcher,
-                                                                   OAuth2AuthorizationServerConfigurer<HttpSecurity> configurer,
+                                                                   OAuth2AuthorizationServerConfigurer configurer,
                                                                    Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer,
                                                                    Customizer<RequestCacheConfigurer<HttpSecurity>> requestCacheCustomizer,
                                                                    Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer) throws Exception {
@@ -93,8 +102,8 @@ public class OAuth2ServerConfiguration {
         // This configuration is only for requests matched by the RequestMatcher
         // (that is, only OAuth2 AUTHORIZATION requests -> requests where this application acts as a OAuth2 server, not a client)
         http
-                .requestMatcher(requestMatcher)
-                .authorizeRequests((auth) -> auth.anyRequest().authenticated())
+                .securityMatcher(requestMatcher)
+                .authorizeHttpRequests((auth) -> auth.anyRequest().authenticated())
                 .csrf((csrf) -> csrf.ignoringRequestMatchers(requestMatcher))
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .securityContext(securityContextCustomizer)
@@ -125,7 +134,7 @@ public class OAuth2ServerConfiguration {
     }
 
     @Bean
-    public ProviderSettings providerSettings(@Value("${com.gw2auth.url}") String selfURL) {
-        return ProviderSettings.builder().issuer(selfURL).build();
+    public AuthorizationServerSettings authorizationServerSettings(@Value("${com.gw2auth.url}") String selfURL) {
+        return AuthorizationServerSettings.builder().issuer(selfURL).build();
     }
 }

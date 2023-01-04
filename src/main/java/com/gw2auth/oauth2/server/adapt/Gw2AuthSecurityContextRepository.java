@@ -3,6 +3,9 @@ package com.gw2auth.oauth2.server.adapt;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Constants;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.context.DeferredSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -10,8 +13,6 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenResolv
 import org.springframework.security.web.context.HttpRequestResponseHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.function.Supplier;
 
 public class Gw2AuthSecurityContextRepository implements SecurityContextRepository {
@@ -35,11 +36,6 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
     }
 
     @Override
-    public Supplier<SecurityContext> loadContext(HttpServletRequest request) {
-        return new SecurityContextSupplier(request);
-    }
-
-    @Override
     public void saveContext(SecurityContext context, HttpServletRequest request, HttpServletResponse response) {
 
     }
@@ -49,7 +45,11 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
         return loadContext(request).get() != null;
     }
 
-    private final class SecurityContextSupplier implements Supplier<SecurityContext> {
+    private Supplier<SecurityContext> loadContext(HttpServletRequest request) {
+        return new SecurityContextSupplier(request);
+    }
+
+    private final class SecurityContextSupplier implements DeferredSecurityContext {
 
         private final HttpServletRequest request;
 
@@ -70,6 +70,11 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
             }
 
             return securityContext;
+        }
+
+        @Override
+        public boolean isGenerated() {
+            return false;
         }
     }
 }

@@ -1,9 +1,8 @@
 package com.gw2auth.oauth2.server.adapt;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 
 public class CookieBearerTokenResolver implements BearerTokenResolver {
 
