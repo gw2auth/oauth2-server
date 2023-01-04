@@ -11,8 +11,8 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.ClientSettings;
-import org.springframework.security.oauth2.server.authorization.config.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -166,12 +166,10 @@ public class ClientRegistrationServiceImpl implements ClientRegistrationService,
                 .clientSecret(entity.clientSecret())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(entity.redirectUris()))
-                .clientAuthenticationMethod(ClientAuthenticationMethod.BASIC)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.POST)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_JWT)
+                //.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_JWT)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.PRIVATE_KEY_JWT)
+                //.clientAuthenticationMethod(ClientAuthenticationMethod.PRIVATE_KEY_JWT)
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
                 .tokenSettings(
                         TokenSettings.builder()

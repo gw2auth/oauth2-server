@@ -10,6 +10,6 @@ public class PasswordEncoderConfiguration {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new Argon2PasswordEncoder();
+        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 }

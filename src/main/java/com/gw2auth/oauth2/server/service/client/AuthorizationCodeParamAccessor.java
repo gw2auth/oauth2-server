@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server.service.client;
 
-import com.gw2auth.oauth2.server.adapt.CustomOAuth2AuthorizationCodeRequestAuthenticationProvider;
+import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
 
@@ -14,37 +14,37 @@ public interface AuthorizationCodeParamAccessor {
     AuthorizationCodeParamAccessor DEFAULT = new AuthorizationCodeParamAccessor() {
         @Override
         public Stream<Map.Entry<String, Object>> getAdditionalParameters() {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getAdditionalParameters();
+            return CustomOAuth2ServerAuthenticationProviders.getAdditionalParameters();
         }
 
         @Override
         public boolean isInCodeRequest() {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.isInCodeRequest();
+            return CustomOAuth2ServerAuthenticationProviders.isInCodeRequest();
         }
 
         @Override
         public boolean isInConsentContext() {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.isInConsentContext();
+            return CustomOAuth2ServerAuthenticationProviders.isInConsentContext();
         }
 
         @Override
         public Set<String> getRequestedScopes() {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getRequestedScopes();
+            return CustomOAuth2ServerAuthenticationProviders.getRequestedScopes();
         }
 
         @Override
         public void putValue(String key, Object value) {
-            CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.putValue(key, value);
+            CustomOAuth2ServerAuthenticationProviders.putValue(key, value);
         }
 
         @Override
         public <T> Optional<T> getValue(String key) {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.getValue(key);
+            return CustomOAuth2ServerAuthenticationProviders.getValue(key);
         }
 
         @Override
         public OAuth2AuthorizationCodeRequestAuthenticationException error(OAuth2Error error) {
-            return CustomOAuth2AuthorizationCodeRequestAuthenticationProvider.error(error);
+            return CustomOAuth2ServerAuthenticationProviders.error(error);
         }
     };
 

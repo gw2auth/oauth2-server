@@ -45,8 +45,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.OAuth2TokenType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -213,7 +213,7 @@ public class OAuth2ServerTest {
         performAuthorizeWithNewClient(cookieHolder, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.TRADINGPOST.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
-                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
+                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2-consent")),
                         new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, new AllOf<>(
                                 hasQueryParam(OAuth2ParameterNames.CLIENT_ID),
                                 hasQueryParam(OAuth2ParameterNames.STATE),
@@ -237,7 +237,7 @@ public class OAuth2ServerTest {
         performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
-                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
+                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2-consent")),
                         new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, new AllOf<>(
                                 hasQueryParam(OAuth2ParameterNames.SCOPE),
                                 hasQueryParam(OAuth2ParameterNames.CLIENT_ID),
@@ -261,7 +261,7 @@ public class OAuth2ServerTest {
         performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.INVENTORIES.oauth2()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
-                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
+                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2-consent")),
                         new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, new AllOf<>(
                                 hasQueryParam(OAuth2ParameterNames.CLIENT_ID),
                                 hasQueryParam(OAuth2ParameterNames.STATE),
@@ -285,7 +285,7 @@ public class OAuth2ServerTest {
         performAuthorizeWithClient(cookieHolder, clientRegistration, List.of(Gw2ApiPermission.ACCOUNT.oauth2()), true)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
-                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2/consent")),
+                        new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2-consent")),
                         new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, new AllOf<>(
                                 hasQueryParam(OAuth2ParameterNames.CLIENT_ID),
                                 hasQueryParam(OAuth2ParameterNames.STATE),
@@ -363,8 +363,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         // retrieve a new access token using the refresh token
@@ -372,8 +372,8 @@ public class OAuth2ServerTest {
         result = performRetrieveTokensByRefreshTokenAndExpectValid(clientRegistrationCreation, refreshToken).andReturn();
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         assertNotEquals(refreshToken, tokenResponse.get("refresh_token").textValue());
@@ -450,8 +450,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ));
 
         // prepare the gw2 reset api for new subtoken requests
@@ -491,8 +491,8 @@ public class OAuth2ServerTest {
 
         // verify the new response
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ));
 
         assertNotEquals(refreshToken, tokenResponse.get("refresh_token").textValue());
@@ -566,8 +566,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ));
 
         // prepare the gw2 reset api for new subtoken requests (dont return a new subtoken for TokenB in this testcase)
@@ -610,8 +610,8 @@ public class OAuth2ServerTest {
         }
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "error", "Failed to obtain new subtoken"))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "error", "Failed to obtain new subtoken")
         ));
 
         assertNotEquals(refreshToken, tokenResponse.get("refresh_token").textValue());
@@ -734,8 +734,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "error", "Failed to obtain new subtoken"))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "error", "Failed to obtain new subtoken")
         ));
     }
 
@@ -810,8 +810,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ));
 
         // remove all Root-Tokens for this authorization
@@ -899,7 +899,11 @@ public class OAuth2ServerTest {
         // submit the consent
         this.mockMvc.perform(builder)
                 .andDo(cookieHolder)
-                .andExpect(status().isBadRequest());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", new AllOf<>(
+                        new StringStartsWith(TestHelper.first(clientRegistration.redirectUris()).orElseThrow()),
+                        asUri(new Matchers.MappingMatcher<>("Query", UriComponents::getQueryParams, hasQueryParam(OAuth2ParameterNames.ERROR, "insufficient_scope")))
+                )));
 
         // authorization should not be saved
         final ClientConsentEntity clientAuthorization = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientRegistration.id()).orElse(null);
@@ -984,8 +988,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0], "verified", true)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0], "verified", false))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0], "verified", true),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0], "verified", false)
         ));
 
         // remove the verification for the first account and save one for the second
@@ -999,8 +1003,8 @@ public class OAuth2ServerTest {
                 .andReturn();
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0], "verified", false)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0], "verified", true))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0], "verified", false),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0], "verified", true)
         ));
     }
 
@@ -1053,8 +1057,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.UNLOCKS));
 
         final String firstAuthorizationSubtokenA = dummySubtokenA[0];
@@ -1086,8 +1090,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA[0])),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB[0]))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA[0]),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB[0])
         ));
 
         // retrieve a new access and refresh token for the first authorization
@@ -1100,8 +1104,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", firstAuthorizationSubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", firstAuthorizationSubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", firstAuthorizationSubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", firstAuthorizationSubtokenB)
         ), Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.UNLOCKS));
     }
 
@@ -1135,8 +1139,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         // revoke the access_token
@@ -1186,8 +1190,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         // revoke the access_token
@@ -1238,8 +1242,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         // revoke the refresh_token
@@ -1301,8 +1305,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         // revoke the refresh_token
@@ -1391,8 +1395,8 @@ public class OAuth2ServerTest {
 
         // verify the access token
         JsonNode tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         authorizations = this.clientAuthorizationRepository.findAllByAccountIdAndClientRegistrationId(accountId, clientConsentEntity.clientRegistrationId());
@@ -1508,8 +1512,8 @@ public class OAuth2ServerTest {
         result = performRetrieveTokensByRefreshTokenAndExpectValid(clientRegistrationCreation, refreshToken).andReturn();
 
         tokenResponse = assertTokenResponse(result, () -> Map.of(
-                this.gw2AccountId1st, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "First", "token", dummySubtokenA)),
-                this.gw2AccountId2nd, new com.nimbusds.jose.shaded.json.JSONObject(Map.of("name", "Second", "token", dummySubtokenB))
+                this.gw2AccountId1st, Map.of("name", "First", "token", dummySubtokenA),
+                this.gw2AccountId2nd, Map.of("name", "Second", "token", dummySubtokenB)
         ));
 
         assertNotEquals(refreshToken, tokenResponse.get("refresh_token").textValue());
@@ -1658,11 +1662,11 @@ public class OAuth2ServerTest {
                 )));
     }
 
-    private JsonNode assertTokenResponse(MvcResult result, Supplier<Map<UUID, com.nimbusds.jose.shaded.json.JSONObject>> expectedTokenSupplier) throws Exception {
+    private JsonNode assertTokenResponse(MvcResult result, Supplier<Map<UUID, Map<String, Object>>> expectedTokenSupplier) throws Exception {
         return assertTokenResponse(result, expectedTokenSupplier, Set.of(Gw2ApiPermission.ACCOUNT));
     }
 
-    private JsonNode assertTokenResponse(MvcResult result, Supplier<Map<UUID, com.nimbusds.jose.shaded.json.JSONObject>> expectedTokenSupplier, Set<Gw2ApiPermission> expectedGw2ApiPermissions) throws Exception {
+    private JsonNode assertTokenResponse(MvcResult result, Supplier<Map<UUID, Map<String, Object>>> expectedTokenSupplier, Set<Gw2ApiPermission> expectedGw2ApiPermissions) throws Exception {
         final JsonNode tokenResponse = new ObjectMapper().readTree(result.getResponse().getContentAsString());
 
         // access token
@@ -1674,12 +1678,12 @@ public class OAuth2ServerTest {
 
         assertEquals(expectedGw2ApiPermissionStrs, new HashSet<>(accessToken.getJWTClaimsSet().getStringListClaim("gw2:permissions")));
 
-        final Map<UUID, com.nimbusds.jose.shaded.json.JSONObject> expectedTokens = new HashMap<>(expectedTokenSupplier.get());
+        final Map<UUID, Map<String, Object>> expectedTokens = new HashMap<>(expectedTokenSupplier.get());
 
         for (Map.Entry<String, Object> entry : accessToken.getJWTClaimsSet().getJSONObjectClaim("gw2:tokens").entrySet()) {
             final UUID gw2AccountId = UUID.fromString(entry.getKey());
-            final com.nimbusds.jose.shaded.json.JSONObject token = (com.nimbusds.jose.shaded.json.JSONObject) entry.getValue();
-            final com.nimbusds.jose.shaded.json.JSONObject expectedToken = expectedTokens.remove(gw2AccountId);
+            final Map<String, Object> token = (Map<String, Object>) entry.getValue();
+            final Map<String, Object> expectedToken = expectedTokens.remove(gw2AccountId);
 
             assertNotNull(expectedToken);
             assertEquals(expectedToken, token);

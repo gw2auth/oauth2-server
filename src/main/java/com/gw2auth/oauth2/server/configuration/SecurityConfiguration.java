@@ -35,6 +35,7 @@ import org.springframework.security.web.authentication.SavedRequestAwareAuthenti
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.CookieRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -123,7 +124,12 @@ public class SecurityConfiguration {
 
     @Bean
     public Customizer<CsrfConfigurer<HttpSecurity>> csrfCustomizer() {
-        return (csrf) -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+        // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_i_am_using_angularjs_or_another_javascript_framework
+        // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#servlet-opt-in-defer-loading-csrf-token
+        final CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        requestHandler.setCsrfRequestAttributeName(null);
+
+        return (csrf) -> csrf.csrfTokenRequestHandler(requestHandler).csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
     }
 
     @Bean("frontend-request-matcher")
@@ -152,8 +158,13 @@ public class SecurityConfiguration {
         final LogoutHandler logoutHandler = new Gw2AuthSessionDeletionLogoutHandler(accountService);
 
         http
-                .requestMatcher(requestMatcher)
-                .authorizeRequests((auth) -> auth.antMatchers("/", "/login", "/privacy-policy", "/legal", "/faq").permitAll().anyRequest().authenticated())
+                .securityMatcher(requestMatcher)
+                .authorizeHttpRequests((auth) -> {
+                    auth
+                            .shouldFilterAllDispatcherTypes(false)
+                            .requestMatchers("/", "/login", "/privacy-policy", "/legal", "/faq").permitAll()
+                            .anyRequest().authenticated();
+                })
                 .csrf(csrfCustomizer)
                 .headers((headers) -> {
                     headers
@@ -198,8 +209,8 @@ public class SecurityConfiguration {
     @Order(2)
     public SecurityFilterChain resourcesSecurityFilterChain(HttpSecurity http, @Qualifier("resources-request-matcher") RequestMatcher requestMatcher) throws Exception {
         http
-                .requestMatcher(requestMatcher)
-                .authorizeRequests((auth) -> auth.anyRequest().permitAll());
+                .securityMatcher(requestMatcher)
+                .authorizeHttpRequests((auth) -> auth.anyRequest().permitAll());
 
         return http.build();
     }
@@ -217,10 +228,10 @@ public class SecurityConfiguration {
                                                           Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer) throws Exception {
 
         http
-                .requestMatcher(requestMatcher)
-                .authorizeRequests((auth) -> {
+                .securityMatcher(requestMatcher)
+                .authorizeHttpRequests((auth) -> {
                     auth
-                            .antMatchers("/api/authinfo", "/api/application/summary").permitAll()
+                            .requestMatchers("/api/authinfo", "/api/application/summary").permitAll()
                             .anyRequest().authenticated();
                 })
                 .csrf(csrfCustomizer)
@@ -241,8 +252,8 @@ public class SecurityConfiguration {
     @Order(0)
     public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http, @Qualifier("actuator-request-matcher") RequestMatcher requestMatcher) throws Exception {
         http
-                .requestMatcher(requestMatcher)
-                .authorizeRequests().anyRequest().permitAll();
+                .securityMatcher(requestMatcher)
+                .authorizeHttpRequests().anyRequest().permitAll();
 
         return http.build();
     }

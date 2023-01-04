@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.summary.SummaryService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,7 +15,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;

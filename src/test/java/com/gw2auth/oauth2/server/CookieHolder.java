@@ -1,11 +1,11 @@
 package com.gw2auth.oauth2.server;
 
+import jakarta.servlet.http.Cookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultHandler;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-import javax.servlet.http.Cookie;
 import java.util.*;
 
 public class CookieHolder implements RequestPostProcessor, ResultHandler {
