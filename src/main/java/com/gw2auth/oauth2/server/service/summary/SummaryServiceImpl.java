@@ -4,7 +4,9 @@ import com.gw2auth.oauth2.server.repository.summary.AccountSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.ApplicationSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.ClientSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.SummaryRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -15,11 +17,13 @@ import java.util.UUID;
 public class SummaryServiceImpl implements SummaryService {
 
     private final SummaryRepository summaryRepository;
+    private final MeterRegistry meterRegistry;
     private volatile Clock clock;
 
     @Autowired
-    public SummaryServiceImpl(SummaryRepository summaryRepository) {
+    public SummaryServiceImpl(SummaryRepository summaryRepository, MeterRegistry meterRegistry) {
         this.summaryRepository = summaryRepository;
+        this.meterRegistry = meterRegistry;
         this.clock = Clock.systemUTC();
     }
 
@@ -65,5 +69,16 @@ public class SummaryServiceImpl implements SummaryService {
                 value.authPast7d(),
                 value.authPast30d()
         );
+    }
+
+    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    public void publishSummaryAsMetric() {
+        final ApplicationSummaryEntity summary = this.summaryRepository.getApplicationSummary();
+
+        this.meterRegistry.gauge("gw2auth_registered_accounts", summary.accounts());
+        this.meterRegistry.gauge("gw2auth_api_tokens", summary.apiTokens());
+        this.meterRegistry.gauge("gw2auth_verified_gw2_accounts", summary.verifiedGw2Accounts());
+        this.meterRegistry.gauge("gw2auth_client_registrations", summary.clientRegistrations());
+        this.meterRegistry.gauge("gw2auth_client_authorizations", summary.clientAuthorizations());
     }
 }

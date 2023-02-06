@@ -210,7 +210,8 @@ public class SecurityConfiguration {
     public SecurityFilterChain resourcesSecurityFilterChain(HttpSecurity http, @Qualifier("resources-request-matcher") RequestMatcher requestMatcher) throws Exception {
         http
                 .securityMatcher(requestMatcher)
-                .authorizeHttpRequests((auth) -> auth.anyRequest().permitAll());
+                .authorizeHttpRequests((auth) -> auth.anyRequest().permitAll())
+                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }

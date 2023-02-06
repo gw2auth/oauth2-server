@@ -6,13 +6,13 @@
 
     <groupId>com.gw2auth</groupId>
     <artifactId>oauth2-server</artifactId>
-    <version>1.43.0</version>
+    <version>1.44.0</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
         <relativePath/>
     </parent>
 
@@ -35,7 +35,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <start-class>com.gw2auth.oauth2.server.Application</start-class>
 
-        <node.version>v18.13.0</node.version>
+        <node.version>v18.14.0</node.version>
     </properties>
 
     <dependencies>
@@ -99,13 +99,13 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-lambda</artifactId>
-            <version>1.12.380</version>
+            <version>1.12.400</version>
         </dependency>
 
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-            <version>1.12.380</version>
+            <version>1.12.400</version>
         </dependency>
 
         <dependency>
