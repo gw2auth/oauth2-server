@@ -1,32 +1,59 @@
-name: "Build"
+name: 'Build'
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v[0-9]+\\.[0-9]+\\.[0-9]+'
   pull_request:
     branches:
       - main
 
+env:
+  WORKSPACE_ARTIFACT: 'oauth2_server'
+
 jobs:
-  build:
+  build_jar:
+    name: 'Build JAR'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: "Set up JDK 17"
+      - name: 'Set up JDK 17'
         uses: actions/setup-java@v3
         with:
-          distribution: "temurin"
-          java-version: "17"
-          cache: "maven"
-      - name: "Build"
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: 'Build'
         run: mvn clean package
-      - name: "Upload Artifact"
+      - name: 'Upload artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: "oauth2-server"
+          name: ${{ env.WORKSPACE_ARTIFACT }}
           path: |
             Dockerfile
             docker-entrypoint.sh
             target/oauth2-server.jar
             target/version.txt
+  build_docker:
+    name: 'Build Docker'
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs:
+      - build_jar
+    steps:
+      - name: 'Download artifact'
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.WORKSPACE_ARTIFACT }}
+          path: .
+      - name: 'Build Docker'
+        env:
+          VERSION_TAG: '${{ github.ref_name }}'
+        run: 'docker build -t "gw2auth/oauth2-server:latest" -t "gw2auth/oauth2-server:$VERSION_TAG" .'
+      - name: 'Login Docker'
+        env:
+          DOCKER_LOGIN: ${{ secrets.DOCKER_LOGIN }}
+          DOCKER_ACCESS_TOKEN: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+        run: 'docker login -u $DOCKER_LOGIN -p $DOCKER_ACCESS_TOKEN'
+      - name: 'Push Docker'
+        run: 'docker push "gw2auth/oauth2-server" --all-tags'
