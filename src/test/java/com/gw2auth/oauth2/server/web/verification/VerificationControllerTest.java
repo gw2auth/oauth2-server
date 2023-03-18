@@ -13,7 +13,6 @@ import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationR
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.verification.VerificationChallengeStart;
 import com.gw2auth.oauth2.server.service.verification.VerificationServiceImpl;
-import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -870,7 +869,7 @@ class VerificationControllerTest {
     private void prepareGw2RestServerForTransactionsRequest(String gw2ApiToken, int addDummyValues, int itemId, int quantity, long price, Instant created) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/commerce/transactions/current/buys")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final org.json.JSONArray result = new org.json.JSONArray();
 
@@ -902,7 +901,7 @@ class VerificationControllerTest {
     private void prepareGw2RestServerForTokenInfoRequest(String gw2ApiToken, String apiTokenName, Set<Gw2ApiPermission> gw2ApiPermissions) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/tokeninfo")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(new JSONObject(Map.of(
                             "name", apiTokenName,
@@ -926,7 +925,7 @@ class VerificationControllerTest {
 
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/characters")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(new JSONArray(characters).toString().getBytes(StandardCharsets.UTF_8), HttpStatus.OK);
                     response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -938,7 +937,7 @@ class VerificationControllerTest {
     private void preparedGw2RestServerForCreateSubtoken(String gw2ApiToken, String gw2ApiSubtoken, Set<Gw2ApiPermission> requestPermissions, Instant expire) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/createsubtoken")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andExpect(queryParam("permissions", split(",", containingAll(requestPermissions.stream().map(Gw2ApiPermission::gw2).toArray(String[]::new)))))
                 .andExpect(queryParam("expire", asInstant(instant(expire))))
                 .andRespond((request) -> {
@@ -952,7 +951,7 @@ class VerificationControllerTest {
     private void preparedGw2RestServerForAccountRequest(UUID gw2AccountId, String gw2ApiToken) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(new JSONObject(Map.of(
                             "id", gw2AccountId,

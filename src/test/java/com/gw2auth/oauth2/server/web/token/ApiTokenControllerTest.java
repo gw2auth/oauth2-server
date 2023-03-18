@@ -599,7 +599,7 @@ class ApiTokenControllerTest {
     private void preparedGw2RestServerForAccountRequest(UUID gw2AccountId, String gw2ApiToken, String accountName) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(new JSONObject(Map.of(
                             "id", gw2AccountId,
@@ -615,7 +615,7 @@ class ApiTokenControllerTest {
     private void prepareGw2RestServerForTokenInfoRequest(String gw2ApiToken, String apiTokenName, Set<Gw2ApiPermission> gw2ApiPermissions) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/tokeninfo")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(new JSONObject(Map.of(
                             "name", apiTokenName,
@@ -631,7 +631,7 @@ class ApiTokenControllerTest {
     private void preparedGw2RestServerInvalidRequest(String url, String gw2ApiToken) {
         this.gw2RestServer.expect(requestTo(new StringStartsWith(url)))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> new MockClientHttpResponse(new byte[0], HttpStatus.UNAUTHORIZED));
     }
 
