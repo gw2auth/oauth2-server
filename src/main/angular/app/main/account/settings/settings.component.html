@@ -39,7 +39,7 @@
                                 <td>
                                     <div class="btn-group" role="group">
                                         <button type="button" class="btn btn-accent-inner" [disabled]="federation.sessions.length < 1" (click)="detailsCollapse.toggle()">
-                                            <fa-icon [icon]="detailsCollapse.collapsed ? faAngleDoubleDown : faAngleDoubleUp"></fa-icon>
+                                            <fa-icon [icon]="faAngleDoubleDown"></fa-icon>
                                         </button>
                                         <button type="button" class="btn btn-danger" [disabled]="federations!.federations.length < 2 || isCurrentFederation(federation)" (click)="openDeleteFederationModal(federation)">
                                             <fa-icon [icon]="faTrashAlt"></fa-icon>
