@@ -16,7 +16,7 @@ public class ResourceRoutingConfiguration implements WebMvcConfigurer {
     private final boolean useCache;
 
     @Autowired
-    public ResourceRoutingConfiguration(@Value("${spring.thymeleaf.cache:false}") boolean useCache) {
+    public ResourceRoutingConfiguration(@Value("${spring.thymeleaf.cache:true}") boolean useCache) {
         this.useCache = useCache;
     }
 
