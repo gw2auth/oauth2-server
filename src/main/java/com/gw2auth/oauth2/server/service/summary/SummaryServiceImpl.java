@@ -75,10 +75,10 @@ public class SummaryServiceImpl implements SummaryService {
     public void publishSummaryAsMetric() {
         final ApplicationSummaryEntity summary = this.summaryRepository.getApplicationSummary();
 
-        this.meterRegistry.gauge("gw2auth_registered_accounts", summary.accounts());
-        this.meterRegistry.gauge("gw2auth_api_tokens", summary.apiTokens());
-        this.meterRegistry.gauge("gw2auth_verified_gw2_accounts", summary.verifiedGw2Accounts());
-        this.meterRegistry.gauge("gw2auth_client_registrations", summary.clientRegistrations());
-        this.meterRegistry.gauge("gw2auth_client_authorizations", summary.clientAuthorizations());
+        this.meterRegistry.summary("gw2auth_registered_accounts").record(summary.accounts());
+        this.meterRegistry.summary("gw2auth_api_tokens").record(summary.apiTokens());
+        this.meterRegistry.summary("gw2auth_verified_gw2_accounts").record(summary.verifiedGw2Accounts());
+        this.meterRegistry.summary("gw2auth_client_registrations").record(summary.clientRegistrations());
+        this.meterRegistry.summary("gw2auth_client_authorizations").record(summary.clientAuthorizations());
     }
 }
