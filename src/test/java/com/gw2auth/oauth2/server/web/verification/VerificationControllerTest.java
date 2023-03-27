@@ -101,10 +101,10 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void getBootstrap(CookieHolder cookieHolder) throws Exception {
+    public void getBootstrap(SessionHandle sessionHandle) throws Exception {
         // this basically tests 3 other endpoints too
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
         final ObjectMapper mapper = new ObjectMapper();
 
         // 1 started challenge
@@ -118,8 +118,8 @@ class VerificationControllerTest {
         // 1 verification failed challenge (this should not be part of the pending challenges)
         this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), -1L, null, null, Instant.now(), Instant.now().plus(Duration.ofHours(2L))));
 
-        final String responseJson = this.mockMvc.perform(get("/api/verification/bootstrap").with(cookieHolder))
-                .andDo(cookieHolder)
+        final String responseJson = this.mockMvc.perform(get("/api/verification/bootstrap").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -182,28 +182,28 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startNewChallengeUnknownChallengeId(CookieHolder cookieHolder) throws Exception {
+    public void startNewChallengeUnknownChallengeId(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
                 post("/api/verification")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("challengeId", "100")
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void startNewChallengeApiTokenName(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startNewChallengeApiTokenName(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         this.mockMvc.perform(
                 post("/api/verification")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("challengeId", "1")
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
@@ -213,16 +213,16 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startNewChallengeTPBuyOrder(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startNewChallengeTPBuyOrder(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         this.mockMvc.perform(
                 post("/api/verification")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("challengeId", "2")
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("2"))
                 .andExpect(jsonPath("$.message.gw2ItemId").isNumber())
@@ -233,16 +233,16 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startNewChallengeCharacterName(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startNewChallengeCharacterName(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "3")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("3"))
                 .andExpect(jsonPath("$.message.characterName").isString())
@@ -252,20 +252,20 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void submitChallengeNotExisting(CookieHolder cookieHolder) throws Exception {
+    public void submitChallengeNotExisting(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", UUID.randomUUID().toString())
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitApiTokenNameChallengeWithInsufficientPermissions(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startAndSubmitApiTokenNameChallengeWithInsufficientPermissions(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -286,11 +286,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
 
         // started challenge should not be removed
@@ -298,8 +298,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitApiTokenNameChallengeUnfulfilled(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startAndSubmitApiTokenNameChallengeUnfulfilled(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -321,11 +321,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("false"))
                 .andExpect(jsonPath("$.pending").isMap());
@@ -353,14 +353,14 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitApiTokenNameChallengeLaterFulfilled(CookieHolder cookieHolder) throws Exception {
+    public void startAndSubmitApiTokenNameChallengeLaterFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -381,11 +381,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("false"))
                 .andExpect(jsonPath("$.pending").isMap());
@@ -420,14 +420,14 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitApiTokenNameChallengeDirectlyFulfilled(CookieHolder cookieHolder) throws Exception {
+    public void startAndSubmitApiTokenNameChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -448,11 +448,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("true"));
 
@@ -472,14 +472,14 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitTPBuyOrderChallengeDirectlyFulfilled(CookieHolder cookieHolder) throws Exception {
+    public void startAndSubmitTPBuyOrderChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -500,11 +500,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                 post("/api/verification/pending")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .with(csrf())
                         .queryParam("token", gw2ApiToken)
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("true"));
 
@@ -524,14 +524,14 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitCharacterNameChallengeDirectlyFulfilled(CookieHolder cookieHolder) throws Exception {
+    public void startAndSubmitCharacterNameChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -552,11 +552,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                         post("/api/verification/pending")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("token", gw2ApiToken)
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("true"));
 
@@ -576,8 +576,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startChallengeWithoutWaitingLongEnoughBetween(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startChallengeWithoutWaitingLongEnoughBetween(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -585,11 +585,11 @@ class VerificationControllerTest {
 
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "1")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
@@ -605,11 +605,11 @@ class VerificationControllerTest {
         // try to start a new challenge
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "2")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
 
         // started challenge should not be modified
@@ -617,8 +617,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startChallengeWithSameChallengeIdAsExisting(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startChallengeWithSameChallengeIdAsExisting(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -626,11 +626,11 @@ class VerificationControllerTest {
 
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "1")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
@@ -646,11 +646,11 @@ class VerificationControllerTest {
         // try to start a new challenge
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "1")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
 
         // started challenge should not be modified
@@ -658,8 +658,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startChallengeWithLongEnoughBetween(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startChallengeWithLongEnoughBetween(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -667,11 +667,11 @@ class VerificationControllerTest {
 
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "1")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("1"))
                 .andExpect(jsonPath("$.message.apiTokenName").isString())
@@ -687,11 +687,11 @@ class VerificationControllerTest {
         // try to start a new challenge
         this.mockMvc.perform(
                         post("/api/verification")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("challengeId", "2")
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.challengeId").value("2"))
                 .andExpect(jsonPath("$.message.gw2ItemId").isNumber())
@@ -706,8 +706,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitChallengeForGw2AccountHavingAPendingVerification(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startAndSubmitChallengeForGw2AccountHavingAPendingVerification(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -729,11 +729,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                         post("/api/verification/pending")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("token", gw2ApiToken)
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("false"))
                 .andExpect(jsonPath("$.pending").isMap());
@@ -757,11 +757,11 @@ class VerificationControllerTest {
         // submit the challenge again (for the same gw2 account)
         this.mockMvc.perform(
                         post("/api/verification/pending")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("token", gw2ApiToken)
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
 
         // pending challenge should not be modified
@@ -769,8 +769,8 @@ class VerificationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void startAndSubmitChallengeForGw2AccountAlreadyVerified(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void startAndSubmitChallengeForGw2AccountAlreadyVerified(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -795,23 +795,23 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                         post("/api/verification/pending")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("token", gw2ApiToken)
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void startSubmitAndCancelChallenge(CookieHolder cookieHolder) throws Exception {
+    public void startSubmitAndCancelChallenge(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // prepare the testing clock
         Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -832,11 +832,11 @@ class VerificationControllerTest {
         // submit the challenge
         this.mockMvc.perform(
                         post("/api/verification/pending")
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                                 .queryParam("token", gw2ApiToken)
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value("false"));
 
@@ -849,10 +849,10 @@ class VerificationControllerTest {
         // cancel the challenge
         this.mockMvc.perform(
                         delete("/api/verification/pending/{gw2AccountId}", gw2AccountId)
-                                .with(cookieHolder)
+                                .with(sessionHandle)
                                 .with(csrf())
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
         // account should not be verified

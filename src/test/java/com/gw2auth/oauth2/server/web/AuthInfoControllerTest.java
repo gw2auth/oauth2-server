@@ -6,7 +6,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -35,9 +34,9 @@ class AuthInfoControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void authInfo(CookieHolder cookieHolder) throws Exception {
-        this.mockMvc.perform(head("/api/authinfo").with(cookieHolder))
-                .andDo(cookieHolder)
+    public void authInfo(SessionHandle sessionHandle) throws Exception {
+        this.mockMvc.perform(head("/api/authinfo").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isAccepted());
     }
 }

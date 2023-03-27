@@ -3,7 +3,7 @@ package com.gw2auth.oauth2.server.service.user;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;

@@ -63,7 +63,7 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
 
             final String jwtString = Gw2AuthSecurityContextRepository.this.bearerTokenResolver.resolve(this.request);
             if (jwtString != null) {
-                final Gw2AuthUserV2 user = Gw2AuthSecurityContextRepository.this.gw2AuthTokenUserService.resolveUserForToken(jwtString).orElse(null);
+                final Gw2AuthUserV2 user = Gw2AuthSecurityContextRepository.this.gw2AuthTokenUserService.resolveUserForToken(this.request, jwtString).orElse(null);
                 if (user != null) {
                     securityContext = new SecurityContextImpl(new Gw2AuthAuthenticationManagerResolver.Gw2AuthUserAuthentication(user));
                 }

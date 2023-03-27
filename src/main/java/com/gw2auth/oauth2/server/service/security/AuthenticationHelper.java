@@ -1,8 +1,9 @@
-package com.gw2auth.oauth2.server.util;
+package com.gw2auth.oauth2.server.service.security;
 
 import com.gw2auth.oauth2.server.adapt.CookieBearerTokenResolver;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
+import com.gw2auth.oauth2.server.util.Constants;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -53,7 +54,7 @@ public final class AuthenticationHelper {
             return Optional.empty();
         }
 
-        return AuthenticationHelper.instance.gw2AuthTokenUserService.resolveUserForToken(bearer);
+        return AuthenticationHelper.instance.gw2AuthTokenUserService.resolveUserForToken(request, bearer);
     }
 
     public static Optional<Gw2AuthUserV2> getUser(boolean possiblyPreauth) {

@@ -2,7 +2,7 @@ package com.gw2auth.oauth2.server.adapt;
 
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;

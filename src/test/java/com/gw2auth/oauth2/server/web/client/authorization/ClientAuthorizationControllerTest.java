@@ -55,8 +55,8 @@ class ClientAuthorizationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void getClientAuthorizations(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void getClientAuthorizations(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
@@ -78,8 +78,8 @@ class ClientAuthorizationControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
         // query api
-        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.id()).with(cookieHolder))
-                .andDo(cookieHolder)
+        final String jsonResponse = this.mockMvc.perform(get("/api/client/authorization/{clientId}", client.id()).with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -173,8 +173,8 @@ class ClientAuthorizationControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void deleteClientAuthorization(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void deleteClientAuthorization(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // create client
         final ClientRegistrationEntity client = this.testHelper.createClientRegistration(accountId, "Client");
@@ -196,8 +196,8 @@ class ClientAuthorizationControllerTest {
         this.testHelper.createClientAuthorizationTokens(accountId, authorization2.id(), tokenA.gw2AccountId(), tokenB.gw2AccountId(), tokenC.gw2AccountId());
 
         // delete second authorization
-        this.mockMvc.perform(delete("/api/client/authorization/_/{clientAuthorizationId}", authorization2.id()).with(csrf()).with(cookieHolder))
-                .andDo(cookieHolder)
+        this.mockMvc.perform(delete("/api/client/authorization/_/{clientAuthorizationId}", authorization2.id()).with(csrf()).with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
         // verify the authorization has been deleted

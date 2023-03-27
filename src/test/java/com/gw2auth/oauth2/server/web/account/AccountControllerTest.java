@@ -72,8 +72,8 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void getAccountSummary(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void getAccountSummary(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         final int apiTokens = 3;
         final int verifiedGw2Accounts = 5;
@@ -106,8 +106,8 @@ class AccountControllerTest {
             this.accountFederationRepository.save(new AccountFederationEntity(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId));
         }
 
-        this.mockMvc.perform(get("/api/account/summary").with(cookieHolder))
-                .andDo(cookieHolder)
+        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.apiTokens").value(Integer.toString(apiTokens)))
                 .andExpect(jsonPath("$.verifiedGw2Accounts").value(Integer.toString(verifiedGw2Accounts)))
@@ -123,11 +123,11 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
-    public void getAccountFederations(CookieHolder cookieHolder) throws Exception {
-        final String sessionId = this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow();
+    public void getAccountFederations(SessionHandle sessionHandle) throws Exception {
+        final String sessionId = this.testHelper.getSessionIdForCookie(sessionHandle).orElseThrow();
 
-        this.mockMvc.perform(get("/api/account/federation").with(cookieHolder))
-                .andDo(cookieHolder)
+        this.mockMvc.perform(get("/api/account/federation").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentIssuer").value("test-iss"))
                 .andExpect(jsonPath("$.currentIdAtIssuer").value("test-id"))
@@ -148,8 +148,8 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void getAccountLogs(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void getAccountLogs(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         final Queue<AccountLogEntity> insertedLogs = new PriorityQueue<>(Comparator.comparing(AccountLogEntity::timestamp).reversed());
         final UUID someId = UUID.randomUUID();
@@ -168,11 +168,11 @@ class AccountControllerTest {
         do {
             final String responseJson = this.mockMvc.perform(
                             get("/api/account/log")
-                                    .with(cookieHolder)
+                                    .with(sessionHandle)
                                     .queryParam("page", Integer.toString(page))
                                     .queryParam("some_id", someId.toString())
                     )
-                    .andDo(cookieHolder)
+                    .andDo(sessionHandle)
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.page").exists())
                     .andExpect(jsonPath("$.nextPage").exists())
@@ -218,44 +218,44 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
-    public void deleteAccountFederationCurrentFederation(CookieHolder cookieHolder) throws Exception {
+    public void deleteAccountFederationCurrentFederation(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .queryParam("issuer", "test")
                         .queryParam("idAtIssuer", "test")
                         .with(csrf())
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin
-    public void deleteAccountFederationHavingLessThan2(CookieHolder cookieHolder) throws Exception {
+    public void deleteAccountFederationHavingLessThan2(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .queryParam("issuer", "test")
                         .queryParam("idAtIssuer", "test2")
                         .with(csrf())
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isNotAcceptable());
     }
 
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
-    public void deleteAccountFederation(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void deleteAccountFederation(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
         this.accountFederationRepository.save(new AccountFederationEntity("issuer2", "idAtIssuer2", accountId));
 
         this.mockMvc.perform(
                 delete("/api/account/federation")
-                        .with(cookieHolder)
+                        .with(sessionHandle)
                         .queryParam("issuer", "issuer2")
                         .queryParam("idAtIssuer", "idAtIssuer2")
                         .with(csrf())
         )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
@@ -273,37 +273,37 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
-    public void deleteSessionCurrentSession(CookieHolder cookieHolder) throws Exception {
+    public void deleteSessionCurrentSession(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
                         delete("/api/account/session")
-                                .with(cookieHolder)
-                                .queryParam("id", this.testHelper.getSessionIdForCookie(cookieHolder).orElseThrow())
+                                .with(sessionHandle)
+                                .queryParam("id", this.testHelper.getSessionIdForCookie(sessionHandle).orElseThrow())
                                 .with(csrf())
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
     }
 
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
-    public void deleteSession(CookieHolder cookieHolder) throws Exception {
-        final CookieHolder otherSessionCookieHolder = new CookieHolder();
+    public void deleteSession(SessionHandle sessionHandle) throws Exception {
+        final SessionHandle otherSessionSessionHandle = new SessionHandle();
 
-        this.gw2AuthLoginExtension.login(otherSessionCookieHolder, "issuer", "otherIdAtIssuer")
+        this.gw2AuthLoginExtension.login(otherSessionSessionHandle, "issuer", "otherIdAtIssuer")
                 .andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
         this.mockMvc.perform(
                         delete("/api/account/session")
-                                .with(cookieHolder)
-                                .queryParam("id", this.testHelper.getSessionIdForCookie(otherSessionCookieHolder).orElseThrow())
+                                .with(sessionHandle)
+                                .queryParam("id", this.testHelper.getSessionIdForCookie(otherSessionSessionHandle).orElseThrow())
                                 .with(csrf())
                 )
-                .andDo(cookieHolder)
+                .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
-        this.mockMvc.perform(head("/api/authinfo").with(otherSessionCookieHolder))
+        this.mockMvc.perform(head("/api/authinfo").with(otherSessionSessionHandle))
                 .andExpect(status().isUnauthorized());
 
-        final List<AccountFederationSessionEntity> result = this.accountFederationSessionRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow());
+        final List<AccountFederationSessionEntity> result = this.accountFederationSessionRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow());
         assertEquals(1, result.size());
         assertEquals("idAtIssuer", result.get(0).idAtIssuer());
     }
@@ -315,33 +315,33 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin
-    public void deleteAccount(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
+    public void deleteAccount(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
-        this.mockMvc.perform(delete("/api/account").with(cookieHolder).with(csrf()))
-                .andDo(cookieHolder)
+        this.mockMvc.perform(delete("/api/account").with(sessionHandle).with(csrf()))
+                .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value("true"));
 
         // session should be invalidated
-        assertTrue(this.testHelper.getAccountIdForCookie(cookieHolder).isEmpty());
+        assertTrue(this.testHelper.getAccountIdForCookie(sessionHandle).isEmpty());
 
         // account should be removed (checking for account is enough, since every other table has a foreign key on that)
         assertTrue(this.accountRepository.findById(accountId).isEmpty());
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederationUnknownProvider(CookieHolder cookieHolder) throws Exception {
-        this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).with(cookieHolder))
-                .andDo(cookieHolder)
+    public void addAccountFederationUnknownProvider(SessionHandle sessionHandle) throws Exception {
+        this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().isNotFound());
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederation(CookieHolder cookieHolder) throws Exception {
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(cookieHolder))
-                .andDo(cookieHolder)
+    public void addAccountFederation(SessionHandle sessionHandle) throws Exception {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().is3xxRedirection())
                 .andReturn()
                 .getResponse()
@@ -358,13 +358,13 @@ class AccountControllerTest {
     }
 
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
-    public void addAccountFederationAlreadyLinkedToOtherAccount(CookieHolder cookieHolder) throws Exception {
+    public void addAccountFederationAlreadyLinkedToOtherAccount(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
         this.accountFederationRepository.save(new AccountFederationEntity("dummyIssuer", "B", otherUserAccountId));
 
-        final UUID accountId = this.testHelper.getAccountIdForCookie(cookieHolder).orElseThrow();
-        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(cookieHolder))
-                .andDo(cookieHolder)
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
+        final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(sessionHandle))
+                .andDo(sessionHandle)
                 .andExpect(status().is3xxRedirection())
                 .andReturn()
                 .getResponse()

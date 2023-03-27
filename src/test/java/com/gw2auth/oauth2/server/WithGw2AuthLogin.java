@@ -17,15 +17,19 @@ public @interface WithGw2AuthLogin {
 
     String issuer() default "test-issuer";
     String idAtIssuer() default "test-id-at-issuer";
+    String countryCode() default SessionHandle.DEFAULT_COUNTRY_CODE;
+    String city() default SessionHandle.DEFAULT_CITY;
+    double latitude() default SessionHandle.DEFAULT_LATITUDE;
+    double longitude() default SessionHandle.DEFAULT_LONGITUDE;
 
     class SessionCookieArgumentProvider implements ArgumentsProvider {
 
         @Override
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             // has to be created here because this happens first
-            final CookieHolder cookieHolder = context.getStore(Gw2AuthLoginExtension.NAMESPACE).getOrComputeIfAbsent("cookies", k -> new CookieHolder(), CookieHolder.class);
+            final SessionHandle sessionHandle = context.getStore(Gw2AuthLoginExtension.NAMESPACE).getOrComputeIfAbsent("cookies", k -> new SessionHandle(), SessionHandle.class);
 
-            return Stream.of(Arguments.of(cookieHolder));
+            return Stream.of(Arguments.of(sessionHandle));
         }
     }
 }

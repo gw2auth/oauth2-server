@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server.web;
 
-import com.gw2auth.oauth2.server.util.AuthenticationHelper;
+import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;

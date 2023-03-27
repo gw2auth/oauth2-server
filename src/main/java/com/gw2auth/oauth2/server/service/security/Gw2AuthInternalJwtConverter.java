@@ -1,4 +1,4 @@
-package com.gw2auth.oauth2.server.adapt;
+package com.gw2auth.oauth2.server.service.security;
 
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
@@ -9,11 +9,15 @@ import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
 
 public class Gw2AuthInternalJwtConverter {
 
     private static final String ISSUER = "login.gw2auth.com";
     private static final String SESSION_CLAIM = "session";
+    private static final String METADATA_CLAIM = "metadata";
+
     private final JwtDecoder jwtDecoder;
     private final JwtEncoder jwtEncoder;
 
@@ -38,16 +42,26 @@ public class Gw2AuthInternalJwtConverter {
         return sessionId;
     }
 
-    public Jwt writeJWT(String sessionId, Instant creationTime, Instant expirationTime) {
-        return this.jwtEncoder.encode(JwtEncoderParameters.from(
-                JwsHeader.with(SignatureAlgorithm.RS256).build(),
-                JwtClaimsSet.builder()
-                        .issuedAt(creationTime)
-                        .notBefore(creationTime)
-                        .expiresAt(expirationTime)
-                        .issuer(ISSUER)
-                        .claim(SESSION_CLAIM, sessionId)
-                        .build()
-        ));
+    public Optional<Map<String, Object>> readSessionMetadata(Jwt jwt) {
+        if (!jwt.hasClaim(METADATA_CLAIM)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(jwt.getClaimAsMap(METADATA_CLAIM));
+    }
+
+    public Jwt writeJWT(String sessionId, Map<String, Object> metadata, Instant creationTime, Instant expirationTime) {
+        final JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
+                .issuedAt(creationTime)
+                .notBefore(creationTime)
+                .expiresAt(expirationTime)
+                .issuer(ISSUER)
+                .claim(SESSION_CLAIM, sessionId);
+
+        if (metadata != null) {
+            claimsBuilder.claim(METADATA_CLAIM, metadata);
+        }
+
+        return this.jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(SignatureAlgorithm.RS256).build(), claimsBuilder.build()));
     }
 }

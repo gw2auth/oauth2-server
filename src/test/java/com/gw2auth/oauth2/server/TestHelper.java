@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server;
 
-import com.gw2auth.oauth2.server.adapt.Gw2AuthInternalJwtConverter;
+import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.repository.account.AccountLogEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountLogRepository;
 import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
@@ -228,8 +228,8 @@ public class TestHelper {
         return this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
     }
 
-    public Optional<String> getSessionIdForCookie(CookieHolder cookieHolder) {
-        final Cookie cookie = cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
+    public Optional<String> getSessionIdForCookie(SessionHandle sessionHandle) {
+        final Cookie cookie = sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
 
         if (cookie == null || cookie.getMaxAge() <= 0 || cookie.getValue().isEmpty()) {
             return Optional.empty();
@@ -238,14 +238,14 @@ public class TestHelper {
         return Optional.of(this.jwtConverter.readSessionId(this.jwtConverter.readJWT(cookie.getValue())));
     }
 
-    public Optional<UUID> getAccountIdForCookie(CookieHolder cookieHolder) {
-        final Cookie cookie = cookieHolder.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
+    public Optional<UUID> getAccountIdForCookie(SessionHandle sessionHandle) {
+        final Cookie cookie = sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME);
 
         if (cookie == null || cookie.getMaxAge() <= 0 || cookie.getValue().isEmpty()) {
             return Optional.empty();
         }
 
-        return this.gw2AuthTokenUserService.resolveUserForToken(cookie.getValue()).map(Gw2AuthUserV2::getAccountId);
+        return this.gw2AuthTokenUserService.resolveUserForToken(null, cookie.getValue()).map(Gw2AuthUserV2::getAccountId);
     }
 
     public int executeUpdate(String sql, Object... args) {
