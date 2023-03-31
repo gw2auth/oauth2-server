@@ -1,11 +1,12 @@
 package com.gw2auth.oauth2.server.web;
 
 import com.gw2auth.oauth2.server.*;
-import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationSessionEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountFederationSessionRepository;
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountServiceImpl;
+import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
+import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
 import org.junit.jupiter.api.AfterEach;
@@ -18,10 +19,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
+import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -135,11 +137,11 @@ public class SessionTest {
                 .andExpect(status().isOk());
 
         this.accountService.getOrCreateAccount("second", "someotherid");
-        final AccountFederationSession otherUserSession = this.accountService.createNewSession("second", "someotherid");
+        // metadata irrelevant for this testcase
+        final AccountFederationSession otherUserSession = this.accountService.createNewSession("second", "someotherid", null);
 
         final Jwt myJwt = this.jwtConverter.readJWT(sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).getValue());
-        final Map<String, Object> sessionMetadata = this.jwtConverter.readSessionMetadata(myJwt).orElseThrow();
-        final Jwt otherUsersJwt = this.jwtConverter.writeJWT(otherUserSession.id(), sessionMetadata, otherUserSession.creationTime(), otherUserSession.expirationTime());
+        final Jwt otherUsersJwt = this.jwtConverter.writeJWT(otherUserSession.id(), null, otherUserSession.creationTime(), otherUserSession.expirationTime());
 
         // using the "real" cookie of another user should work too
         sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).setValue(otherUsersJwt.getTokenValue());
@@ -285,5 +287,73 @@ public class SessionTest {
         // session should be deleted
         final List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
         assertTrue(sessions.isEmpty());
+    }
+
+    @Test
+    public void requestsShouldRefreshSession() throws Exception {
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        // Brandenburger Tor
+        final SessionHandle sessionHandle = new SessionHandle("DE", "Berlin", 52.5162778, 13.3755154);
+
+        // login using that location
+        this.gw2AuthLoginExtension.login(sessionHandle, "issuer", "id").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
+
+        Jwt jwtPre = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
+        SessionMetadata sessionMetadataPre = this.testHelper.jwtToSessionMetadata(jwtPre).orElseThrow();
+
+        // jwt should be valid for 30days
+        assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPre.getExpiresAt(), ChronoUnit.SECONDS);
+
+        // let a few minutes pass
+        testingClock = Clock.offset(testingClock, Duration.ofMinutes(20L));
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        // using unmodified session handle (same location), should work and refresh session
+        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+                .andDo(sessionHandle)
+                .andExpect(status().isOk());
+
+        Jwt jwtPost = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
+        SessionMetadata sessionMetadataPost = this.testHelper.jwtToSessionMetadata(jwtPost).orElseThrow();
+
+        // jwt should be valid for 30days from the new clock
+        assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPost.getExpiresAt(), ChronoUnit.SECONDS);
+        assertEquals(sessionMetadataPre, sessionMetadataPost);
+
+        // set the location to Deutscher Bundestag
+        sessionHandle.setLatitude(52.5162843);
+        sessionHandle.setLongitude(13.3755154);
+
+        // let a few minutes pass
+        testingClock = Clock.offset(testingClock, Duration.ofMinutes(20L));
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        jwtPre = jwtPost;
+        sessionMetadataPre = sessionMetadataPost;
+
+        // using modified session handle, short travel, should work, should refresh session, should refresh location
+        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+                .andDo(sessionHandle)
+                .andExpect(status().isOk());
+
+        jwtPost = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
+        sessionMetadataPost = this.testHelper.jwtToSessionMetadata(jwtPost).orElseThrow();
+
+        // jwt should be valid for 30days from the new clock
+        assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPost.getExpiresAt(), ChronoUnit.SECONDS);
+        assertNotEquals(sessionMetadataPre, sessionMetadataPost);
+        assertEquals("DE", sessionMetadataPost.countryCode());
+        assertEquals("Berlin", sessionMetadataPost.city());
+        assertEquals(52.5162843, sessionMetadataPost.latitude(), 0.00001);
+        assertEquals(13.3755154, sessionMetadataPost.longitude(), 0.00001);
     }
 }

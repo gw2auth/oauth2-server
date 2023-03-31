@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
 import com.nimbusds.jwt.JWTParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,14 +23,14 @@ public class Gw2AuthOAuth2UserService extends AbstractUserService implements OAu
 
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> parent;
 
-    public Gw2AuthOAuth2UserService(AccountService accountService, OAuth2UserService<OAuth2UserRequest, OAuth2User> parent) {
-        super(accountService);
+    public Gw2AuthOAuth2UserService(AccountService accountService, SessionMetadataService sessionMetadataService, OAuth2UserService<OAuth2UserRequest, OAuth2User> parent) {
+        super(accountService, sessionMetadataService);
         this.parent = parent;
     }
 
     @Autowired
-    public Gw2AuthOAuth2UserService(AccountService accountService, @Value("${com.gw2auth.login.user-service.use-dummy:false}") boolean useDummyUserService) {
-        this(accountService, getUserService(useDummyUserService));
+    public Gw2AuthOAuth2UserService(AccountService accountService, SessionMetadataService sessionMetadataService, @Value("${com.gw2auth.login.user-service.use-dummy:false}") boolean useDummyUserService) {
+        this(accountService, sessionMetadataService, getUserService(useDummyUserService));
     }
 
     @Override

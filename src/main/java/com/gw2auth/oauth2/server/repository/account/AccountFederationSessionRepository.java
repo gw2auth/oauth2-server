@@ -19,6 +19,7 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
                 accountFederationSessionEntity.id(),
                 accountFederationSessionEntity.issuer(),
                 accountFederationSessionEntity.idAtIssuer(),
+                accountFederationSessionEntity.metadata(),
                 accountFederationSessionEntity.creationTime(),
                 accountFederationSessionEntity.expirationTime()
         );
@@ -26,9 +27,9 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
 
     @Query("""
     INSERT INTO account_federation_sessions
-    (id, issuer, id_at_issuer, creation_time, expiration_time)
+    (id, issuer, id_at_issuer, metadata, creation_time, expiration_time)
     VALUES
-    (:id, :issuer, :id_at_issuer, :creation_time, :expiration_time)
+    (:id, :issuer, :id_at_issuer, :metadata, :creation_time, :expiration_time)
     ON CONFLICT (id) DO UPDATE SET
     issuer = EXCLUDED.issuer,
     id_at_issuer = EXCLUDED.id_at_issuer,
@@ -39,17 +40,19 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     AccountFederationSessionEntity save(@Param("id") String id,
                                         @Param("issuer") String issuer,
                                         @Param("id_at_issuer") String idAtIssuer,
+                                        @Param("metadata") byte[] metadata,
                                         @Param("creation_time") Instant creationTime,
                                         @Param("expiration_time") Instant expirationTime);
 
     @Query("""
     INSERT INTO account_federation_sessions
-    (id, issuer, id_at_issuer, creation_time, expiration_time)
+    (id, issuer, id_at_issuer, metadata, creation_time, expiration_time)
     VALUES
-    (:id, :issuer, :id_at_issuer, :creation_time, :expiration_time)
+    (:id, :issuer, :id_at_issuer, :metadata, :creation_time, :expiration_time)
     ON CONFLICT (id) DO UPDATE SET
     issuer = EXCLUDED.issuer,
     id_at_issuer = EXCLUDED.id_at_issuer,
+    metadata = EXCLUDED.metadata,
     creation_time = EXCLUDED.creation_time,
     expiration_time = EXCLUDED.expiration_time
     RETURNING *
@@ -57,6 +60,7 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     AccountFederationSessionEntity updateSession(@Param("id") String id,
                           @Param("issuer") String issuer,
                           @Param("id_at_issuer") String idAtIssuer,
+                          @Param("metadata") byte[] metadata,
                           @Param("creation_time") Instant creationTime,
                           @Param("expiration_time") Instant expirationTime);
 

@@ -78,7 +78,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountFederationSession createNewSession(String issuer, String idAtIssuer) {
+    public AccountFederationSession createNewSession(String issuer, String idAtIssuer, byte[] metadata) {
         final Instant now = this.clock.instant();
         final byte[] sessionIdBytes = new byte[128];
         new SecureRandom().nextBytes(sessionIdBytes);
@@ -87,6 +87,7 @@ public class AccountServiceImpl implements AccountService {
                 Base64.getEncoder().withoutPadding().encodeToString(sessionIdBytes),
                 issuer,
                 idAtIssuer,
+                metadata,
                 now,
                 now.plus(Duration.ofDays(30L))
         ));
@@ -95,12 +96,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountFederationSession updateSession(String sessionId, String issuer, String idAtIssuer) {
+    public AccountFederationSession updateSession(String sessionId, String issuer, String idAtIssuer, byte[] metadata) {
         final Instant now = this.clock.instant();
         final AccountFederationSessionEntity entity = this.accountFederationSessionRepository.updateSession(
                 sessionId,
                 issuer,
                 idAtIssuer,
+                metadata,
                 now,
                 now.plus(Duration.ofDays(30L))
         );
@@ -109,13 +111,8 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Optional<Pair<Account, AccountFederation>> getAccountForSession(String sessionId) {
-        return this.accountRepository.findByFederationSession(sessionId, this.clock.instant()).map(entity -> {
-            final Account account = new Account(entity.id(), entity.creationTime());
-            final AccountFederation federation = new AccountFederation(entity.issuer(), entity.idAtIssuer());
-
-            return new Pair<>(account, federation);
-        });
+    public Optional<AccountSession> getAccountForSession(String sessionId) {
+        return this.accountRepository.findByFederationSession(sessionId, this.clock.instant()).map(AccountSession::fromEntity);
     }
 
     @Override
@@ -217,7 +214,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Transactional
-    protected AccountEntity getOrCreateAccountInternal(String issuer, String idAtIssuer) {
+    public AccountEntity getOrCreateAccountInternal(String issuer, String idAtIssuer) {
         final Optional<AccountEntity> optionalAccount = this.accountRepository.findByFederation(issuer, idAtIssuer);
         AccountEntity accountEntity;
 

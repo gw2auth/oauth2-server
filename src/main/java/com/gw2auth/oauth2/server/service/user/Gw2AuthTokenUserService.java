@@ -1,20 +1,23 @@
 package com.gw2auth.oauth2.server.service.user;
 
-import com.gw2auth.oauth2.server.service.account.Account;
-import com.gw2auth.oauth2.server.service.account.AccountFederation;
-import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.account.*;
+import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
 import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
+import com.gw2auth.oauth2.server.util.Constants;
+import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.Pair;
+import com.gw2auth.oauth2.server.util.SymEncryption;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -39,7 +42,7 @@ public class Gw2AuthTokenUserService {
     }
 
     public Optional<Gw2AuthUserV2> resolveUserForToken(HttpServletRequest request, String token) {
-        final Jwt jwt;
+        Jwt jwt;
         try {
             jwt = this.jwtConverter.readJWT(token);
         } catch (Exception e) {
@@ -53,37 +56,57 @@ public class Gw2AuthTokenUserService {
             return Optional.empty();
         }
 
-        final Optional<Pair<Account, AccountFederation>> optionalAccount = this.accountService.getAccountForSession(sessionId);
-        if (optionalAccount.isEmpty()) {
+        final Optional<AccountSession> optionalAccountSession = this.accountService.getAccountForSession(sessionId);
+        if (optionalAccountSession.isEmpty()) {
             return Optional.empty();
         }
 
-        final Pair<Account, AccountFederation> accountAndFederation = optionalAccount.get();
-        final Account account = accountAndFederation.v1();
-        final AccountFederation accountFederation = accountAndFederation.v2();
+        final AccountSession accountSession  = optionalAccountSession.get();
+        final Account account = accountSession.account();
+        final AccountFederation accountFederation = accountSession.accountFederation();
 
-        if (request != null) {
-            final SessionMetadata originalSessionMetadata = this.jwtConverter.readSessionMetadata(jwt)
-                    .flatMap(this.sessionMetadataService::extractMetadataFromMap)
-                    .orElse(null);
+        final byte[] encryptionKeyBytes = this.jwtConverter.readEncryptionKey(jwt).orElse(null);
+        final Gw2AuthUserV2 user;
+        final byte[] metadataBytes;
 
+        if (accountSession.metadata() != null) {
+            // if current session has metadata, the request must contain an encryption key
+            final Pair<SecretKey, IvParameterSpec> encryptionKey = SymEncryption.fromBytes(Objects.requireNonNull(encryptionKeyBytes));
             final SessionMetadata currentSessionMetadata = this.sessionMetadataService.extractMetadataFromRequest(request)
                     .orElse(null);
 
-            if (originalSessionMetadata != null) {
-                if (currentSessionMetadata == null) {
-                    this.accountService.deleteSession(account.id(), sessionId);
-                    return Optional.empty();
-                }
-
-                final Duration timePassed = Duration.between(jwt.getIssuedAt(), this.clock.instant());
-                if (!this.sessionMetadataService.isMetadataPlausible(originalSessionMetadata, currentSessionMetadata, timePassed)) {
-                    this.accountService.deleteSession(account.id(), sessionId);
-                    return Optional.empty();
-                }
+            if (currentSessionMetadata == null) {
+                this.accountService.deleteSession(account.id(), sessionId);
+                return Optional.empty();
             }
+
+            final SessionMetadata originalSessionMetadata = this.sessionMetadataService.decryptMetadata(encryptionKey.v1(), encryptionKey.v2(), accountSession.metadata());
+            final Duration timePassed = Duration.between(jwt.getIssuedAt(), this.clock.instant());
+
+            if (!this.sessionMetadataService.isMetadataPlausible(originalSessionMetadata, currentSessionMetadata, timePassed)) {
+                this.accountService.deleteSession(account.id(), sessionId);
+                return Optional.empty();
+            }
+
+            user = new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId, currentSessionMetadata, encryptionKeyBytes);
+            metadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), currentSessionMetadata);
+        } else {
+            user = new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId, null, null);
+            metadataBytes = null;
         }
 
-        return Optional.of(new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId));
+        if (!Objects.equals(request.getPathInfo(), Constants.LOGOUT_URL)) {
+            final AccountFederationSession updatedSession = this.accountService.updateSession(
+                    user.getSessionId(),
+                    user.getIssuer(),
+                    user.getIdAtIssuer(),
+                    metadataBytes
+            );
+
+            jwt = this.jwtConverter.writeJWT(updatedSession.id(), encryptionKeyBytes, updatedSession.creationTime(), updatedSession.expirationTime());
+            CookieHelper.addCookie(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
+        }
+
+        return Optional.of(user);
     }
 }

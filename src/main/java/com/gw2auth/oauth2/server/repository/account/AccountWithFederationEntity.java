@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record AccountWithFederationEntity(@Column("id") UUID id,
+                                          @Column("metadata") byte[] metadata,
                                           @Column("creation_time") Instant creationTime,
                                           @Column("issuer") String issuer,
                                           @Column("id_at_issuer") String idAtIssuer) {

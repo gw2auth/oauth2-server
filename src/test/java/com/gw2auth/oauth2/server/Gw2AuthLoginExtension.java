@@ -28,7 +28,6 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.Objects;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -117,9 +116,9 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 }
 
                 final String sessionId = Gw2AuthLoginExtension.this.jwtConverter.readSessionId(jwt);
-                final Map<String, Object> sessionMetadata = Gw2AuthLoginExtension.this.jwtConverter.readSessionMetadata(jwt).orElse(null);
+                final byte[] encryptionKey = Gw2AuthLoginExtension.this.jwtConverter.readEncryptionKey(jwt).orElse(null);
 
-                return sessionId != null && sessionMetadata != null;
+                return sessionId != null && encryptionKey != null;
             }
 
             @Override
@@ -188,7 +187,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     }
 
     public ResultActions logout(SessionHandle sessionHandle) throws Exception {
-        return this.mockMvc.perform(post("/auth/logout").with(sessionHandle).with(csrf()))
+        return this.mockMvc.perform(post(Constants.LOGOUT_URL).with(sessionHandle).with(csrf()))
                 .andDo(sessionHandle);
     }
 }

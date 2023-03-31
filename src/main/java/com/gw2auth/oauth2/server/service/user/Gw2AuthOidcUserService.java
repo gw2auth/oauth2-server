@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -14,14 +15,14 @@ public class Gw2AuthOidcUserService extends AbstractUserService implements OAuth
 
     private final OAuth2UserService<OidcUserRequest, OidcUser> parent;
 
-    public Gw2AuthOidcUserService(AccountService accountService, OAuth2UserService<OidcUserRequest, OidcUser> parent) {
-        super(accountService);
+    public Gw2AuthOidcUserService(AccountService accountService, SessionMetadataService sessionMetadataService, OAuth2UserService<OidcUserRequest, OidcUser> parent) {
+        super(accountService, sessionMetadataService);
         this.parent = parent;
     }
 
     @Autowired
-    public Gw2AuthOidcUserService(AccountService accountService) {
-        this(accountService, new OidcUserService());
+    public Gw2AuthOidcUserService(AccountService accountService, SessionMetadataService sessionMetadataService) {
+        this(accountService, sessionMetadataService, new OidcUserService());
     }
 
     @Override

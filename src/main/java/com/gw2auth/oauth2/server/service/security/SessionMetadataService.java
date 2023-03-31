@@ -1,15 +1,27 @@
 package com.gw2auth.oauth2.server.service.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gw2auth.oauth2.server.util.Pair;
+import com.gw2auth.oauth2.server.util.SymEncryption;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import java.io.*;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class SessionMetadataService {
+
+    private final ObjectMapper mapper;
+
+    @Autowired
+    public SessionMetadataService(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
 
     public Optional<SessionMetadata> extractMetadataFromRequest(HttpServletRequest request) {
         String countryCode = request.getHeader("Cloudfront-Viewer-Country");
@@ -34,29 +46,47 @@ public class SessionMetadataService {
         return Optional.of(new SessionMetadata(countryCode, city, latitude, longitude));
     }
 
-    public Optional<SessionMetadata> extractMetadataFromMap(Map<String, Object> map) {
-        final Object countryCodeRaw = map.get("countryCode");
-        final Object cityRaw = map.get("city");
-        final Object latitudeRaw = map.get("latitude");
-        final Object longitudeRaw = map.get("longitude");
+    public byte[] encryptMetadata(byte[] encryptionKey, SessionMetadata sessionMetadata) {
+        final Pair<SecretKey, IvParameterSpec> pair = SymEncryption.fromBytes(encryptionKey);
+        return encryptMetadata(pair.v1(), pair.v2(), sessionMetadata);
+    }
 
-        if (countryCodeRaw instanceof String countryCode && cityRaw instanceof String city
-                && latitudeRaw instanceof Double latitude && longitudeRaw instanceof Double longitude) {
+    public byte[] encryptMetadata(SecretKey key, IvParameterSpec iv, SessionMetadata sessionMetadata) {
+        final byte[] metadataBytes;
 
-            return Optional.of(new SessionMetadata(countryCode, city, latitude, longitude));
-        } else {
-            return Optional.empty();
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            try (OutputStream out = SymEncryption.encrypt(bos, key, iv)) {
+                this.mapper.writeValue(out, sessionMetadata);
+            }
+
+            metadataBytes = bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return metadataBytes;
+    }
+
+    public SessionMetadata decryptMetadata(byte[] encryptionKey, byte[] metadata) {
+        final Pair<SecretKey, IvParameterSpec> pair = SymEncryption.fromBytes(encryptionKey);
+
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(metadata)) {
+            try (InputStream in = SymEncryption.decrypt(bis, pair.v1(), pair.v2())) {
+                return this.mapper.readValue(in, SessionMetadata.class);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public Map<String, Object> convertMetadataToMap(SessionMetadata metadata) {
-        final Map<String, Object> map = new HashMap<>();
-        map.put("countryCode", metadata.countryCode());
-        map.put("city", metadata.city());
-        map.put("latitude", metadata.latitude());
-        map.put("longitude", metadata.longitude());
-
-        return map;
+    public SessionMetadata decryptMetadata(SecretKey key, IvParameterSpec iv, byte[] metadata) {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(metadata)) {
+            try (InputStream in = SymEncryption.decrypt(bis, key, iv)) {
+                return this.mapper.readValue(in, SessionMetadata.class);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean isMetadataPlausible(SessionMetadata originalMetadata, SessionMetadata currentMetadata, Duration timePassed) {
@@ -67,13 +97,16 @@ public class SessionMetadataService {
                 currentMetadata.longitude()
         );
 
-        if (timePassed.toDays() >= 3L) {
-            // within [3..] days, allow a maximum distance of 1000km (1m meters)
-            return distanceTravelledMeters <= 1_000_000.0;
-        } else {
-            // within [0-3) days, allow a maximum distance of 333km per day
-            return distanceTravelledMeters <= 333_333.3 * ((double) timePassed.toSeconds() / 86400.0);
+        if (distanceTravelledMeters > 1_000_000.0) {
+            // never allow to travel more than 1000km
+            return false;
+        } else if (distanceTravelledMeters <= 30_000.0) {
+            // always allow to travel 30km
+            return true;
         }
+
+        // for everything 30km < travel <= 1000km, allow 333km per day
+        return distanceTravelledMeters <= 333_333.3 * ((double) timePassed.toSeconds() / 86400.0);
     }
 
     // brought to you by https://stackoverflow.com/questions/3694380/calculating-distance-between-two-points-using-latitude-longitude

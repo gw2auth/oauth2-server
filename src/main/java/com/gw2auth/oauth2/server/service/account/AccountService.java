@@ -1,7 +1,5 @@
 package com.gw2auth.oauth2.server.service.account;
 
-import com.gw2auth.oauth2.server.util.Pair;
-
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +12,11 @@ public interface AccountService {
 
     Optional<Account> getAccount(String issuer, String idAtIssuer);
 
-    AccountFederationSession createNewSession(String issuer, String idAtIssuer);
+    AccountFederationSession createNewSession(String issuer, String idAtIssuer, byte[] metadata);
 
-    AccountFederationSession updateSession(String sessionId, String issuer, String idAtIssuer);
+    AccountFederationSession updateSession(String sessionId, String issuer, String idAtIssuer, byte[] metadata);
 
-    Optional<Pair<Account, AccountFederation>> getAccountForSession(String sessionId);
+    Optional<AccountSession> getAccountForSession(String sessionId);
 
     void prepareAddFederation(UUID accountId, String issuer);
     boolean checkAndDeletePrepareAddFederation(UUID accountId, String issuer);

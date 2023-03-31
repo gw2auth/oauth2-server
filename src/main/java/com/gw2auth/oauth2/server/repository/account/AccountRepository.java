@@ -34,7 +34,7 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
     Optional<AccountEntity> findByFederation(@Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer);
 
     @Query("""
-    SELECT acc.*, fed.issuer, fed.id_at_issuer
+    SELECT acc.id, acc.creation_time, fed_sess.metadata, fed.issuer, fed.id_at_issuer
     FROM accounts acc
     INNER JOIN account_federations fed
     ON acc.id = fed.account_id

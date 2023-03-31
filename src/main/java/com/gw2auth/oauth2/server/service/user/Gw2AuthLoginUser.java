@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
-public record Gw2AuthLoginUser(OAuth2User parent, UUID accountId, AccountFederationSession session) implements OAuth2User, OidcUser {
+public record Gw2AuthLoginUser(OAuth2User parent, UUID accountId, AccountFederationSession session, byte[] encryptionKey) implements OAuth2User, OidcUser {
 
     @Override
     public <A> A getAttribute(String name) {

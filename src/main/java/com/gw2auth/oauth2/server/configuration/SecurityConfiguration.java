@@ -7,7 +7,6 @@ import com.gw2auth.oauth2.server.adapt.S3AuthorizationRequestRepository;
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
-import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthLoginUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
@@ -47,7 +46,10 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Configuration
 @EnableWebSecurity
@@ -90,7 +92,6 @@ public class SecurityConfiguration {
     public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2-authorization-s3-client") AmazonS3 s3,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.bucket}") String bucket,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.prefix}") String prefix,
-                                                                                 SessionMetadataService sessionMetadataService,
                                                                                  Gw2AuthInternalJwtConverter jwtConverter,
                                                                                  RequestCache requestCache) {
 
@@ -112,11 +113,9 @@ public class SecurityConfiguration {
                         final Object principal = authentication.getPrincipal();
                         if (principal instanceof Gw2AuthLoginUser user) {
                             final AccountFederationSession session = user.session();
-                            final Map<String, Object> sessionMetadata = sessionMetadataService.extractMetadataFromRequest(request)
-                                    .map(sessionMetadataService::convertMetadataToMap)
-                                    .orElse(null);
+                            final byte[] encryptionKey = user.encryptionKey();
 
-                            final Jwt jwt = jwtConverter.writeJWT(session.id(), sessionMetadata, session.creationTime(), session.expirationTime());
+                            final Jwt jwt = jwtConverter.writeJWT(session.id(), encryptionKey, session.creationTime(), session.expirationTime());
                             CookieHelper.addCookie(request, response, Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
                         }
 
@@ -187,7 +186,7 @@ public class SecurityConfiguration {
                 .oauth2Login(oauth2LoginCustomizer)
                 .logout((logout) -> {
                     logout
-                            .logoutUrl("/auth/logout")
+                            .logoutUrl(Constants.LOGOUT_URL)
                             .deleteCookies(Constants.ACCESS_TOKEN_COOKIE_NAME)
                             .addLogoutHandler(logoutHandler)
                             .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler());

@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.service.user;
 
+import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.springframework.security.core.AuthenticatedPrincipal;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,15 +24,19 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
     private final UUID accountId;
     private final Pair<String, String> accountFederation;
     private final String sessionId;
+    private final SessionMetadata sessionMetadata;
+    private final byte[] encryptionKey;
 
     public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer) {
-        this(accountId, issuer, idAtIssuer, null);
+        this(accountId, issuer, idAtIssuer, null, null, null);
     }
 
-    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId) {
+    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId, SessionMetadata sessionMetadata, byte[] encryptionKey) {
         this.accountId = accountId;
         this.accountFederation = new Pair<>(issuer, idAtIssuer);
         this.sessionId = sessionId;
+        this.sessionMetadata = sessionMetadata;
+        this.encryptionKey = encryptionKey;
     }
 
     public UUID getAccountId() {
@@ -53,6 +58,16 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
 
     public String getSessionId() {
         return this.sessionId;
+    }
+
+    public Optional<SessionMetadata> getSessionMetadata() {
+        // empty if session has no metadata or if not in actual authentication (oauth2 server side context)
+        return Optional.ofNullable(this.sessionMetadata);
+    }
+
+    public Optional<byte[]> getEncryptionKey() {
+        // empty if session has no metadata or if not in actual authentication (oauth2 server side context)
+        return Optional.ofNullable(this.encryptionKey);
     }
 
     @Override

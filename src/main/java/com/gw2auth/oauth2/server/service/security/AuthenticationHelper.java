@@ -5,6 +5,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Constants;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,17 +39,26 @@ public final class AuthenticationHelper {
                 .map(Gw2AuthUserV2.class::cast);
     }
 
+    public static Optional<HttpServletRequest> getCurrentRequest() {
+        return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
+                .filter(ServletRequestAttributes.class::isInstance)
+                .map(ServletRequestAttributes.class::cast)
+                .map(ServletRequestAttributes::getRequest);
+    }
+
+    public static Optional<HttpServletResponse> getCurrentResponse() {
+        return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
+                .filter(ServletRequestAttributes.class::isInstance)
+                .map(ServletRequestAttributes.class::cast)
+                .map(ServletRequestAttributes::getResponse);
+    }
+
     public static Optional<Gw2AuthUserV2> getUserPreauth() {
         if (AuthenticationHelper.instance == null) {
             throw new IllegalStateException("not initialized");
         }
 
-        final HttpServletRequest request = Optional.ofNullable(RequestContextHolder.getRequestAttributes())
-                .filter(ServletRequestAttributes.class::isInstance)
-                .map(ServletRequestAttributes.class::cast)
-                .map(ServletRequestAttributes::getRequest)
-                .orElseThrow();
-
+        final HttpServletRequest request = getCurrentRequest().orElseThrow();
         final String bearer = AuthenticationHelper.instance.bearerTokenResolver.resolve(request);
         if (bearer == null) {
             return Optional.empty();

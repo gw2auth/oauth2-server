@@ -10,6 +10,7 @@ import java.time.Instant;
 public record AccountFederationSessionEntity(@Id @Column("id") String id,
                                              @Column("issuer") String issuer,
                                              @Column("id_at_issuer") String idAtIssuer,
+                                             @Column("metadata") byte[] metadata,
                                              @Column("creation_time") Instant creationTime,
                                              @Column("expiration_time") Instant expirationTime) {
 }
