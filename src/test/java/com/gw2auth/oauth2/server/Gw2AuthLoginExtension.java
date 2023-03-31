@@ -94,17 +94,21 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     }
 
     public ResultMatcher[] expectLoginSuccess() {
+        return expectLoginSuccess(true);
+    }
+
+    public ResultMatcher[] expectLoginSuccess(boolean expectMetadataInCookie) {
         return new ResultMatcher[]{
                 status().is3xxRedirection(),
                 header().string("Location", new IsNot<>(new StringEndsWith("?error"))),
                 MockMvcResultMatchers.cookie().exists(Constants.ACCESS_TOKEN_COOKIE_NAME),
-                MockMvcResultMatchers.cookie().value(Constants.ACCESS_TOKEN_COOKIE_NAME, accessTokenMatcher()),
+                MockMvcResultMatchers.cookie().value(Constants.ACCESS_TOKEN_COOKIE_NAME, accessTokenMatcher(expectMetadataInCookie)),
                 MockMvcResultMatchers.cookie().httpOnly(Constants.ACCESS_TOKEN_COOKIE_NAME, true),
                 MockMvcResultMatchers.cookie().maxAge(Constants.ACCESS_TOKEN_COOKIE_NAME, Matchers.greaterThan(0))
         };
     }
 
-    private Matcher<String> accessTokenMatcher() {
+    private Matcher<String> accessTokenMatcher(boolean expectMetadataInCookie) {
         return new TypeSafeMatcher<String>() {
             @Override
             protected boolean matchesSafely(String item) {
@@ -118,7 +122,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 final String sessionId = Gw2AuthLoginExtension.this.jwtConverter.readSessionId(jwt);
                 final byte[] encryptionKey = Gw2AuthLoginExtension.this.jwtConverter.readEncryptionKey(jwt).orElse(null);
 
-                return sessionId != null && encryptionKey != null;
+                return sessionId != null && (!expectMetadataInCookie || encryptionKey != null);
             }
 
             @Override

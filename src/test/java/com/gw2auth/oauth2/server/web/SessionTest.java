@@ -356,4 +356,82 @@ public class SessionTest {
         assertEquals(52.5162843, sessionMetadataPost.latitude(), 0.00001);
         assertEquals(13.3755154, sessionMetadataPost.longitude(), 0.00001);
     }
+
+    @Test
+    public void requestsWithLaterKnownMetadataShouldBeUpdated() throws Exception {
+        Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        // dont send location info yet
+        final SessionHandle sessionHandle = new SessionHandle();
+        sessionHandle.setCountryCode(null);
+        sessionHandle.setCity(null);
+        sessionHandle.setLatitude(null);
+        sessionHandle.setLongitude(null);
+
+        // login using no location
+        this.gw2AuthLoginExtension.login(sessionHandle, "issuer", "id").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess(false));
+
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
+
+        Jwt jwtPre = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
+        SessionMetadata sessionMetadataPre = this.testHelper.jwtToSessionMetadata(jwtPre).orElse(null);
+
+        assertNull(sessionMetadataPre);
+
+        // jwt should be valid for 30days
+        assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPre.getExpiresAt(), ChronoUnit.SECONDS);
+
+        // let a few minutes pass
+        testingClock = Clock.offset(testingClock, Duration.ofMinutes(20L));
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        // set the location to Deutscher Bundestag
+        sessionHandle.setCountryCode("DE");
+        sessionHandle.setCity("Berlin");
+        sessionHandle.setLatitude(52.5162843);
+        sessionHandle.setLongitude(13.3755154);
+
+        // using modified session handle (now with location), should work and refresh session and add metadata
+        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+                .andDo(sessionHandle)
+                .andExpect(status().isOk());
+
+        Jwt jwtPost = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
+        SessionMetadata sessionMetadataPost = this.testHelper.jwtToSessionMetadata(jwtPost).orElseThrow();
+
+        // jwt should be valid for 30days from the new clock
+        assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPost.getExpiresAt(), ChronoUnit.SECONDS);
+        assertNotNull(sessionMetadataPost);
+        assertEquals("DE", sessionMetadataPost.countryCode());
+        assertEquals("Berlin", sessionMetadataPost.city());
+        assertEquals(52.5162843, sessionMetadataPost.latitude(), 0.00001);
+        assertEquals(13.3755154, sessionMetadataPost.longitude(), 0.00001);
+
+        // let a few minutes pass
+        testingClock = Clock.offset(testingClock, Duration.ofMinutes(20L));
+        this.gw2AuthTokenUserService.setClock(testingClock);
+        this.accountService.setClock(testingClock);
+        this.jwtConverter.setClock(testingClock);
+
+        // again send no location info
+        sessionHandle.setCountryCode(null);
+        sessionHandle.setCity(null);
+        sessionHandle.setLatitude(null);
+        sessionHandle.setLongitude(null);
+
+        // using modified session handle (no location info), should not be allowed and kill session
+        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+                .andDo(sessionHandle)
+                .andExpect(status().isForbidden());
+
+        // session should be deleted
+        final List<AccountFederationSessionEntity> sessions = this.accountFederationSessionRepository.findAllByAccountId(accountId);
+        assertTrue(sessions.isEmpty());
+    }
 }
