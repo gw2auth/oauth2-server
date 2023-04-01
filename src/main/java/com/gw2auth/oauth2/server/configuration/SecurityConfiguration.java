@@ -39,16 +39,11 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.CookieRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Configuration
@@ -134,24 +129,16 @@ public class SecurityConfiguration {
         return (csrf) -> csrf.csrfTokenRequestHandler(requestHandler).csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
     }
 
-    @Bean("frontend-request-matcher")
-    public RequestMatcher frontendRequestMatcher(@Qualifier("resources-request-matcher") RequestMatcher resourcesRequestMatcher,
-                                                 @Qualifier("api-request-matcher") RequestMatcher apiRequestMatcher,
-                                                 @Qualifier("oidc-server-request-matcher") RequestMatcher oidcServerRequestMatcher,
-                                                 @Qualifier("oauth2-server-request-matcher") RequestMatcher oauth2ServerRequestMatcher,
-                                                 @Qualifier("actuator-request-matcher") Optional<RequestMatcher> actuatorRequestMatcher) {
-
-        final List<RequestMatcher> requestMatchers = new ArrayList<>(List.of(resourcesRequestMatcher, apiRequestMatcher, oidcServerRequestMatcher, oauth2ServerRequestMatcher));
-        actuatorRequestMatcher.ifPresent(requestMatchers::add);
-
-        return new NegatedRequestMatcher(new OrRequestMatcher(requestMatchers));
+    @Bean("auth-request-matcher")
+    public RequestMatcher authRequestMatcher() {
+        return new AntPathRequestMatcher("/auth/**");
     }
 
     @Bean
-    @Order(3)
+    @Order(1)
     public SecurityFilterChain frontendHttpSecurityFilterChain(HttpSecurity http,
                                                                AccountService accountService,
-                                                               @Qualifier("frontend-request-matcher") RequestMatcher requestMatcher,
+                                                               @Qualifier("auth-request-matcher") RequestMatcher requestMatcher,
                                                                Customizer<SecurityContextConfigurer<HttpSecurity>> securityContextCustomizer,
                                                                Customizer<RequestCacheConfigurer<HttpSecurity>> requestCacheCustomizer,
                                                                Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer,
@@ -161,25 +148,7 @@ public class SecurityConfiguration {
 
         http
                 .securityMatcher(requestMatcher)
-                .authorizeHttpRequests((auth) -> {
-                    auth
-                            .shouldFilterAllDispatcherTypes(false)
-                            .requestMatchers("/", "/login", "/privacy-policy", "/legal", "/faq").permitAll()
-                            .anyRequest().authenticated();
-                })
                 .csrf(csrfCustomizer)
-                .headers((headers) -> {
-                    headers
-                            .frameOptions().deny()
-                            .contentSecurityPolicy((csp) -> csp.policyDirectives(String.join("; ",
-                                    "default-src 'self'",
-                                    "connect-src 'self' https://api.guildwars2.com",
-                                    "script-src 'self' 'unsafe-inline'",
-                                    "style-src 'self' 'unsafe-inline'",
-                                    "img-src 'self' https://icons-gw2.darthmaim-cdn.com/ data:",
-                                    "frame-src https://www.youtube.com/embed/"
-                            )));
-                })
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
@@ -191,29 +160,6 @@ public class SecurityConfiguration {
                             .addLogoutHandler(logoutHandler)
                             .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler());
                 });
-
-        return http.build();
-    }
-
-    @Bean("resources-request-matcher")
-    public RequestMatcher resourcesRequestMatcher() {
-        return new OrRequestMatcher(
-                new AntPathRequestMatcher("/**/*.css"),
-                new AntPathRequestMatcher("/**/*.js"),
-                new AntPathRequestMatcher("/assets/**"),
-                new AntPathRequestMatcher("/favicon.ico"),
-                new AntPathRequestMatcher("/favicon.svg"),
-                new AntPathRequestMatcher("/robots.txt")
-        );
-    }
-
-    @Bean
-    @Order(2)
-    public SecurityFilterChain resourcesSecurityFilterChain(HttpSecurity http, @Qualifier("resources-request-matcher") RequestMatcher requestMatcher) throws Exception {
-        http
-                .securityMatcher(requestMatcher)
-                .authorizeHttpRequests((auth) -> auth.anyRequest().permitAll())
-                .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
     }
