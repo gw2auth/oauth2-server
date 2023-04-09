@@ -46,11 +46,8 @@ public interface SummaryRepository extends BaseRepository<ApplicationSummaryEnti
     SELECT
         (
             SELECT COUNT(*)
-            FROM (
-                SELECT DISTINCT account_id
-                FROM client_authorizations
-                WHERE client_registration_id = :client_id
-            ) AS sub
+            FROM client_consents
+            WHERE client_registration_id = :client_id
         ) AS accounts,
         
         (
