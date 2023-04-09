@@ -104,7 +104,6 @@ public class Gw2AuthTokenUserService {
         if (!Objects.equals(request.getPathInfo(), Constants.LOGOUT_URL)) {
             // no matter if metadata was known before or not, if it is now known, use them
             final byte[] metadataBytes;
-            final boolean isNew;
 
             if (currentSessionMetadata != null) {
                 // encryption key might not be there yet (if metadata was not known before)
@@ -114,24 +113,19 @@ public class Gw2AuthTokenUserService {
                 }
 
                 metadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), currentSessionMetadata);
-                isNew = true;
             } else {
                 metadataBytes = null;
-                isNew = false;
             }
 
-            // only update session and set a new cookie if the metadata is fresh or 1m has passed
-            if (isNew || timePassedSinceLastJwtCreation.compareTo(Duration.ofMinutes(1L)) > 0) {
-                final AccountFederationSession updatedSession = this.accountService.updateSession(
-                        sessionId,
-                        accountFederation.issuer(),
-                        accountFederation.idAtIssuer(),
-                        metadataBytes
-                );
+            final AccountFederationSession updatedSession = this.accountService.updateSession(
+                    sessionId,
+                    accountFederation.issuer(),
+                    accountFederation.idAtIssuer(),
+                    metadataBytes
+            );
 
-                jwt = this.jwtConverter.writeJWT(updatedSession.id(), encryptionKeyBytes, updatedSession.creationTime(), updatedSession.expirationTime());
-                CookieHelper.addCookie(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
-            }
+            jwt = this.jwtConverter.writeJWT(updatedSession.id(), encryptionKeyBytes, updatedSession.creationTime(), updatedSession.expirationTime());
+            CookieHelper.addCookie(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
         }
 
         user = new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId, currentSessionMetadata, encryptionKeyBytes);
