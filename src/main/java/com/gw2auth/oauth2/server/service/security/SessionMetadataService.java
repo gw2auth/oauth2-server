@@ -65,6 +65,10 @@ public class SessionMetadataService {
     }
 
     public boolean isMetadataPlausible(SessionMetadata originalMetadata, SessionMetadata currentMetadata, Duration timePassed) {
+        if (originalMetadata.equals(SessionMetadata.FALLBACK)) {
+            return true;
+        }
+
         final double distanceTravelledMeters = distance(
                 originalMetadata.latitude(),
                 currentMetadata.latitude(),

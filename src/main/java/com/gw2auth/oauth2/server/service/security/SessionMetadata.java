@@ -7,4 +7,10 @@ public record SessionMetadata(@JsonProperty("countryCode") String countryCode,
                               @JsonProperty("lat") double latitude,
                               @JsonProperty("lng") double longitude) {
 
+    public static final SessionMetadata FALLBACK = new SessionMetadata(
+            "DE",
+            "UNKNOWN",
+            0.0,
+            0.0
+    );
 }
