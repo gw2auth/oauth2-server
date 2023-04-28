@@ -1,9 +1,11 @@
 package com.gw2auth.oauth2.server.web.client.consent;
 
-import com.gw2auth.oauth2.server.service.client.consent.ClientConsent;
-import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
-import com.gw2auth.oauth2.server.service.client.registration.ClientRegistration;
-import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
+import com.gw2auth.oauth2.server.service.application.account.ApplicationAccount;
+import com.gw2auth.oauth2.server.service.application.account.ApplicationAccountService;
+import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
+import com.gw2auth.oauth2.server.service.application.client.ApplicationClientService;
+import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccount;
+import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,36 +25,47 @@ import java.util.stream.Collectors;
 @RestController
 public class ClientConsentController extends AbstractRestController {
 
-    private final ClientConsentService clientConsentService;
-    private final ClientRegistrationService clientRegistrationService;
+    private final ApplicationAccountService applicationAccountService;
+    private final ApplicationClientService applicationClientService;
+    private final ApplicationClientAccountService applicationClientAccountService;
 
     @Autowired
-    public ClientConsentController(ClientConsentService clientConsentService, ClientRegistrationService clientRegistrationService) {
-
-        this.clientConsentService = clientConsentService;
-        this.clientRegistrationService = clientRegistrationService;
+    public ClientConsentController(ApplicationAccountService applicationAccountService,
+                                   ApplicationClientService applicationClientService,
+                                   ApplicationClientAccountService applicationClientAccountService) {
+        this.applicationAccountService = applicationAccountService;
+        this.applicationClientService = applicationClientService;
+        this.applicationClientAccountService = applicationClientAccountService;
     }
 
     @GetMapping(value = "/api/client/consent", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<ClientConsentResponse> getClientConsents(@AuthenticationPrincipal Gw2AuthUserV2 user) {
-        final List<ClientConsent> clientConsents = this.clientConsentService.getClientConsents(user.getAccountId());
+        final UUID accountId = user.getAccountId();
+        final List<ApplicationClientAccount> applicationClientAccounts = this.applicationClientAccountService.getApplicationClientAccounts(accountId);
+        final Set<UUID> applicationIds = new HashSet<>();
+        final Set<UUID> applicationClientIds = new HashSet<>();
 
-        // get all client registration ids for batch lookup
-        final Set<UUID> clientRegistrationIds = clientConsents.stream()
-                .map(ClientConsent::clientRegistrationId)
-                .collect(Collectors.toSet());
+        for (ApplicationClientAccount applicationClientAccount : applicationClientAccounts) {
+            applicationIds.add(applicationClientAccount.applicationId());
+            applicationClientIds.add(applicationClientAccount.applicationClientId());
+        }
 
-        final Map<UUID, ClientRegistration> clientRegistrationById = this.clientRegistrationService.getClientRegistrations(clientRegistrationIds).stream()
-                .collect(Collectors.toMap(ClientRegistration::id, Function.identity()));
+        final Map<UUID, ApplicationAccount> applicationAccountByApplicationId = applicationIds.stream()
+                .flatMap((v) -> this.applicationAccountService.getApplicationAccount(accountId, v).stream())
+                .collect(Collectors.toMap(ApplicationAccount::applicationId, Function.identity()));
 
-        final List<ClientConsentResponse> result = new ArrayList<>(clientConsents.size());
+        final Map<UUID, ApplicationClient> applicationClientById = this.applicationClientService.getApplicationClients(applicationClientIds).stream()
+                .collect(Collectors.toMap(ApplicationClient::id, Function.identity()));
 
-        for (ClientConsent clientConsent : clientConsents) {
-            final ClientRegistration clientRegistration = clientRegistrationById.get(clientConsent.clientRegistrationId());
+        final List<ClientConsentResponse> result = new ArrayList<>(applicationClientAccounts.size());
+
+        for (ApplicationClientAccount applicationClientAccount : applicationClientAccounts) {
+            final ApplicationAccount applicationAccount = applicationAccountByApplicationId.get(applicationClientAccount.applicationId());
+            final ApplicationClient applicationClient = applicationClientById.get(applicationClientAccount.applicationClientId());
 
             // only happens if theres a race, but dont want to add locks here
-            if (clientRegistration != null) {
-                result.add(ClientConsentResponse.create(clientConsent, clientRegistration));
+            if (applicationAccount != null && applicationClient != null) {
+                result.add(ClientConsentResponse.create(applicationClientAccount, applicationAccount, applicationClient));
             }
         }
 
@@ -63,7 +76,7 @@ public class ClientConsentController extends AbstractRestController {
 
     @DeleteMapping("/api/client/consent/{clientId}")
     public ResponseEntity<Void> deleteClientConsent(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
-        this.clientConsentService.deleteClientConsent(user.getAccountId(), clientId);
+        this.applicationClientAccountService.deleteApplicationClientConsent(user.getAccountId(), clientId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 }

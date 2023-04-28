@@ -46,5 +46,5 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
 
     @Modifying
     @Query("DELETE FROM accounts WHERE id = :id")
-    int deleteById(@Param("id") UUID id);
+    void deleteById(@Param("id") UUID id);
 }

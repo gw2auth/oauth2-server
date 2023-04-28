@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
+import com.gw2auth.oauth2.server.service.security.RequestSessionMetadataExtractor;
 import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
 import com.gw2auth.oauth2.server.util.Pair;
@@ -17,15 +18,16 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.util.Objects;
-import java.util.Optional;
 
 public abstract class AbstractUserService {
 
     private final AccountService accountService;
+    private final RequestSessionMetadataExtractor requestSessionMetadataExtractor;
     private final SessionMetadataService sessionMetadataService;
 
-    protected AbstractUserService(AccountService accountService, SessionMetadataService sessionMetadataService) {
+    protected AbstractUserService(AccountService accountService, RequestSessionMetadataExtractor requestSessionMetadataExtractor, SessionMetadataService sessionMetadataService) {
         this.accountService = accountService;
+        this.requestSessionMetadataExtractor = requestSessionMetadataExtractor;
         this.sessionMetadataService = sessionMetadataService;
     }
 
@@ -67,34 +69,23 @@ public abstract class AbstractUserService {
 
         if (sessionMetadata == null) {
             sessionMetadata = AuthenticationHelper.getCurrentRequest()
-                    .flatMap(this.sessionMetadataService::extractMetadataFromRequest)
-                    .orElse(null);
+                    .flatMap(this.requestSessionMetadataExtractor::extractMetadataFromRequest)
+                    .orElseThrow();
         }
 
-        final byte[] sessionMetadataBytes;
-
-        if (sessionMetadata != null) {
-            if (encryptionKey == null) {
-                encryptionKey = new Pair<>(SymEncryption.generateKey(), SymEncryption.generateIv());
-            }
-
-            sessionMetadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), sessionMetadata);
-        } else {
-            encryptionKey = null;
-            sessionMetadataBytes = null;
+        if (encryptionKey == null) {
+            encryptionKey = new Pair<>(SymEncryption.generateKey(), SymEncryption.generateIv());
         }
 
+        final byte[] sessionMetadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), sessionMetadata);
         final AccountFederationSession session;
+
         if (currentlyLoggedInUser == null) {
             session = this.accountService.createNewSession(issuer, idAtIssuer, sessionMetadataBytes);
         } else {
             session = this.accountService.updateSession(currentlyLoggedInUser.getSessionId(), issuer, idAtIssuer, sessionMetadataBytes);
         }
 
-        final byte[] encryptionKeyBytes = Optional.ofNullable(encryptionKey)
-                .map(SymEncryption::toBytes)
-                .orElse(null);
-
-        return new Gw2AuthLoginUser(user, account.id(), session, encryptionKeyBytes);
+        return new Gw2AuthLoginUser(user, account.id(), session, SymEncryption.toBytes(encryptionKey));
     }
 }

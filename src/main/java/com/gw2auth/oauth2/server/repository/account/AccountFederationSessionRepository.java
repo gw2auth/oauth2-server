@@ -76,7 +76,8 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     @Modifying
     @Query("""
     DELETE FROM account_federation_sessions
-    WHERE id = :id AND EXISTS(
+    WHERE id = :id
+    AND EXISTS(
         SELECT TRUE
         FROM account_federation_sessions fed_sess
         INNER JOIN account_federations fed

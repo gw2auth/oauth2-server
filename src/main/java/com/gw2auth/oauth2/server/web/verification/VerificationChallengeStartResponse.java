@@ -1,7 +1,7 @@
 package com.gw2auth.oauth2.server.web.verification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.gw2auth.oauth2.server.service.verification.VerificationChallengeStart;
+import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeStart;
 
 import java.time.Instant;
 import java.util.Map;

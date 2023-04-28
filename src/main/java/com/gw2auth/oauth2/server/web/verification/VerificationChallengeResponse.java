@@ -2,7 +2,7 @@ package com.gw2auth.oauth2.server.web.verification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.verification.VerificationChallenge;
+import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallenge;
 
 import java.util.Set;
 

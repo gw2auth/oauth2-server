@@ -3,13 +3,15 @@ package com.gw2auth.oauth2.server.web.client.consent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountEntity;
+import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountRepository;
+import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationRepository;
+import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenRepository;
+import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
+import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
+import com.gw2auth.oauth2.server.util.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,10 +48,13 @@ class ClientConsentControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ClientConsentRepository clientConsentRepository;
+    private ApplicationClientAccountRepository applicationClientAccountRepository;
 
     @Autowired
-    private ClientAuthorizationTokenRepository clientAuthorizationTokenRepository;
+    private ApplicationClientAuthorizationRepository applicationClientAuthorizationRepository;
+
+    @Autowired
+    private ApplicationClientAuthorizationTokenRepository applicationClientAuthorizationTokenRepository;
 
     @Autowired
     private TestHelper testHelper;
@@ -64,11 +69,11 @@ class ClientConsentControllerTest {
     public void getClientConsents(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
-        final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
-        final ClientRegistrationEntity clientRegistrationC = this.testHelper.createClientRegistration(accountId, "Name");
+        final ApplicationClientEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
+        final ApplicationClientEntity clientRegistrationC = this.testHelper.createClientRegistration(accountId, "Name");
 
-        final ClientConsentEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ClientConsentService.GW2AUTH_VERIFIED_SCOPE));
-        final ClientConsentEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationC.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
+        final Pair<UUID, ApplicationClientAccountEntity> clientConsentA = this.testHelper.createClientConsent2(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE));
+        final Pair<UUID, ApplicationClientAccountEntity> clientConsentB = this.testHelper.createClientConsent2(accountId, clientRegistrationC.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
 
         final String jsonResponse = this.mockMvc.perform(get("/api/client/consent").with(sessionHandle))
                 .andDo(sessionHandle)
@@ -91,8 +96,8 @@ class ClientConsentControllerTest {
             final JsonNode element = node.get(i);
             final JsonNode clientRegistrationNode = element.get("clientRegistration");
 
-            final ClientRegistrationEntity clientRegistration;
-            final ClientConsentEntity clientConsent;
+            final ApplicationClientEntity clientRegistration;
+            final Pair<UUID, ApplicationClientAccountEntity> clientConsent;
 
             if (clientRegistrationNode.get("clientId").textValue().equals(clientRegistrationA.id().toString())) {
                 if (foundAuthorizationA) {
@@ -131,10 +136,10 @@ class ClientConsentControllerTest {
             previousRegistrationDisplayName = registrationDisplayName;
 
             // accountsub
-            assertEquals(clientConsent.accountSub().toString(), element.get("accountSub").textValue());
+            assertEquals(clientConsent.v1().toString(), element.get("accountSub").textValue());
 
             // authorized scopes
-            final Set<String> expectedScopes = new HashSet<>(clientConsent.authorizedScopes());
+            final Set<String> expectedScopes = new HashSet<>(clientConsent.v2().authorizedScopes());
             final JsonNode authorizedGw2ApiPermissionsNode = element.get("authorizedGw2ApiPermissions");
 
             assertTrue(authorizedGw2ApiPermissionsNode.isArray());
@@ -148,7 +153,7 @@ class ClientConsentControllerTest {
             }
 
             if (element.get("authorizedVerifiedInformation").booleanValue()) {
-                if (!expectedScopes.remove(ClientConsentService.GW2AUTH_VERIFIED_SCOPE)) {
+                if (!expectedScopes.remove(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE)) {
                     fail("got unexpected scope in authorization");
                 }
             }
@@ -170,18 +175,18 @@ class ClientConsentControllerTest {
     public void deleteClientConsent(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
-        final ClientRegistrationEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
-        final ClientRegistrationEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
+        final ApplicationClientEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
+        final ApplicationClientEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
 
-        final ApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameA");
-        final ApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameB");
-        final ApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameC");
+        final Gw2AccountApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameA");
+        final Gw2AccountApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameB");
+        final Gw2AccountApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameC");
 
-        final ClientConsentEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
-        final ClientConsentEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationB.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
+        final ApplicationClientAccountEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+        final ApplicationClientAccountEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationB.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
 
-        final String authorizationIdA = this.testHelper.createClientAuthorization(accountId, clientConsentA.clientRegistrationId(), clientConsentA.authorizedScopes()).id();
-        final String authorizationIdB = this.testHelper.createClientAuthorization(accountId, clientConsentB.clientRegistrationId(), clientConsentB.authorizedScopes()).id();
+        final String authorizationIdA = this.testHelper.createClientAuthorization(accountId, clientConsentA.applicationClientId(), clientConsentA.authorizedScopes()).id();
+        final String authorizationIdB = this.testHelper.createClientAuthorization(accountId, clientConsentB.applicationClientId(), clientConsentB.authorizedScopes()).id();
 
         // tokens for authorization A
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdA, apiTokenA.gw2AccountId(), apiTokenC.gw2AccountId());
@@ -189,26 +194,37 @@ class ClientConsentControllerTest {
         // tokens for authorization B
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdB, apiTokenB.gw2AccountId());
 
-        // delete authorization A
+        // delete consent A
         this.mockMvc.perform(delete("/api/client/consent/{clientId}", clientRegistrationA.id()).with(sessionHandle).with(csrf()))
                 .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
         // entity should still be there
-        ClientConsentEntity clientConsent = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientConsentA.clientRegistrationId()).orElse(null);
-        assertNotNull(clientConsent);
-        assertNotEquals(clientConsentA, clientConsent);
-        assertTrue(clientConsent.authorizedScopes().isEmpty());
-        assertEquals(clientConsentA.accountSub(), clientConsent.accountSub());
+        ApplicationClientAccountEntity applicationClientAccountEntity = this.applicationClientAccountRepository.findByApplicationClientIdAndAccountId(
+                clientConsentA.applicationClientId(),
+                accountId
+        ).orElse(null);
+        assertNotNull(applicationClientAccountEntity);
+        assertNotEquals(clientConsentA, applicationClientAccountEntity);
+        assertTrue(applicationClientAccountEntity.authorizedScopes().isEmpty());
+
+        // authorization should be deleted
+        assertTrue(this.applicationClientAuthorizationRepository.findByIdAndAccountId(authorizationIdA, accountId).isEmpty());
 
         // tokens should be deleted
-        assertTrue(this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdA).isEmpty());
+        assertTrue(this.applicationClientAuthorizationTokenRepository.findAllByApplicationClientAuthorizationIdAndAccountId(authorizationIdA, accountId).isEmpty());
 
-        // authorization B should still be there (and unchanged)
-        clientConsent = this.clientConsentRepository.findByAccountIdAndClientRegistrationId(accountId, clientConsentB.clientRegistrationId()).orElse(null);
-        assertEquals(clientConsentB, clientConsent);
+        // consent B should still be there (and unchanged)
+        applicationClientAccountEntity = this.applicationClientAccountRepository.findByApplicationClientIdAndAccountId(
+                clientConsentB.applicationClientId(),
+                accountId
+        ).orElse(null);
+        assertEquals(clientConsentB, applicationClientAccountEntity);
+
+        // authorization should still be there
+        assertTrue(this.applicationClientAuthorizationRepository.findByIdAndAccountId(authorizationIdB, accountId).isPresent());
 
         // tokens of B should still be there
-        assertEquals(1, this.clientAuthorizationTokenRepository.findAllByAccountIdAndClientAuthorizationId(accountId, authorizationIdB).size());
+        assertEquals(1, this.applicationClientAuthorizationTokenRepository.findAllByApplicationClientAuthorizationIdAndAccountId(authorizationIdB, accountId).size());
     }
 }

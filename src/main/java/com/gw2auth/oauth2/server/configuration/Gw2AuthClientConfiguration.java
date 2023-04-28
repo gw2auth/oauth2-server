@@ -3,8 +3,10 @@ package com.gw2auth.oauth2.server.configuration;
 import com.gw2auth.oauth2.server.configuration.properties.Gw2AuthClientProperties;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationCreation;
-import com.gw2auth.oauth2.server.service.client.registration.ClientRegistrationService;
+import com.gw2auth.oauth2.server.service.application.Application;
+import com.gw2auth.oauth2.server.service.application.ApplicationService;
+import com.gw2auth.oauth2.server.service.application.client.ApplicationClientCreation;
+import com.gw2auth.oauth2.server.service.application.client.ApplicationClientService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,20 +28,23 @@ public class Gw2AuthClientConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(Gw2AuthClientConfiguration.class);
 
     private final AccountService accountService;
-    private final ClientRegistrationService clientRegistrationService;
+    private final ApplicationService applicationService;
+    private final ApplicationClientService applicationClientService;
     private final JdbcOperations jdbcOperations;
     private final PasswordEncoder passwordEncoder;
     private final Gw2AuthClientProperties properties;
 
     @Autowired
     public Gw2AuthClientConfiguration(AccountService accountService,
-                                      ClientRegistrationService clientRegistrationService,
+                                      ApplicationService applicationService,
+                                      ApplicationClientService applicationClientService,
                                       JdbcOperations jdbcOperations,
                                       PasswordEncoder passwordEncoder,
                                       Gw2AuthClientProperties properties) {
 
         this.accountService = accountService;
-        this.clientRegistrationService = clientRegistrationService;
+        this.applicationService = applicationService;
+        this.applicationClientService = applicationClientService;
         this.jdbcOperations = jdbcOperations;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
@@ -50,7 +55,7 @@ public class Gw2AuthClientConfiguration {
         for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.getRegistration()) {
             final UUID clientId = UUID.fromString(registrationConfig.getClientId());
 
-            if (this.clientRegistrationService.getClientRegistration(clientId).isEmpty()) {
+            if (this.applicationClientService.getApplicationClients(Set.of(clientId)).isEmpty()) {
                 final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.getAccount().get(registrationConfig.getAccount());
                 Account account = null;
 
@@ -62,18 +67,21 @@ public class Gw2AuthClientConfiguration {
                     }
                 }
 
-                final ClientRegistrationCreation clientRegistrationCreation = this.clientRegistrationService.createClientRegistration(
-                        Objects.requireNonNull(account).id(),
+                final UUID accountId = Objects.requireNonNull(account).id();
+                final Application application = this.applicationService.createApplication(accountId, registrationConfig.getDisplayName());
+                final ApplicationClientCreation applicationClientCreation = this.applicationClientService.createApplicationClient(
+                        accountId,
+                        application.id(),
                         registrationConfig.getDisplayName(),
                         registrationConfig.getAuthorizationGrantTypes(),
                         Set.of(registrationConfig.getRedirectUri())
                 );
 
                 this.jdbcOperations.update(
-                        "UPDATE client_registrations SET id = ?, client_secret = ? WHERE id = ?",
+                        "UPDATE application_clients SET id = ?, client_secret = ? WHERE id = ?",
                         clientId,
                         this.passwordEncoder.encode(registrationConfig.getClientSecret()),
-                        clientRegistrationCreation.clientRegistration().id()
+                        applicationClientCreation.id()
                 );
 
                 LOG.debug("Created Gw2Auth Client with client-id={} from configuration", registrationConfig.getClientId());

@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.service.security;
 
+import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
@@ -13,9 +14,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
-import java.util.Optional;
 
-public class Gw2AuthInternalJwtConverter {
+public class Gw2AuthInternalJwtConverter implements Clocked {
 
     private static final String ISSUER = "login.gw2auth.com";
     private static final String SESSION_CLAIM = "session";
@@ -35,6 +35,7 @@ public class Gw2AuthInternalJwtConverter {
         this.jwtEncoder = new NimbusJwtEncoder(JWKHelper.jwkSourceForKeyPair(new KeyPair(publicKey, privateKey), keyId));
     }
 
+    @Override
     public void setClock(Clock clock) {
         this.jwtTimestampValidator.setClock(clock);
     }
@@ -52,12 +53,12 @@ public class Gw2AuthInternalJwtConverter {
         return sessionId;
     }
 
-    public Optional<byte[]> readEncryptionKey(Jwt jwt) {
+    public byte[] readEncryptionKey(Jwt jwt) {
         if (!jwt.hasClaim(ENCRYPTION_KEY_CLAIM)) {
-            return Optional.empty();
+            throw new IllegalArgumentException("no encryption key claim");
         }
 
-        return Optional.of(Base64.getDecoder().decode(jwt.getClaimAsString(ENCRYPTION_KEY_CLAIM)));
+        return Base64.getDecoder().decode(jwt.getClaimAsString(ENCRYPTION_KEY_CLAIM));
     }
 
     public Jwt writeJWT(String sessionId, byte[] encryptionKey, Instant creationTime, Instant expirationTime) {
@@ -66,11 +67,8 @@ public class Gw2AuthInternalJwtConverter {
                 .notBefore(creationTime)
                 .expiresAt(expirationTime)
                 .issuer(ISSUER)
-                .claim(SESSION_CLAIM, sessionId);
-
-        if (encryptionKey != null) {
-            claimsBuilder.claim(ENCRYPTION_KEY_CLAIM, Base64.getEncoder().withoutPadding().encodeToString(encryptionKey));
-        }
+                .claim(SESSION_CLAIM, sessionId)
+                .claim(ENCRYPTION_KEY_CLAIM, Base64.getEncoder().withoutPadding().encodeToString(encryptionKey));
 
         return this.jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(SignatureAlgorithm.RS256).build(), claimsBuilder.build()));
     }

@@ -5,13 +5,7 @@ import com.gw2auth.oauth2.server.TestHelper;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,18 +36,6 @@ class ApplicationControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ApiTokenRepository apiTokenRepository;
-
-    @Autowired
-    private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
-
-    @Autowired
-    private ClientRegistrationRepository clientRegistrationRepository;
-
-    @Autowired
-    private ClientConsentRepository clientConsentRepository;
-
-    @Autowired
     private AccountRepository accountRepository;
 
     @Autowired
@@ -78,21 +60,21 @@ class ApplicationControllerTest {
         }
 
         for (int i = 0; i < verifiedGw2Accounts; i++) {
-            this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(UUID.randomUUID(), accountId));
+            this.testHelper.createAccountVerification(accountId, UUID.randomUUID());
         }
 
-        final Queue<ClientRegistrationEntity> clientRegistrationEntities = new LinkedList<>();
+        final Queue<ApplicationClientEntity> applicationClientEntities = new LinkedList<>();
 
         for (int i = 0; i < clientRegistrations; i++) {
-            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "Name", "", Set.of(), Set.of("http://127.0.0.1/"))));
+            applicationClientEntities.add(this.testHelper.createClientRegistration(accountId, "Name"));
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
+            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of("dummy"));
         }
 
         // add one client authorization without scopes (that should not be counted)
-        this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
+        this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of());
 
         this.mockMvc.perform(get("/api/application/summary"))
                 .andExpect(status().isOk())

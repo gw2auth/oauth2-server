@@ -31,6 +31,12 @@ public interface AccountService {
 
     LoggingContext log(UUID accountId, Map<String, ?> fields);
 
+    default void log(UUID accountId, String message, Map<String, ?> fields) {
+        try (LoggingContext ctx = log(accountId, fields)) {
+            ctx.log(message);
+        }
+    }
+
     List<AccountLog> getAccountLogs(UUID accountId, Map<String, ?> fields, int page, int pageSize);
 
     boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer);
