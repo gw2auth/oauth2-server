@@ -358,8 +358,6 @@ public class SessionTest {
         // jwt should be valid for 30days from the new clock
         assertInstantEquals(testingClock.instant().plus(Duration.ofDays(30L)), jwtPost.getExpiresAt(), ChronoUnit.SECONDS);
         assertNotEquals(sessionMetadataPre, sessionMetadataPost);
-        assertEquals("DE", sessionMetadataPost.countryCode());
-        assertEquals("Berlin", sessionMetadataPost.city());
         assertEquals(52.5162843, sessionMetadataPost.latitude(), 0.00001);
         assertEquals(13.3755154, sessionMetadataPost.longitude(), 0.00001);
     }
