@@ -169,6 +169,8 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     WHERE account_id = :account_id
     AND application_client_id = :application_client_id
     AND authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
+    ORDER BY creation_time DESC
+    LIMIT 1
     """)
     Optional<ApplicationClientAuthorizationEntity> findLatestByAccountIdAndApplicationClientIdAndHavingScopes(@Param("account_id") UUID accountId, @Param("application_client_id") UUID applicationClientId, @Param("authorized_scopes") Set<String> scopes);
 
