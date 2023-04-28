@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.repository.summary.AccountSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.ApplicationSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.ClientSummaryEntity;
 import com.gw2auth.oauth2.server.repository.summary.SummaryRepository;
+import com.gw2auth.oauth2.server.service.Clocked;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +15,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-public class SummaryServiceImpl implements SummaryService {
+public class SummaryServiceImpl implements SummaryService, Clocked {
 
     private final SummaryRepository summaryRepository;
     private final MeterRegistry meterRegistry;
@@ -27,6 +28,7 @@ public class SummaryServiceImpl implements SummaryService {
         this.clock = Clock.systemUTC();
     }
 
+    @Override
     public void setClock(Clock clock) {
         this.clock = Objects.requireNonNull(clock);
     }

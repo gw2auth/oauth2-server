@@ -2,8 +2,8 @@ package com.gw2auth.oauth2.server.web.client.authorization;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
-import com.gw2auth.oauth2.server.service.client.consent.ClientConsentService;
+import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
+import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorization;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,12 +19,12 @@ public record ClientAuthorizationResponse(@JsonProperty("id") String id,
                                           @JsonProperty("authorizedVerifiedInformation") boolean authorizedVerifiedInformation,
                                           @JsonProperty("tokens") List<Token> tokens) {
 
-    public static ClientAuthorizationResponse create(ClientAuthorization authorization, List<Token> tokens) {
+    public static ClientAuthorizationResponse create(ApplicationClientAuthorization authorization, List<Token> tokens) {
         final Set<Gw2ApiPermission> gw2ApiPermissions = authorization.authorizedScopes().stream()
                 .flatMap((value) -> Gw2ApiPermission.fromOAuth2(value).stream())
                 .collect(Collectors.toSet());
 
-        return new ClientAuthorizationResponse(authorization.id(), authorization.creationTime(), authorization.lastUpdateTime(), authorization.displayName(), gw2ApiPermissions, authorization.authorizedScopes().contains(ClientConsentService.GW2AUTH_VERIFIED_SCOPE), tokens);
+        return new ClientAuthorizationResponse(authorization.id(), authorization.creationTime(), authorization.lastUpdateTime(), authorization.displayName(), gw2ApiPermissions, authorization.authorizedScopes().contains(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE), tokens);
     }
 
     public record Token(@JsonProperty("gw2AccountId") UUID gw2AccountId,

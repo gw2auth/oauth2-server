@@ -5,14 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeEntity;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationChallengeRepository;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
+import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
+import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationChallengeEntity;
+import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationChallengeRepository;
+import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationEntity;
+import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.verification.VerificationChallengeStart;
-import com.gw2auth.oauth2.server.service.verification.VerificationServiceImpl;
+import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeStart;
+import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationServiceImpl;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -80,10 +80,10 @@ class VerificationControllerTest {
     private AccountRepository accountRepository;
 
     @Autowired
-    private ApiTokenRepository apiTokenRepository;
+    private Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
 
     @Autowired
-    private VerificationServiceImpl verificationService;
+    private Gw2AccountVerificationServiceImpl verificationService;
 
     @Autowired
     @Qualifier("gw2-rest-server")
@@ -114,9 +114,6 @@ class VerificationControllerTest {
         // 2 pending challenges
         final Gw2AccountVerificationChallengeEntity pendingChallengeA = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName + "A", UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
         final Gw2AccountVerificationChallengeEntity pendingChallengeB = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), 1L, expectedApiTokenName + "B", UUID.randomUUID().toString(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
-
-        // 1 verification failed challenge (this should not be part of the pending challenges)
-        this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, UUID.randomUUID().toString(), -1L, null, null, Instant.now(), Instant.now().plus(Duration.ofHours(2L))));
 
         final String responseJson = this.mockMvc.perform(get("/api/verification/bootstrap").with(sessionHandle))
                 .andDo(sessionHandle)
@@ -416,7 +413,7 @@ class VerificationControllerTest {
         assertEquals(accountId, accountVerification.accountId());
 
         // the other users api token should be removed
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
     @WithGw2AuthLogin
@@ -468,7 +465,7 @@ class VerificationControllerTest {
         assertEquals(accountId, accountVerification.accountId());
 
         // the other users api token should be removed
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
     @WithGw2AuthLogin
@@ -520,7 +517,7 @@ class VerificationControllerTest {
         assertEquals(accountId, accountVerification.accountId());
 
         // the other users api token should be removed
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
     @WithGw2AuthLogin
@@ -572,7 +569,7 @@ class VerificationControllerTest {
         assertEquals(accountId, accountVerification.accountId());
 
         // the other users api token should be removed
-        assertTrue(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+        assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
     @WithGw2AuthLogin
@@ -781,7 +778,7 @@ class VerificationControllerTest {
         final String gw2ApiSubtoken = TestHelper.createSubtokenJWT(UUID.randomUUID(), Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(90L));
 
         // insert the verification
-        this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
+        this.testHelper.createAccountVerification(accountId, gw2AccountId);
 
         // prepare the gw2 api
         this.gw2RestServer.reset();
@@ -860,7 +857,7 @@ class VerificationControllerTest {
         assertNull(accountVerification);
 
         // the other users api token should not be removed
-        assertFalse(this.apiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
+        assertFalse(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
 
         // the challenge should be removed
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).isEmpty());

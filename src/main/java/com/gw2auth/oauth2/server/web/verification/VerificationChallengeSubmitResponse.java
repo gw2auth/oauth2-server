@@ -1,7 +1,7 @@
 package com.gw2auth.oauth2.server.web.verification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.gw2auth.oauth2.server.service.verification.VerificationChallengeSubmit;
+import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeSubmit;
 
 public record VerificationChallengeSubmitResponse(@JsonProperty("pending") VerificationChallengePendingResponse pending,
                                                   @JsonProperty("isSuccess") boolean isSuccess) {

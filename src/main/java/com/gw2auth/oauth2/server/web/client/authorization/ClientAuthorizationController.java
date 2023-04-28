@@ -1,9 +1,9 @@
 package com.gw2auth.oauth2.server.web.client.authorization;
 
-import com.gw2auth.oauth2.server.service.apitoken.ApiToken;
-import com.gw2auth.oauth2.server.service.apitoken.ApiTokenService;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorization;
-import com.gw2auth.oauth2.server.service.client.authorization.ClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorization;
+import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
+import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,34 +23,35 @@ import java.util.stream.Collectors;
 @RestController
 public class ClientAuthorizationController extends AbstractRestController {
 
-    private final ClientAuthorizationService clientAuthorizationService;
-    private final ApiTokenService apiTokenService;
+    private final ApplicationClientAuthorizationService applicationClientAuthorizationService;
+    private final Gw2AccountApiTokenService gw2AccountApiTokenService;
 
     @Autowired
-    public ClientAuthorizationController(ClientAuthorizationService clientAuthorizationService, ApiTokenService apiTokenService) {
-        this.clientAuthorizationService = clientAuthorizationService;
-        this.apiTokenService = apiTokenService;
+    public ClientAuthorizationController(ApplicationClientAuthorizationService applicationClientAuthorizationService,
+                                         Gw2AccountApiTokenService gw2AccountApiTokenService) {
+        this.applicationClientAuthorizationService = applicationClientAuthorizationService;
+        this.gw2AccountApiTokenService = gw2AccountApiTokenService;
     }
 
     @GetMapping(value = "/api/client/authorization/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<ClientAuthorizationResponse> getClientAuthorizations(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
-        final List<ClientAuthorization> clientAuthorizations = this.clientAuthorizationService.getClientAuthorizations(user.getAccountId(), clientId);
+        final List<ApplicationClientAuthorization> authorizations = this.applicationClientAuthorizationService.getApplicationClientAuthorizations(user.getAccountId(), clientId);
 
         // get all gw2-account ids for batch lookup
-        final Set<UUID> gw2AccountIds = clientAuthorizations.stream()
+        final Set<UUID> gw2AccountIds = authorizations.stream()
                 .flatMap((v) -> v.gw2AccountIds().stream())
                 .collect(Collectors.toSet());
 
-        final Map<UUID, ApiToken> apiTokenByGw2AccountId = this.apiTokenService.getApiTokens(user.getAccountId(), gw2AccountIds).stream()
-                .collect(Collectors.toMap(ApiToken::gw2AccountId, Function.identity()));
+        final Map<UUID, Gw2AccountApiToken> apiTokenByGw2AccountId = this.gw2AccountApiTokenService.getApiTokens(user.getAccountId(), gw2AccountIds).stream()
+                .collect(Collectors.toMap(Gw2AccountApiToken::gw2AccountId, Function.identity()));
 
-        final List<ClientAuthorizationResponse> result = new ArrayList<>(clientAuthorizations.size());
+        final List<ClientAuthorizationResponse> result = new ArrayList<>(authorizations.size());
 
-        for (ClientAuthorization clientAuthorization : clientAuthorizations) {
-            final List<ClientAuthorizationResponse.Token> tokens = new ArrayList<>(clientAuthorization.gw2AccountIds().size());
+        for (ApplicationClientAuthorization authorization : authorizations) {
+            final List<ClientAuthorizationResponse.Token> tokens = new ArrayList<>(authorization.gw2AccountIds().size());
 
-            for (UUID gw2AccountId : clientAuthorization.gw2AccountIds()) {
-                final ApiToken apiToken = apiTokenByGw2AccountId.get(gw2AccountId);
+            for (UUID gw2AccountId : authorization.gw2AccountIds()) {
+                final Gw2AccountApiToken apiToken = apiTokenByGw2AccountId.get(gw2AccountId);
 
                 if (apiToken != null) {
                     tokens.add(new ClientAuthorizationResponse.Token(gw2AccountId, apiToken.displayName()));
@@ -58,7 +59,7 @@ public class ClientAuthorizationController extends AbstractRestController {
             }
 
             result.add(ClientAuthorizationResponse.create(
-                    clientAuthorization,
+                    authorization,
                     tokens.stream()
                             .sorted(Comparator.comparing(ClientAuthorizationResponse.Token::displayName))
                             .toList()
@@ -71,13 +72,8 @@ public class ClientAuthorizationController extends AbstractRestController {
     }
 
     @DeleteMapping(value = "/api/client/authorization/_/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> deleteClientAuthorization(@AuthenticationPrincipal Gw2AuthUserV2 user,
-                                                          @PathVariable("id") String id) {
-
-        if (this.clientAuthorizationService.deleteClientAuthorization(user.getAccountId(), id)) {
-            return ResponseEntity.status(HttpStatus.OK).build();
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+    public ResponseEntity<Void> deleteClientAuthorization(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("id") String id) {
+        this.applicationClientAuthorizationService.deleteApplicationClientAuthorization(user.getAccountId(), id);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }

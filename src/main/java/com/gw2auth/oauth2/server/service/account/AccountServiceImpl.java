@@ -4,6 +4,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 import com.gw2auth.oauth2.server.repository.account.*;
+import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -26,11 +27,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 @EnableScheduling
-public class AccountServiceImpl implements AccountService {
+public class AccountServiceImpl implements AccountService, Clocked {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccountServiceImpl.class);
     private static final int MAX_LOG_COUNT = 10_000;
@@ -63,6 +65,7 @@ public class AccountServiceImpl implements AccountService {
         this.clock = Clock.systemUTC();
     }
 
+    @Override
     public void setClock(Clock clock) {
         this.clock = Objects.requireNonNull(clock);
     }
@@ -234,7 +237,7 @@ public class AccountServiceImpl implements AccountService {
         return accountEntity;
     }
 
-    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    @Scheduled(fixedRate = 30L, timeUnit = TimeUnit.MINUTES)
     public void deleteAllExpiredSessions() {
         final int deleted = this.accountFederationSessionRepository.deleteAllExpired(this.clock.instant());
         LOG.info("scheduled deletion of expired sessions deleted {} rows", deleted);

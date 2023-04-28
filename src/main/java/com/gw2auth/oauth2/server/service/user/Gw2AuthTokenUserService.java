@@ -1,10 +1,8 @@
 package com.gw2auth.oauth2.server.service.user;
 
+import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.account.*;
-import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
-import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
-import com.gw2auth.oauth2.server.service.security.SessionMetadata;
-import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
+import com.gw2auth.oauth2.server.service.security.*;
 import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.Pair;
@@ -22,23 +20,26 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
-public class Gw2AuthTokenUserService {
+public class Gw2AuthTokenUserService implements Clocked {
 
     private static final String REQUEST_ATTRIBUTE_NAME = Gw2AuthTokenUserService.class.getName() + "/" + Gw2AuthUserV2.class.getName();
 
     private final Gw2AuthInternalJwtConverter jwtConverter;
+    private final RequestSessionMetadataExtractor requestSessionMetadataExtractor;
     private final SessionMetadataService sessionMetadataService;
     private final AccountService accountService;
     private Clock clock;
 
     @Autowired
-    public Gw2AuthTokenUserService(Gw2AuthInternalJwtConverter jwtConverter, SessionMetadataService sessionMetadataService, AccountService accountService) {
+    public Gw2AuthTokenUserService(Gw2AuthInternalJwtConverter jwtConverter, RequestSessionMetadataExtractor requestSessionMetadataExtractor, SessionMetadataService sessionMetadataService, AccountService accountService) {
         this.jwtConverter = jwtConverter;
+        this.requestSessionMetadataExtractor = requestSessionMetadataExtractor;
         this.sessionMetadataService = sessionMetadataService;
         this.accountService = accountService;
         this.clock = Clock.systemUTC();
     }
 
+    @Override
     public void setClock(Clock clock) {
         this.clock = Objects.requireNonNull(clock);
     }
@@ -77,46 +78,30 @@ public class Gw2AuthTokenUserService {
         final AccountFederation accountFederation = accountSession.accountFederation();
         final Duration timePassedSinceLastJwtCreation = Duration.between(jwt.getIssuedAt(), this.clock.instant());
 
-        byte[] encryptionKeyBytes = this.jwtConverter.readEncryptionKey(jwt).orElse(null);
+        byte[] encryptionKeyBytes = this.jwtConverter.readEncryptionKey(jwt);
         Pair<SecretKey, IvParameterSpec> encryptionKey = Optional.ofNullable(encryptionKeyBytes)
                 .map(SymEncryption::fromBytes)
                 .orElse(null);
 
-        final SessionMetadata currentSessionMetadata = this.sessionMetadataService.extractMetadataFromRequest(request)
+        final SessionMetadata currentSessionMetadata = this.requestSessionMetadataExtractor.extractMetadataFromRequest(request)
                 .orElse(null);
 
-        if (accountSession.metadata() != null) {
-            // if the saved session in DB has metadata (the user had metadata before),
-            // the request must also contain metadata and also an encryption key
-            if (currentSessionMetadata == null || encryptionKey == null) {
-                this.accountService.deleteSession(account.id(), sessionId);
-                return Optional.empty();
-            }
+        // if the saved session in DB has metadata (the user had metadata before),
+        // the request must also contain metadata and also an encryption key
+        if (currentSessionMetadata == null || encryptionKey == null) {
+            this.accountService.deleteSession(account.id(), sessionId);
+            return Optional.empty();
+        }
 
-            final SessionMetadata originalSessionMetadata = this.sessionMetadataService.decryptMetadata(encryptionKey.v1(), encryptionKey.v2(), accountSession.metadata());
+        final SessionMetadata originalSessionMetadata = this.sessionMetadataService.decryptMetadata(encryptionKey.v1(), encryptionKey.v2(), accountSession.metadata());
 
-            if (!this.sessionMetadataService.isMetadataPlausible(originalSessionMetadata, currentSessionMetadata, timePassedSinceLastJwtCreation)) {
-                this.accountService.deleteSession(account.id(), sessionId);
-                return Optional.empty();
-            }
+        if (!this.sessionMetadataService.isMetadataPlausible(originalSessionMetadata, currentSessionMetadata, timePassedSinceLastJwtCreation)) {
+            this.accountService.deleteSession(account.id(), sessionId);
+            return Optional.empty();
         }
 
         if (!Objects.equals(request.getPathInfo(), Constants.LOGOUT_URL)) {
-            // no matter if metadata was known before or not, if it is now known, use them
-            final byte[] metadataBytes;
-
-            if (currentSessionMetadata != null) {
-                // encryption key might not be there yet (if metadata was not known before)
-                if (encryptionKey == null) {
-                    encryptionKey = new Pair<>(SymEncryption.generateKey(), SymEncryption.generateIv());
-                    encryptionKeyBytes = SymEncryption.toBytes(encryptionKey);
-                }
-
-                metadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), currentSessionMetadata);
-            } else {
-                metadataBytes = null;
-            }
-
+            final byte[] metadataBytes = this.sessionMetadataService.encryptMetadata(encryptionKey.v1(), encryptionKey.v2(), currentSessionMetadata);
             final AccountFederationSession updatedSession = this.accountService.updateSession(
                     sessionId,
                     accountFederation.issuer(),

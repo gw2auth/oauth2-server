@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.configuration;
 
 import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
+import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -136,5 +137,10 @@ public class OAuth2ServerConfiguration {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings(@Value("${com.gw2auth.url}") String selfURL) {
         return AuthorizationServerSettings.builder().issuer(selfURL).build();
+    }
+
+    @Bean
+    public AuthorizationCodeParamAccessor authorizationCodeParamAccessor() {
+        return AuthorizationCodeParamAccessor.DEFAULT;
     }
 }

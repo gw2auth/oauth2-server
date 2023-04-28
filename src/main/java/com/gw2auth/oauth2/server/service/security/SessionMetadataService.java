@@ -3,7 +3,6 @@ package com.gw2auth.oauth2.server.service.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.util.Pair;
 import com.gw2auth.oauth2.server.util.SymEncryption;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +10,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.*;
 import java.time.Duration;
-import java.util.Optional;
 
 @Service
 public class SessionMetadataService {
@@ -21,29 +19,6 @@ public class SessionMetadataService {
     @Autowired
     public SessionMetadataService(ObjectMapper mapper) {
         this.mapper = mapper;
-    }
-
-    public Optional<SessionMetadata> extractMetadataFromRequest(HttpServletRequest request) {
-        String countryCode = request.getHeader("Cloudfront-Viewer-Country");
-        String city = request.getHeader("Cloudfront-Viewer-City");
-        String latitudeRaw = request.getHeader("Cloudfront-Viewer-Latitude");
-        String longitudeRaw = request.getHeader("Cloudfront-Viewer-Longitude");
-
-        if (countryCode == null || city == null || latitudeRaw == null || longitudeRaw == null) {
-            return Optional.empty();
-        }
-
-        final double latitude;
-        final double longitude;
-
-        try {
-            latitude = Double.parseDouble(latitudeRaw);
-            longitude = Double.parseDouble(longitudeRaw);
-        } catch (NumberFormatException e) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new SessionMetadata(countryCode, city, latitude, longitude));
     }
 
     public byte[] encryptMetadata(byte[] encryptionKey, SessionMetadata sessionMetadata) {

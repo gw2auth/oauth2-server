@@ -120,9 +120,9 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 }
 
                 final String sessionId = Gw2AuthLoginExtension.this.jwtConverter.readSessionId(jwt);
-                final byte[] encryptionKey = Gw2AuthLoginExtension.this.jwtConverter.readEncryptionKey(jwt).orElse(null);
+                final byte[] encryptionKey = Gw2AuthLoginExtension.this.jwtConverter.readEncryptionKey(jwt);
 
-                return sessionId != null && (!expectMetadataInCookie || encryptionKey != null);
+                return sessionId != null && encryptionKey != null;
             }
 
             @Override

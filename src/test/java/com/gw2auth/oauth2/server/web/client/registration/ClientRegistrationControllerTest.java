@@ -5,11 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.apitoken.ApiTokenEntity;
-import com.gw2auth.oauth2.server.repository.client.authorization.ClientAuthorizationEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
+import com.gw2auth.oauth2.server.repository.application.ApplicationRepository;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientRepository;
+import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountEntity;
+import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
+import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
+import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenWithPreferencesEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.summary.SummaryServiceImpl;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +27,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -55,7 +58,10 @@ class ClientRegistrationControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ClientRegistrationRepository clientRegistrationRepository;
+    private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private ApplicationClientRepository applicationClientRepository;
 
     @Autowired
     private AccountRepository accountRepository;
@@ -89,8 +95,8 @@ class ClientRegistrationControllerTest {
     public void getClientRegistrations(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
-        final ClientRegistrationEntity clientRegistrationA = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
-        final ClientRegistrationEntity clientRegistrationB = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameB", "SecretB", Set.of(), Set.of("http://127.0.0.1/b", "http://127.0.0.1/c")));
+        final ApplicationClientEntity applicationClientEntityA = this.testHelper.createClientRegistration(accountId, "NameA");
+        final ApplicationClientEntity applicationClientEntityB = this.testHelper.createClientRegistration(accountId, "NameB");
 
         final String responseJson = this.mockMvc.perform(get("/api/client/registration").with(sessionHandle))
                 .andDo(sessionHandle)
@@ -112,30 +118,30 @@ class ClientRegistrationControllerTest {
         for (int i = 0; i < responseNode.size(); i++) {
             final JsonNode clientRegistrationNode = responseNode.get(i);
             final UUID clientId = UUID.fromString(clientRegistrationNode.get("clientId").textValue());
-            final ClientRegistrationEntity clientRegistration;
+            final ApplicationClientEntity applicationClientEntity;
 
-            if (clientId.equals(clientRegistrationA.id())) {
+            if (clientId.equals(applicationClientEntityA.id())) {
                 if (foundA) {
                     fail("Received A twice");
                     return;
                 } else {
                     foundA = true;
-                    clientRegistration = clientRegistrationA;
+                    applicationClientEntity = applicationClientEntityA;
                 }
-            } else if (clientId.equals(clientRegistrationB.id())) {
+            } else if (clientId.equals(applicationClientEntityB.id())) {
                 if (foundB) {
                     fail("Received B twice");
                     return;
                 } else {
                     foundB = true;
-                    clientRegistration = clientRegistrationB;
+                    applicationClientEntity = applicationClientEntityB;
                 }
             } else {
                 fail("Received unknown ClientRegistration");
                 return;
             }
 
-            assertClientRegistrationEquals(clientRegistration, clientRegistrationNode);
+            assertClientRegistrationEquals(applicationClientEntity, clientRegistrationNode);
 
             final Instant creationTime = Instant.parse(clientRegistrationNode.get("creationTime").textValue());
             assertTrue(previousCreationTime.isBefore(creationTime));
@@ -152,9 +158,9 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void getClientRegistrationOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.id()).with(sessionHandle))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}", applicationClientEntity.id()).with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isNotFound());
     }
@@ -169,16 +175,16 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void getClientRegistration(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity( UUID.randomUUID(), accountId, Instant.now(), "NameA","SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}", clientRegistration.id()).with(sessionHandle))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}", applicationClientEntity.id()).with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
-                .andExpect(jsonPath("$.displayName").value(clientRegistration.displayName()))
-                .andExpect(jsonPath("$.redirectUris").value(containingAll(clientRegistration.redirectUris())))
+                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(applicationClientEntity.creationTime()))))
+                .andExpect(jsonPath("$.displayName").value(applicationClientEntity.displayName()))
+                .andExpect(jsonPath("$.redirectUris").value(containingAll(applicationClientEntity.redirectUris())))
                 .andExpect(jsonPath("$.authorizationGrantTypes").isArray())
-                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("0"));
+                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("2"));
     }
 
     @Test
@@ -190,9 +196,9 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void getClientRegistrationSummaryOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", clientRegistration.id()).with(sessionHandle))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", applicationClientEntity.id()).with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isNotFound());
     }
@@ -211,32 +217,32 @@ class ClientRegistrationControllerTest {
         final Clock clock = Clock.fixed(now, ZoneId.systemDefault());
         this.summaryService.setClock(clock);
 
-        final List<ApiTokenEntity> apiTokens = List.of(
+        final List<Gw2AccountApiTokenWithPreferencesEntity> apiTokens = List.of(
                 this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenA"),
                 this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenB")
         );
 
-        final ClientRegistrationEntity clientRegistration = this.testHelper.createClientRegistration(accountId, "NameA");
-        final ClientConsentEntity clientConsent = this.testHelper.createClientConsent(accountId, clientRegistration.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
+        final ApplicationClientAccountEntity applicationClientAccountEntity = this.testHelper.createClientConsent(accountId, applicationClientEntity.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
 
-        final List<ClientAuthorizationEntity> clientAuthorizations = List.of(
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now, clientConsent.authorizedScopes(), false), // this one should not be counted (no tokens)
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(31L)), clientConsent.authorizedScopes(), true), // this one should not be counted (too long ago)
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(29L)), clientConsent.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(8L)), clientConsent.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(6L)), clientConsent.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(4L)), clientConsent.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now.minus(Duration.ofDays(2L)), clientConsent.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, clientRegistration.id(), now, clientConsent.authorizedScopes(), true)
+        final List<ApplicationClientAuthorizationEntity> clientAuthorizations = List.of(
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity.authorizedScopes(), false), // this one should not be counted (no tokens)
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(31L)), applicationClientAccountEntity.authorizedScopes(), true), // this one should not be counted (too long ago)
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(29L)), applicationClientAccountEntity.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(8L)), applicationClientAccountEntity.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(6L)), applicationClientAccountEntity.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(4L)), applicationClientAccountEntity.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(2L)), applicationClientAccountEntity.authorizedScopes(), true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity.authorizedScopes(), true)
         );
 
-        for (ClientAuthorizationEntity clientAuthorization : clientAuthorizations) {
-            for (ApiTokenEntity apiToken : apiTokens) {
+        for (ApplicationClientAuthorizationEntity clientAuthorization : clientAuthorizations) {
+            for (Gw2AccountApiTokenEntity apiToken : apiTokens) {
                 this.testHelper.createClientAuthorizationTokens(clientAuthorization.accountId(), clientAuthorization.id(), apiToken.gw2AccountId());
             }
         }
 
-        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", clientRegistration.id()).with(sessionHandle))
+        this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", applicationClientEntity.id()).with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").value(1L))
@@ -256,9 +262,9 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void deleteClientRegistrationOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
-        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.id()).with(sessionHandle).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/registration/{clientId}", applicationClientEntity.id()).with(sessionHandle).with(csrf()))
                 .andDo(sessionHandle)
                 .andExpect(status().isNotFound());
     }
@@ -273,13 +279,14 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void deleteClientRegistration(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(),  accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
 
-        this.mockMvc.perform(delete("/api/client/registration/{clientId}", clientRegistration.id()).with(sessionHandle).with(csrf()))
+        this.mockMvc.perform(delete("/api/client/registration/{clientId}", applicationClientEntity.id()).with(sessionHandle).with(csrf()))
                 .andDo(sessionHandle)
                 .andExpect(status().isOk());
 
-        assertTrue(this.clientRegistrationRepository.findById(clientRegistration.id()).isEmpty());
+        assertTrue(this.applicationClientRepository.findById(applicationClientEntity.id()).isEmpty());
+        assertTrue(this.applicationRepository.findById(applicationClientEntity.applicationId()).isEmpty());
     }
 
     @Test
@@ -346,7 +353,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(jsonPath("$.clientRegistration.authorizationGrantTypes[0]").value("authorization_code"))
                 .andExpect(jsonPath("$.clientRegistration.redirectUris").value(containingAll("http://127.0.0.1/a/b/c")));
 
-        assertEquals(1, this.clientRegistrationRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow()).size());
+        assertEquals(1, this.applicationClientRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow()).size());
     }
 
     @Test
@@ -363,10 +370,10 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void addRedirectUriOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        put("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.TEXT_PLAIN)
@@ -379,10 +386,10 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void addInvalidRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        put("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.TEXT_PLAIN)
@@ -395,10 +402,17 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void addRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(
+                accountId,
+                "NameA",
+                Set.of("http://127.0.0.1/a", "http://127.0.0.1/account/client/debug")
+        );
+
+        final Set<String> expectedTotal = new HashSet<>(applicationClientEntity.redirectUris());
+        expectedTotal.add("http://127.0.0.1/account/client/debug");
 
         this.mockMvc.perform(
-                        put("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        put("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.TEXT_PLAIN)
@@ -406,14 +420,14 @@ class ClientRegistrationControllerTest {
                 )
                 .andDo(sessionHandle)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
-                .andExpect(jsonPath("$.displayName").value(clientRegistration.displayName()))
-                .andExpect(jsonPath("$.redirectUris").value(containingAll("http://127.0.0.1/a", "http://127.0.0.1/account/client/debug")))
+                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(applicationClientEntity.creationTime()))))
+                .andExpect(jsonPath("$.displayName").value(applicationClientEntity.displayName()))
+                .andExpect(jsonPath("$.redirectUris").value(containingAll(expectedTotal)))
                 .andExpect(jsonPath("$.authorizationGrantTypes").isArray())
-                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("0"));
+                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("2"));
 
-        clientRegistration = this.clientRegistrationRepository.findById(clientRegistration.id()).orElseThrow();
-        assertEquals(Set.of("http://127.0.0.1/a", "http://127.0.0.1/account/client/debug"), clientRegistration.redirectUris());
+        applicationClientEntity = this.applicationClientRepository.findById(applicationClientEntity.id()).orElseThrow();
+        assertEquals(Set.of("http://127.0.0.1/a", "http://127.0.0.1/account/client/debug"), applicationClientEntity.redirectUris());
     }
 
     @Test
@@ -430,10 +444,10 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void removeRedirectUriOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        delete("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -446,14 +460,18 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void removeLastRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
+
+        assertEquals(1, applicationClientEntity.redirectUris().size());
+
+        final String redirectUri = applicationClientEntity.redirectUris().stream().findAny().orElseThrow();
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        delete("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .queryParam("redirectUri", "http://127.0.0.1/a")
+                                .queryParam("redirectUri", redirectUri)
                 )
                 .andDo(sessionHandle)
                 .andExpect(status().isBadRequest());
@@ -462,25 +480,29 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void removeRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a", "http://127.0.0.1/b")));
+        ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(
+                accountId,
+                "NameA",
+                Set.of("http://test.gw2auth.com/dummy", "http://test.gw2auth.com/dummy2")
+        );
 
         this.mockMvc.perform(
-                        delete("/api/client/registration/{clientId}/redirect-uris", clientRegistration.id())
+                        delete("/api/client/registration/{clientId}/redirect-uris", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .queryParam("redirectUri", "http://127.0.0.1/a")
+                                .queryParam("redirectUri", "http://test.gw2auth.com/dummy")
                 )
                 .andDo(sessionHandle)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
-                .andExpect(jsonPath("$.displayName").value(clientRegistration.displayName()))
-                .andExpect(jsonPath("$.redirectUris").value(containingAll("http://127.0.0.1/b")))
+                .andExpect(jsonPath("$.creationTime").value(asInstant(instant(applicationClientEntity.creationTime()))))
+                .andExpect(jsonPath("$.displayName").value(applicationClientEntity.displayName()))
+                .andExpect(jsonPath("$.redirectUris").value(containingAll("http://test.gw2auth.com/dummy2")))
                 .andExpect(jsonPath("$.authorizationGrantTypes").isArray())
-                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("0"));
+                .andExpect(jsonPath("$.authorizationGrantTypes.length()").value("2"));
 
-        clientRegistration = this.clientRegistrationRepository.findById(clientRegistration.id()).orElseThrow();
-        assertEquals(Set.of("http://127.0.0.1/b"), clientRegistration.redirectUris());
+        applicationClientEntity = this.applicationClientRepository.findById(applicationClientEntity.id()).orElseThrow();
+        assertEquals(Set.of("http://test.gw2auth.com/dummy2"), applicationClientEntity.redirectUris());
     }
 
     @Test
@@ -495,10 +517,10 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void regenerateClientSecretOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        final ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), otherUserAccountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(otherUserAccountId, "NameA");
 
         this.mockMvc.perform(
-                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.id())
+                        patch("/api/client/registration/{clientId}/client-secret", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                 )
@@ -509,31 +531,33 @@ class ClientRegistrationControllerTest {
     @WithGw2AuthLogin
     public void regenerateClientSecret(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        ClientRegistrationEntity clientRegistration = this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "NameA", "SecretA", Set.of(), Set.of("http://127.0.0.1/a")));
+        ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
+
+        final String notExpectedClientSecret = applicationClientEntity.clientSecret();
 
         this.mockMvc.perform(
-                        patch("/api/client/registration/{clientId}/client-secret", clientRegistration.id())
+                        patch("/api/client/registration/{clientId}/client-secret", applicationClientEntity.id())
                                 .with(sessionHandle)
                                 .with(csrf())
                 )
                 .andDo(sessionHandle)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clientSecret").isString())
-                .andExpect(jsonPath("$.clientRegistration.creationTime").value(asInstant(instant(clientRegistration.creationTime()))))
-                .andExpect(jsonPath("$.clientRegistration.displayName").value(clientRegistration.displayName()))
-                .andExpect(jsonPath("$.clientRegistration.redirectUris").value(containingAll(clientRegistration.redirectUris())))
+                .andExpect(jsonPath("$.clientRegistration.creationTime").value(asInstant(instant(applicationClientEntity.creationTime()))))
+                .andExpect(jsonPath("$.clientRegistration.displayName").value(applicationClientEntity.displayName()))
+                .andExpect(jsonPath("$.clientRegistration.redirectUris").value(containingAll(applicationClientEntity.redirectUris())))
                 .andExpect(jsonPath("$.clientRegistration.authorizationGrantTypes").isArray())
-                .andExpect(jsonPath("$.clientRegistration.authorizationGrantTypes.length()").value("0"));
+                .andExpect(jsonPath("$.clientRegistration.authorizationGrantTypes.length()").value("2"));
 
-        clientRegistration = this.clientRegistrationRepository.findById(clientRegistration.id()).orElseThrow();
-        assertNotEquals("SecretA", clientRegistration.clientSecret());
+        applicationClientEntity = this.applicationClientRepository.findById(applicationClientEntity.id()).orElseThrow();
+        assertNotEquals(notExpectedClientSecret, applicationClientEntity.clientSecret());
     }
 
-    private void assertClientRegistrationEquals(ClientRegistrationEntity clientRegistration, JsonNode clientRegistrationNode) {
-        assertInstantEquals(clientRegistration.creationTime(), clientRegistrationNode.get("creationTime").textValue());
-        assertEquals(clientRegistration.displayName(), clientRegistrationNode.get("displayName").textValue());
+    private void assertClientRegistrationEquals(ApplicationClientEntity applicationClientEntity, JsonNode clientRegistrationNode) {
+        assertInstantEquals(applicationClientEntity.creationTime(), clientRegistrationNode.get("creationTime").textValue());
+        assertEquals(applicationClientEntity.displayName(), clientRegistrationNode.get("displayName").textValue());
 
-        assertJsonArrayContainsExactly(clientRegistrationNode.get("authorizationGrantTypes"), clientRegistration.authorizationGrantTypes());
-        assertJsonArrayContainsExactly(clientRegistrationNode.get("redirectUris"), clientRegistration.redirectUris());
+        assertJsonArrayContainsExactly(clientRegistrationNode.get("authorizationGrantTypes"), applicationClientEntity.authorizationGrantTypes());
+        assertJsonArrayContainsExactly(clientRegistrationNode.get("redirectUris"), applicationClientEntity.redirectUris());
     }
 }

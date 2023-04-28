@@ -4,12 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.*;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentEntity;
-import com.gw2auth.oauth2.server.repository.client.consent.ClientConsentRepository;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationEntity;
-import com.gw2auth.oauth2.server.repository.client.registration.ClientRegistrationRepository;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationEntity;
-import com.gw2auth.oauth2.server.repository.verification.Gw2AccountVerificationRepository;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
 import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -48,15 +43,6 @@ class AccountControllerTest {
     private AccountRepository accountRepository;
 
     @Autowired
-    private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
-
-    @Autowired
-    private ClientRegistrationRepository clientRegistrationRepository;
-
-    @Autowired
-    private ClientConsentRepository clientConsentRepository;
-
-    @Autowired
     private AccountFederationRepository accountFederationRepository;
 
     @Autowired
@@ -86,24 +72,24 @@ class AccountControllerTest {
         }
 
         for (int i = 0; i < verifiedGw2Accounts; i++) {
-            this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(UUID.randomUUID(), accountId));
+            this.testHelper.createAccountVerification(accountId, UUID.randomUUID());
         }
 
-        final Queue<ClientRegistrationEntity> clientRegistrationEntities = new LinkedList<>();
+        final Queue<ApplicationClientEntity> applicationClientEntities = new LinkedList<>();
 
         for (int i = 0; i < clientRegistrations; i++) {
-            clientRegistrationEntities.add(this.clientRegistrationRepository.save(new ClientRegistrationEntity(UUID.randomUUID(), accountId, Instant.now(), "Name","", Set.of(), Set.of("http://127.0.0.1/"))));
+            applicationClientEntities.add(this.testHelper.createClientRegistration(accountId, "Name"));
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of("dummy")));
+            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of("dummy"));
         }
 
         // add one client authorization without scopes (that should not be counted)
-        this.clientConsentRepository.save(new ClientConsentEntity(accountId, clientRegistrationEntities.poll().id(), UUID.randomUUID(), Set.of()));
+        this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of());
 
         for (int i = 0; i < accountFederations; i++) {
-            this.accountFederationRepository.save(new AccountFederationEntity(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId));
+            this.testHelper.createAccountFederation(UUID.randomUUID().toString(), UUID.randomUUID().toString(), accountId);
         }
 
         this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
@@ -246,7 +232,7 @@ class AccountControllerTest {
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
     public void deleteAccountFederation(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        this.accountFederationRepository.save(new AccountFederationEntity("issuer2", "idAtIssuer2", accountId));
+        this.testHelper.createAccountFederation("issuer2", "idAtIssuer2", accountId);
 
         this.mockMvc.perform(
                 delete("/api/account/federation")
@@ -360,7 +346,7 @@ class AccountControllerTest {
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
     public void addAccountFederationAlreadyLinkedToOtherAccount(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
-        this.accountFederationRepository.save(new AccountFederationEntity("dummyIssuer", "B", otherUserAccountId));
+        this.testHelper.createAccountFederation("dummyIssuer", "B", otherUserAccountId);
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
         final String loginURL = this.mockMvc.perform(get("/api/account/federation/{provider}", "dummyIssuer").with(sessionHandle))
