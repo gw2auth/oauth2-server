@@ -237,7 +237,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
         return accountEntity;
     }
 
-    @Scheduled(fixedRate = 30L, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedRate = 90L, timeUnit = TimeUnit.MINUTES)
     public void deleteAllExpiredSessions() {
         final int deleted = this.accountFederationSessionRepository.deleteAllExpired(this.clock.instant());
         LOG.info("scheduled deletion of expired sessions deleted {} rows", deleted);

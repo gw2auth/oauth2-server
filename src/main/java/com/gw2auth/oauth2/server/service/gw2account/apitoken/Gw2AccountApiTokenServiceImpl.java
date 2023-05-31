@@ -21,6 +21,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @EnableScheduling
@@ -142,7 +143,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
         this.gw2AccountApiTokenRepository.updateApiTokensValid(lastValidCheckTime, updates);
     }
 
-    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    @Scheduled(fixedRate = 10L, timeUnit = TimeUnit.MINUTES)
     public void checkTokenValidity() {
         final Instant now = this.clock.instant();
         final List<Gw2AccountApiTokenEntity> tokensToCheck = this.gw2AccountApiTokenRepository.findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SummaryServiceImpl implements SummaryService, Clocked {
@@ -20,6 +21,7 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
     private final SummaryRepository summaryRepository;
     private final MeterRegistry meterRegistry;
     private volatile Clock clock;
+    private volatile ApplicationSummaryEntity applicationSummaryEntity;
 
     @Autowired
     public SummaryServiceImpl(SummaryRepository summaryRepository, MeterRegistry meterRegistry) {
@@ -35,7 +37,15 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
 
     @Override
     public ApplicationSummary getApplicationSummary() {
-        final ApplicationSummaryEntity value = this.summaryRepository.getApplicationSummary();
+        if (this.applicationSummaryEntity == null) {
+            synchronized (this) {
+                if (this.applicationSummaryEntity == null) {
+                    this.applicationSummaryEntity = this.summaryRepository.getApplicationSummary();
+                }
+            }
+        }
+
+        final ApplicationSummaryEntity value = this.applicationSummaryEntity;
 
         return new ApplicationSummary(
                 value.accounts(),
@@ -73,7 +83,7 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
         );
     }
 
-    @Scheduled(fixedRate = 1000L * 60L * 5L)
+    @Scheduled(fixedRate = 5L, timeUnit = TimeUnit.MINUTES)
     public void publishSummaryAsMetric() {
         final ApplicationSummaryEntity summary = this.summaryRepository.getApplicationSummary();
 
@@ -82,5 +92,9 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
         this.meterRegistry.summary("gw2auth_verified_gw2_accounts").record(summary.verifiedGw2Accounts());
         this.meterRegistry.summary("gw2auth_client_registrations").record(summary.clientRegistrations());
         this.meterRegistry.summary("gw2auth_client_authorizations").record(summary.clientAuthorizations());
+
+        synchronized (this) {
+            this.applicationSummaryEntity = summary;
+        }
     }
 }

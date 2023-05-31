@@ -373,7 +373,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
     }
     // endregion
 
-    @Scheduled(fixedRate = 30L, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedRate = 90L, timeUnit = TimeUnit.MINUTES)
     public void deleteAllExpiredAuthorizations() {
         final int deleted = this.applicationClientAuthorizationRepository.deleteAllExpired(this.clock.instant());
         LOG.info("scheduled deletion of expired authorizations deleted {} rows", deleted);
