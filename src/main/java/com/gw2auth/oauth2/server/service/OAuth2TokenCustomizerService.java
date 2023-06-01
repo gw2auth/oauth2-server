@@ -135,7 +135,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         final ApplicationAccount applicationAccount = this.applicationAccountService.getApplicationAccount(userAccountId, applicationId).orElseThrow();
         final ApplicationClientAccount applicationClientAccount = this.applicationClientAccountService.getApplicationClientAccount(userAccountId, applicationClientId).orElseThrow();
 
-        try (AccountService.LoggingContext userLogging = this.accountService.log(userAccountId, Map.of("type", "ACCESS_TOKEN", "application_id", applicationId,  "client_id", applicationClientId))) {
+        try (AccountService.LoggingContext userLogging = this.accountService.log(userAccountId, Map.of("type", "ACCESS_TOKEN", "application_id", applicationId,  "client_id", applicationClientId, "user_id", applicationAccount.accountSub()))) {
             try (AccountService.LoggingContext clientOwnerLogging = this.accountService.log(application.accountId(), Map.of("type", "oauth2.user.token.refresh", "application_id", applicationId, "client_id", applicationClientId, "user_id", applicationAccount.accountSub()))) {
                 customize(ctx, userAccountId, applicationAccount, applicationClientAccount, authorization, userLogging, clientOwnerLogging);
             }

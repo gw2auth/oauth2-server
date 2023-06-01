@@ -213,6 +213,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
     @Transactional
     public boolean deleteAccount(UUID accountId) {
         this.accountRepository.deleteById(accountId);
+        LOG.info("the account {} has been deleted", accountId);
         return true;
     }
 
