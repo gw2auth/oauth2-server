@@ -14,20 +14,26 @@ import java.time.Clock;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class SummaryServiceImpl implements SummaryService, Clocked {
 
     private final SummaryRepository summaryRepository;
-    private final MeterRegistry meterRegistry;
+    private final AtomicReference<ApplicationSummaryEntity> applicationSummaryEntity;
     private volatile Clock clock;
-    private volatile ApplicationSummaryEntity applicationSummaryEntity;
 
     @Autowired
     public SummaryServiceImpl(SummaryRepository summaryRepository, MeterRegistry meterRegistry) {
         this.summaryRepository = summaryRepository;
-        this.meterRegistry = meterRegistry;
+        this.applicationSummaryEntity = new AtomicReference<>(this.summaryRepository.getApplicationSummary());
         this.clock = Clock.systemUTC();
+
+        meterRegistry.gauge("gw2auth_registered_accounts", this.applicationSummaryEntity, (v) -> v.get().accounts());
+        meterRegistry.gauge("gw2auth_api_tokens", this.applicationSummaryEntity, (v) -> v.get().apiTokens());
+        meterRegistry.gauge("gw2auth_verified_gw2_accounts", this.applicationSummaryEntity, (v) -> v.get().verifiedGw2Accounts());
+        meterRegistry.gauge("gw2auth_client_registrations", this.applicationSummaryEntity, (v) -> v.get().clientRegistrations());
+        meterRegistry.gauge("gw2auth_client_authorizations", this.applicationSummaryEntity, (v) -> v.get().clientAuthorizations());
     }
 
     @Override
@@ -37,15 +43,7 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
 
     @Override
     public ApplicationSummary getApplicationSummary() {
-        if (this.applicationSummaryEntity == null) {
-            synchronized (this) {
-                if (this.applicationSummaryEntity == null) {
-                    this.applicationSummaryEntity = this.summaryRepository.getApplicationSummary();
-                }
-            }
-        }
-
-        final ApplicationSummaryEntity value = this.applicationSummaryEntity;
+        final ApplicationSummaryEntity value = this.applicationSummaryEntity.get();
 
         return new ApplicationSummary(
                 value.accounts(),
@@ -84,17 +82,7 @@ public class SummaryServiceImpl implements SummaryService, Clocked {
     }
 
     @Scheduled(fixedRate = 5L, timeUnit = TimeUnit.MINUTES)
-    public void publishSummaryAsMetric() {
-        final ApplicationSummaryEntity summary = this.summaryRepository.getApplicationSummary();
-
-        this.meterRegistry.summary("gw2auth_registered_accounts").record(summary.accounts());
-        this.meterRegistry.summary("gw2auth_api_tokens").record(summary.apiTokens());
-        this.meterRegistry.summary("gw2auth_verified_gw2_accounts").record(summary.verifiedGw2Accounts());
-        this.meterRegistry.summary("gw2auth_client_registrations").record(summary.clientRegistrations());
-        this.meterRegistry.summary("gw2auth_client_authorizations").record(summary.clientAuthorizations());
-
-        synchronized (this) {
-            this.applicationSummaryEntity = summary;
-        }
+    public void updateApplicationSummaryCache() {
+        this.applicationSummaryEntity.set(this.summaryRepository.getApplicationSummary());
     }
 }

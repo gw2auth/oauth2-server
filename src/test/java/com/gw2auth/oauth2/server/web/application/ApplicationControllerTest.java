@@ -75,7 +75,7 @@ class ApplicationControllerTest {
         this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of());
 
         // force a fresh lookup
-        this.summaryService.publishSummaryAsMetric();
+        this.summaryService.updateApplicationSummaryCache();
 
         this.mockMvc.perform(get("/api/application/summary"))
                 .andExpect(status().isOk())

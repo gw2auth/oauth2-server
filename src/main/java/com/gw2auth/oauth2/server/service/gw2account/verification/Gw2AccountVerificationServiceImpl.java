@@ -1,6 +1,5 @@
 package com.gw2auth.oauth2.server.service.gw2account.verification;
 
-import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationChallengeEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationChallengeRepository;
@@ -11,6 +10,10 @@ import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +46,7 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
     private final AccountService accountService;
     private final Gw2AccountService gw2AccountService;
     private final Map<Long, VerificationChallenge<?>> challengesById;
+    private final MeterRegistry meterRegistry;
     private Clock clock;
 
     @Autowired
@@ -52,7 +56,8 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
                                              Gw2AccountVerificationChallengeRepository gw2AccountVerificationChallengeRepository,
                                              Gw2ApiService gw2ApiService,
                                              AccountService accountService,
-                                             Gw2AccountService gw2AccountService) {
+                                             Gw2AccountService gw2AccountService,
+                                             MeterRegistry meterRegistry) {
 
         this.gw2AccountApiTokenRepository = gw2AccountApiTokenRepository;
         this.gw2AccountVerificationRepository = gw2AccountVerificationRepository;
@@ -60,6 +65,7 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
         this.gw2ApiService = gw2ApiService;
         this.accountService = accountService;
         this.gw2AccountService = gw2AccountService;
+        this.meterRegistry = meterRegistry;
         this.clock = Clock.systemDefaultZone();
 
         final Map<Long, VerificationChallenge<?>> challengesById = new HashMap<>(verificationChallenges.size());
@@ -268,6 +274,7 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
             this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountIdUUID, accountId));
 
             logging.log("GW2 account verification succeeded!");
+            recordMetric(entity, true);
         } else {
             logging.log("GW2 account verification could not be verified yet");
         }
@@ -298,8 +305,8 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
                         if (now.isAfter(entity.timeoutAt())) {
                             this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(entity.accountId(), entity.gw2AccountId());
                             logging.log("GW2 account failed to verify within the allowed period.");
+                            recordMetric(entity, false);
                         } else {
-                            // TODO: remove this condition once all VERIFICATION_FAILED_CHALLENGE_ID have naturally been removed
                             verify(logging, entity);
                         }
                     } catch (Exception e) {
@@ -308,6 +315,18 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
                 }
             }
         }
+    }
+
+    private void recordMetric(Gw2AccountVerificationChallengeEntity entity, boolean success) {
+        final Timer timer = this.meterRegistry.timer(
+                "gw2auth_challenge_completion_time",
+                Tags.of(
+                        Tag.of("challenge_id", Long.toString(entity.challengeId())),
+                        Tag.of("success", Boolean.toString(success))
+                )
+        );
+
+        timer.record(Duration.between(entity.startedAt(), this.clock.instant()));
     }
 
     private <S> Map<String, Object> buildMessage(VerificationChallenge<S> challenge, String rawState) throws IOException {
