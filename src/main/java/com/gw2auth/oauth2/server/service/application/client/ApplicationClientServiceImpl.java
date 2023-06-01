@@ -7,6 +7,8 @@ import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationClientServiceImpl implements ApplicationClientService, RegisteredClientRepository, Clocked {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ApplicationClientServiceImpl.class);
     private static final int CLIENT_SECRET_LENGTH = 64;
     private static final String CLIENT_SECRET_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final Set<AuthorizationGrantType> ALLOWED_GRANT_TYPES = Set.of(AuthorizationGrantType.AUTHORIZATION_CODE, AuthorizationGrantType.REFRESH_TOKEN, AuthorizationGrantType.CLIENT_CREDENTIALS);
@@ -220,8 +223,21 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     // region Spring OAuth2
     @Override
     public void save(RegisteredClient registeredClient) {
-        // should only be done through the other methods
-        throw new UnsupportedOperationException();
+        final UUID registeredClientId = UUID.fromString(registeredClient.getClientId());
+
+        LOG.warn("received call to save(RegisteredClient) for client {}", registeredClientId);
+
+        final ApplicationClientEntity entity = this.applicationClientRepository.findById(registeredClientId).orElseThrow();
+        this.applicationClientRepository.save(
+                entity.id(),
+                entity.applicationId(),
+                entity.creationTime(),
+                entity.displayName(),
+                registeredClient.getClientSecret(), // is currently only used to update secret, so only update that one
+                entity.authorizationGrantTypes(),
+                entity.redirectUris(),
+                entity.requiresApproval()
+        );
     }
 
     @Override
