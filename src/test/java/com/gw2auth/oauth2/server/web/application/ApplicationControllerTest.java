@@ -3,9 +3,8 @@ package com.gw2auth.oauth2.server.web.application;
 import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
 import com.gw2auth.oauth2.server.TestHelper;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
-import com.gw2auth.oauth2.server.repository.account.AccountEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.service.summary.SummaryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
@@ -36,14 +34,14 @@ class ApplicationControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private AccountRepository accountRepository;
+    private SummaryServiceImpl summaryService;
 
     @Autowired
     private TestHelper testHelper;
 
     @Test
     public void getApplicationSummary() throws Exception {
-        final UUID accountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID accountId = this.testHelper.createAccount().id();
 
         final int accounts = 102;
         final int apiTokens = 3;
@@ -52,7 +50,7 @@ class ApplicationControllerTest {
         final int clientAuthorizations = 10;// this must be less than clientRegistrations! (only to keep the testcase simple)
 
         for (int i = 0; i < accounts; i++) {
-            this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now()));
+            this.testHelper.createAccount();
         }
 
         for (int i = 0; i < apiTokens; i++) {
@@ -75,6 +73,9 @@ class ApplicationControllerTest {
 
         // add one client authorization without scopes (that should not be counted)
         this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of());
+
+        // force a fresh lookup
+        this.summaryService.publishSummaryAsMetric();
 
         this.mockMvc.perform(get("/api/application/summary"))
                 .andExpect(status().isOk())
