@@ -10,20 +10,21 @@ import com.gw2auth.oauth2.server.repository.application.client.authorization.App
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
+import static com.gw2auth.oauth2.server.Assertions.assertJsonArrayContainsExactly;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -65,6 +66,7 @@ class ClientConsentControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientConsents(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -72,8 +74,8 @@ class ClientConsentControllerTest {
         final ApplicationClientEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ApplicationClientEntity clientRegistrationC = this.testHelper.createClientRegistration(accountId, "Name");
 
-        final Pair<UUID, ApplicationClientAccountEntity> clientConsentA = this.testHelper.createClientConsent2(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE));
-        final Pair<UUID, ApplicationClientAccountEntity> clientConsentB = this.testHelper.createClientConsent2(accountId, clientRegistrationC.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
+        final Pair<UUID, ApplicationClientAccountEntity> clientConsentA = this.testHelper.createClientConsent2(accountId, clientRegistrationA.id(), Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2AUTH_VERIFIED));
+        final Pair<UUID, ApplicationClientAccountEntity> clientConsentB = this.testHelper.createClientConsent2(accountId, clientRegistrationC.id(), Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2_GUILDS));
 
         final String jsonResponse = this.mockMvc.perform(get("/api/client/consent").with(sessionHandle))
                 .andDo(sessionHandle)
@@ -139,26 +141,8 @@ class ClientConsentControllerTest {
             assertEquals(clientConsent.v1().toString(), element.get("accountSub").textValue());
 
             // authorized scopes
-            final Set<String> expectedScopes = new HashSet<>(clientConsent.v2().authorizedScopes());
-            final JsonNode authorizedGw2ApiPermissionsNode = element.get("authorizedGw2ApiPermissions");
-
-            assertTrue(authorizedGw2ApiPermissionsNode.isArray());
-
-            for (int j = 0; j < authorizedGw2ApiPermissionsNode.size(); j++) {
-                final Gw2ApiPermission gw2ApiPermission = Gw2ApiPermission.fromGw2(authorizedGw2ApiPermissionsNode.get(j).textValue()).orElseThrow();
-
-                if (!expectedScopes.remove(gw2ApiPermission.oauth2())) {
-                    fail("got unexpected scope in authorization");
-                }
-            }
-
-            if (element.get("authorizedVerifiedInformation").booleanValue()) {
-                if (!expectedScopes.remove(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE)) {
-                    fail("got unexpected scope in authorization");
-                }
-            }
-
-            assertTrue(expectedScopes.isEmpty());
+            final JsonNode authorizedScopesNode = element.get("authorizedScopes");
+            assertJsonArrayContainsExactly(authorizedScopesNode, clientConsent.v2().authorizedScopes());
         }
 
         assertTrue(foundAuthorizationA);
@@ -171,6 +155,7 @@ class ClientConsentControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteClientConsent(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -178,15 +163,15 @@ class ClientConsentControllerTest {
         final ApplicationClientEntity clientRegistrationA = this.testHelper.createClientRegistration(accountId, "Name");
         final ApplicationClientEntity clientRegistrationB = this.testHelper.createClientRegistration(accountId, "Name");
 
-        final Gw2AccountApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameA");
-        final Gw2AccountApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameB");
-        final Gw2AccountApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameC");
+        final Gw2AccountApiTokenEntity apiTokenA = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameA").v2();
+        final Gw2AccountApiTokenEntity apiTokenB = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameB").v2();
+        final Gw2AccountApiTokenEntity apiTokenC = this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenNameC").v2();
 
-        final ApplicationClientAccountEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
-        final ApplicationClientAccountEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationB.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2(), Gw2ApiPermission.GUILDS.oauth2()));
+        final ApplicationClientAccountEntity clientConsentA = this.testHelper.createClientConsent(accountId, clientRegistrationA.id(), Set.of(OAuth2Scope.GW2_ACCOUNT));
+        final ApplicationClientAccountEntity clientConsentB = this.testHelper.createClientConsent(accountId, clientRegistrationB.id(), Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2_GUILDS));
 
-        final String authorizationIdA = this.testHelper.createClientAuthorization(accountId, clientConsentA.applicationClientId(), clientConsentA.authorizedScopes()).id();
-        final String authorizationIdB = this.testHelper.createClientAuthorization(accountId, clientConsentB.applicationClientId(), clientConsentB.authorizedScopes()).id();
+        final String authorizationIdA = this.testHelper.createClientAuthorization(accountId, clientConsentA).id();
+        final String authorizationIdB = this.testHelper.createClientAuthorization(accountId, clientConsentB).id();
 
         // tokens for authorization A
         this.testHelper.createClientAuthorizationTokens(accountId, authorizationIdA, apiTokenA.gw2AccountId(), apiTokenC.gw2AccountId());

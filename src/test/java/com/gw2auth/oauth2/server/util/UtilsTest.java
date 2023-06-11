@@ -47,6 +47,15 @@ class UtilsTest {
     }
 
     @Test
+    public void splitWithLimit() {
+        final List<String> result = Utils.split("h,e,l,l,o", ",", 2).toList();
+
+        assertEquals(2, result.size());
+        assertEquals("h", result.get(0));
+        assertEquals("e,l,l,o", result.get(1));
+    }
+
+    @Test
     public void parseQueryNoValue() {
         final List<QueryParam> result = Utils.parseQuery("key").toList();
 

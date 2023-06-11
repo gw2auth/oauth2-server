@@ -4,9 +4,9 @@ import com.gw2auth.oauth2.server.repository.application.ApplicationRepository;
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
-import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,6 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ApplicationClientServiceImpl implements ApplicationClientService, RegisteredClientRepository, Clocked {
@@ -84,7 +83,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
 
     @Override
     @Transactional
-    public ApplicationClientCreation createApplicationClient(UUID accountId, UUID applicationId, String displayName, Set<String> _authorizationGrantTypes, Set<String> redirectUris) {
+    public ApplicationClientCreation createApplicationClient(UUID accountId, UUID applicationId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris, OAuth2ClientApiVersion clientApiVersion) {
         if (redirectUris.isEmpty()) {
             throw new ApplicationClientServiceException(ApplicationClientServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
         } else if (!redirectUris.stream().allMatch(this.redirectUriValidator::validate)) {
@@ -92,11 +91,6 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         } else if (this.applicationRepository.findByIdAndAccountId(applicationId, accountId).isEmpty()) {
             throw new ApplicationClientServiceException(ApplicationClientServiceException.APPLICATION_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
-
-        final Set<AuthorizationGrantType> authorizationGrantTypes = _authorizationGrantTypes.stream()
-                .map(AuthorizationGrantType::new)
-                //.filter(ALLOWED_GRANT_TYPES::contains) -> dont filter here. We filter before giving it to spring (if we support the requested scopes in the future, they can be used directly)
-                .collect(Collectors.toSet());
 
         final String clientSecret = generateClientSecret();
         final String encodedClientSecret = this.passwordEncoder.encode(clientSecret);
@@ -107,9 +101,10 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 this.clock.instant(),
                 displayName,
                 encodedClientSecret,
-                authorizationGrantTypes.stream().map(AuthorizationGrantType::getValue).collect(Collectors.toSet()),
+                authorizationGrantTypes,
                 redirectUris,
-                false
+                false,
+                clientApiVersion.value()
         ));
 
         this.accountService.log(
@@ -118,7 +113,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 Map.of("application_id", applicationId, "client_id", entity.id())
         );
 
-        return ApplicationClientCreation.fromEntity(entity, clientSecret);
+        return new ApplicationClientCreation(ApplicationClient.fromEntity(entity), clientSecret);
     }
 
     @Override
@@ -183,7 +178,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 encodedClientSecret,
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
-                entity.requiresApproval()
+                entity.requiresApproval(),
+                entity.apiVersion()
         ));
 
         this.accountService.log(
@@ -192,7 +188,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 Map.of("application_id", entity.applicationId(), "client_id", entity.id())
         );
 
-        return ApplicationClientCreation.fromEntity(entity, clientSecret);
+        return new ApplicationClientCreation(ApplicationClient.fromEntity(entity), clientSecret);
     }
 
     @Override
@@ -236,7 +232,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 registeredClient.getClientSecret(), // is currently only used to update secret, so only update that one
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
-                entity.requiresApproval()
+                entity.requiresApproval(),
+                entity.apiVersion()
         );
     }
 
@@ -276,11 +273,10 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 .filter(ALLOWED_GRANT_TYPES::contains)
                 .forEach(builder::authorizationGrantType);
 
-        Gw2ApiPermission.stream()
-                .map(Gw2ApiPermission::oauth2)
+        final OAuth2ClientApiVersion clientApiVersion = OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion());
+        OAuth2Scope.allForVersion(clientApiVersion)
+                .map(OAuth2Scope::oauth2)
                 .forEach(builder::scope);
-
-        builder.scope(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE);
 
         return new SpringRegisteredClient(builder.build(), ApplicationClient.fromEntity(entity));
     }

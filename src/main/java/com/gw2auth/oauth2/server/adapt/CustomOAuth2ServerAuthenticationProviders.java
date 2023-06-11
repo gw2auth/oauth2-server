@@ -133,7 +133,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
         final String state = authorizationRequest != null ? authorizationRequest.getState() : token.getState();
         final Set<String> requestedScopes = authorizationRequest != null ? authorizationRequest.getScopes() : token.getScopes();
 
-        final OAuth2AuthorizationCodeRequestAuthenticationToken codeRequestAuthenticationToken = new OAuth2AuthorizationCodeRequestAuthenticationToken(
+        return new OAuth2AuthorizationCodeRequestAuthenticationToken(
                 token.getAuthorizationUri(),
                 token.getClientId(),
                 (Authentication) token.getPrincipal(),
@@ -142,8 +142,6 @@ public class CustomOAuth2ServerAuthenticationProviders {
                 requestedScopes,
                 null
         );
-
-        return codeRequestAuthenticationToken;
     }
 
     private static String resolveRedirectUri(OAuth2AuthorizationRequest authorizationRequest, RegisteredClient registeredClient) {
@@ -156,7 +154,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
         return null;
     }
 
-    public static CustomOAuth2AuthorizationCodeRequestAuthenticationProvider createCodeRequestAuthenticationProvider(HttpSecurity http) {
+    public static AuthenticationProvider createCodeRequestAuthenticationProvider(HttpSecurity http) {
         return new CustomOAuth2AuthorizationCodeRequestAuthenticationProvider(
                 getRegisteredClientRepository(http),
                 getAuthorizationService(http),
@@ -164,7 +162,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
         );
     }
 
-    public static CustomOAuth2AuthorizationConsentAuthenticationProvider createConsentAuthenticationProvider(HttpSecurity http) {
+    public static AuthenticationProvider createConsentAuthenticationProvider(HttpSecurity http) {
         return new CustomOAuth2AuthorizationConsentAuthenticationProvider(
                 getRegisteredClientRepository(http),
                 getAuthorizationService(http),

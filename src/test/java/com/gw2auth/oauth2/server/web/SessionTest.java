@@ -12,6 +12,7 @@ import com.gw2auth.oauth2.server.util.Constants;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -129,6 +130,7 @@ public class SessionTest {
         assertTrue(sessions.isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "first", idAtIssuer = "someid")
     public void tryImpersonateOtherAccountWithModifiedJWT(SessionHandle sessionHandle) throws Exception {
         // should work
@@ -167,6 +169,7 @@ public class SessionTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void requestsWithoutLocationShouldFailIfSessionHasLocation(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();

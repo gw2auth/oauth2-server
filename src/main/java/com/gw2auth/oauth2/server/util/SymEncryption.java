@@ -88,38 +88,4 @@ public final class SymEncryption {
 
         return new CipherInputStream(in, cipher);
     }
-
-    /*
-    public static void main(String[] args) throws Exception {
-        final byte[] secret;
-        final byte[] encBytes;
-        {
-            final SecretKey key = generateKey();
-            final IvParameterSpec iv = generateIv();
-            secret = toBytes(key, iv);
-
-            final String source = "hello world";
-
-            try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-                try (OutputStream out = encrypt(bos, key, iv)) {
-                    out.write(source.getBytes(StandardCharsets.UTF_8));
-                }
-
-                encBytes = bos.toByteArray();
-            }
-        }
-
-        {
-            final Pair<SecretKey, IvParameterSpec> pair = fromBytes(secret);
-            final SecretKey key = pair.v1();
-            final IvParameterSpec iv = pair.v2();
-
-            try (ByteArrayInputStream bis = new ByteArrayInputStream(encBytes)) {
-                try (InputStream in = decrypt(bis, key, iv)) {
-                    System.out.println(new String(in.readAllBytes(), StandardCharsets.UTF_8));
-                }
-            }
-        }
-    }
-    */
 }

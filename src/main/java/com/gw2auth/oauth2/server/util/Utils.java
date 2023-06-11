@@ -8,7 +8,11 @@ import java.util.stream.StreamSupport;
 public class Utils {
 
     public static Stream<String> split(String s, String delimiter) {
-        return StreamSupport.stream(new StringSplitSpliterator(s, delimiter), false);
+        return StreamSupport.stream(new StringSplitSpliterator(s, delimiter, -1), false);
+    }
+
+    public static Stream<String> split(String s, String delimiter, int limit) {
+        return StreamSupport.stream(new StringSplitSpliterator(s, delimiter, limit), false);
     }
 
     public static Stream<QueryParam> parseQuery(String query) {
@@ -23,13 +27,7 @@ public class Utils {
             return s;
         }
 
-        final StringBuilder sb = new StringBuilder(length);
-
-        for (int i = 0; i < missing; i++) {
-            sb.append(pad);
-        }
-
-        return sb.append(s).toString();
+        return String.valueOf(pad).repeat(missing) + s;
     }
 
     private static class StringSplitSpliterator implements Spliterator<String> {
@@ -39,12 +37,16 @@ public class Utils {
 
         private final String s;
         private final String delimiter;
+        private final int limit;
         private int offset;
+        private int matches;
 
-        private StringSplitSpliterator(String s, String delimiter) {
+        private StringSplitSpliterator(String s, String delimiter, int limit) {
             this.s = s;
             this.delimiter = delimiter;
+            this.limit = limit;
             this.offset = 0;
+            this.matches = 0;
         }
 
         @Override
@@ -54,7 +56,7 @@ public class Utils {
             }
 
             final int index = this.s.indexOf(this.delimiter, this.offset);
-            if (index == -1) {
+            if (index == -1 || (this.limit > 0 && ++this.matches >= this.limit)) {
                 action.accept(this.s.substring(this.offset));
                 this.offset = EXHAUSTED;
             } else {

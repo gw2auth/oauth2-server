@@ -1,7 +1,10 @@
 package com.gw2auth.oauth2.server.service.gw2account.apitoken;
 
+import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountNameUpdateEntity;
+import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
+import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenValidCheckEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenValidUpdateEntity;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
@@ -32,6 +35,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     private static final Duration IGNORE_TOKENS_INVALID_FOR_LONGER_THAN = Duration.ofDays(3L);
     private static final int VALIDITY_CHECK_BATCH_SIZE = 50;
 
+    private final Gw2AccountRepository gw2AccountRepository;
     private final Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
     private final AccountService accountService;
     private final Gw2AccountService gw2AccountService;
@@ -39,12 +43,14 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     private final Gw2ApiService gw2ApiService;
     private Clock clock;
 
-    public Gw2AccountApiTokenServiceImpl(Gw2AccountApiTokenRepository gw2AccountApiTokenRepository,
+    public Gw2AccountApiTokenServiceImpl(Gw2AccountRepository gw2AccountRepository,
+                                         Gw2AccountApiTokenRepository gw2AccountApiTokenRepository,
                                          AccountService accountService,
                                          Gw2AccountService gw2AccountService,
                                          Gw2AccountVerificationService gw2AccountVerificationService,
                                          Gw2ApiService gw2ApiService) {
 
+        this.gw2AccountRepository = gw2AccountRepository;
         this.gw2AccountApiTokenRepository = gw2AccountApiTokenRepository;
         this.accountService = accountService;
         this.gw2AccountService = gw2AccountService;
@@ -60,22 +66,15 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
 
     @Override
     public List<Gw2AccountApiToken> getApiTokens(UUID accountId) {
-        return this.gw2AccountApiTokenRepository.findAllWithPreferencesByAccountId(accountId).stream()
+        return this.gw2AccountApiTokenRepository.findAllByAccountId(accountId).stream()
                 .map(Gw2AccountApiToken::fromEntity)
                 .toList();
     }
 
     @Override
     public Optional<Gw2AccountApiToken> getApiToken(UUID accountId, UUID gw2AccountId) {
-        return this.gw2AccountApiTokenRepository.findWithPreferencesByAccountIdAndGw2AccountId(accountId, gw2AccountId)
+        return this.gw2AccountApiTokenRepository.findAllByAccountIdAndGw2AccountId(accountId, gw2AccountId)
                 .map(Gw2AccountApiToken::fromEntity);
-    }
-
-    @Override
-    public List<Gw2AccountApiToken> getApiTokens(UUID accountId, Collection<UUID> gw2AccountIds) {
-        return this.gw2AccountApiTokenRepository.findAllWithPreferencesByAccountIdAndGw2AccountIds(accountId, gw2AccountIds).stream()
-                .map(Gw2AccountApiToken::fromEntity)
-                .toList();
     }
 
     @Override
@@ -96,11 +95,11 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
         }
 
         final Instant now = this.clock.instant();
-        final com.gw2auth.oauth2.server.service.gw2account.Gw2Account gw2AccountBO = this.gw2AccountService.getOrCreateGw2Account(
-                accountId,
-                gw2Account.id(),
-                gw2Account.name()
-        );
+
+        // tokens are linked to gw2_account, the account entity needs to be created first
+        // setting the (GW2Auth) display name of the account entity to its (GW2) display name by default (will be ignored if the entity already exists)
+        this.gw2AccountService.getOrCreateGw2Account(accountId, gw2Account.id(), gw2Account.name(), gw2Account.name());
+
         final Gw2AccountApiTokenEntity tokenEntity = this.gw2AccountApiTokenRepository.save(new Gw2AccountApiTokenEntity(
                 accountId,
                 gw2Account.id(),
@@ -117,7 +116,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
                 Map.of("gw2_account_id", gw2Account.id())
         );
 
-        return Gw2AccountApiToken.fromEntity(tokenEntity, gw2AccountBO.displayName(), gw2AccountBO.orderRank());
+        return Gw2AccountApiToken.fromEntity(tokenEntity);
     }
 
     @Override
@@ -146,36 +145,48 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     @Scheduled(fixedRate = 10L, timeUnit = TimeUnit.MINUTES)
     public void checkTokenValidity() {
         final Instant now = this.clock.instant();
-        final List<Gw2AccountApiTokenEntity> tokensToCheck = this.gw2AccountApiTokenRepository.findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(
+        final List<Gw2AccountApiTokenValidCheckEntity> tokensToCheck = this.gw2AccountApiTokenRepository.findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(
                 now.minus(IGNORE_TOKENS_INVALID_FOR_LONGER_THAN),
                 now.minus(VALIDITY_CHECK_INTERVAL),
                 VALIDITY_CHECK_BATCH_SIZE
         );
-        final List<Gw2AccountApiTokenValidUpdateEntity> updateEntities = new ArrayList<>(tokensToCheck.size());
-        final int[] counts = new int[3];
+        final List<Gw2AccountApiTokenValidUpdateEntity> validUpdateEntities = new ArrayList<>(tokensToCheck.size());
+        final List<Gw2AccountNameUpdateEntity> nameUpdateEntities = new ArrayList<>(tokensToCheck.size());
+        int validCount = 0;
+        int invalidCount = 0;
+        int unknownCount = 0;
 
-        for (Gw2AccountApiTokenEntity apiTokenEntity : tokensToCheck) {
+        for (Gw2AccountApiTokenValidCheckEntity apiTokenValidCheckEntity : tokensToCheck) {
             Boolean isValidState;
             try {
-                this.gw2ApiService.getTokenInfo(apiTokenEntity.gw2ApiToken());
+                final Gw2Account gw2Account = this.gw2ApiService.getAccount(apiTokenValidCheckEntity.gw2ApiToken());
                 isValidState = true;
-                counts[0]++;
+                validCount++;
+
+                if (!gw2Account.name().equals(apiTokenValidCheckEntity.gw2AccountName())) {
+                    nameUpdateEntities.add(new Gw2AccountNameUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), gw2Account.name()));
+                }
             } catch (InvalidApiTokenException e) {
                 isValidState = false;
-                counts[1]++;
+                invalidCount++;
             } catch (Gw2ApiServiceException e) {
                 isValidState = null;
-                counts[2]++;
+                unknownCount++;
             }
 
             if (isValidState != null) {
-                updateEntities.add(new Gw2AccountApiTokenValidUpdateEntity(apiTokenEntity.accountId(), apiTokenEntity.gw2AccountId(), isValidState));
+                validUpdateEntities.add(new Gw2AccountApiTokenValidUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), isValidState));
             }
         }
 
-        if (!updateEntities.isEmpty()) {
-            this.gw2AccountApiTokenRepository.updateApiTokensValid(now, updateEntities);
-            LOG.info("updated API-Token validity for {} API-Tokens; valid={} invalid={} unknown={}", tokensToCheck.size(), counts[0], counts[1], counts[2]);
+        if (!validUpdateEntities.isEmpty()) {
+            this.gw2AccountApiTokenRepository.updateApiTokensValid(now, validUpdateEntities);
+            LOG.info("updated API-Token validity for {} API-Tokens; valid={} invalid={} unknown={}", tokensToCheck.size(), validCount, invalidCount, unknownCount);
+        }
+
+        if (!nameUpdateEntities.isEmpty()) {
+            this.gw2AccountRepository.updateGw2AccountNames(nameUpdateEntities);
+            LOG.info("updated GW2 Account names for {} accounts", nameUpdateEntities.size());
         }
     }
 }

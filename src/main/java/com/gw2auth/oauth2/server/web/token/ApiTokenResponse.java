@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.web.token;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
 
 import java.time.Duration;
@@ -20,8 +21,8 @@ public record ApiTokenResponse(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                @JsonProperty("isVerified") boolean isVerified,
                                @JsonProperty("authorizations") List<Authorization> authorizations) {
 
-    public static ApiTokenResponse create(Gw2AccountApiToken value, boolean isVerified, List<Authorization> authorizations) {
-        return create(value, value.displayName(), isVerified, authorizations);
+    public static ApiTokenResponse create(Gw2Account account, Gw2AccountApiToken token, boolean isVerified, List<Authorization> authorizations) {
+        return create(token, account.displayName(), isVerified, authorizations);
     }
 
     public static ApiTokenResponse create(Gw2AccountApiToken value, String displayName, boolean isVerified, List<Authorization> authorizations) {

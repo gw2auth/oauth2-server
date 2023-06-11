@@ -10,7 +10,6 @@ public interface Gw2AccountApiTokenService {
 
     List<Gw2AccountApiToken> getApiTokens(UUID accountId);
     Optional<Gw2AccountApiToken> getApiToken(UUID accountId, UUID gw2AccountId);
-    List<Gw2AccountApiToken> getApiTokens(UUID accountId, Collection<UUID> gw2AccountIds);
     Gw2AccountApiToken addOrUpdateApiToken(UUID accountId, String gw2ApiToken);
 
     void deleteApiToken(UUID accountId, UUID gw2AccountId);

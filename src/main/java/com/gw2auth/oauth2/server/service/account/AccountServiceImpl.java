@@ -66,6 +66,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
     }
 
     @Override
+    @Transactional
     public Account getOrCreateAccount(String issuer, String idAtIssuer) {
         return Account.fromEntity(getOrCreateAccountInternal(issuer, idAtIssuer));
     }
@@ -270,7 +271,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
             combinedFields.putAll(fields);
 
             final JSONObject fieldsJson = new JSONObject(combinedFields);
-
             LOG.info("account log; account_id={} fields={} persistent={}; {}", this.accountId, fieldsJson, persistent, message);
         }
 

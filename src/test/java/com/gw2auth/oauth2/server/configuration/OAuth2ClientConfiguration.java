@@ -34,7 +34,7 @@ public class OAuth2ClientConfiguration {
     public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2LoginCustomizer") Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer) {
         return oauth2 -> {
             oauth2LoginCustomizer.customize(oauth2);
-            oauth2.tokenEndpoint().accessTokenResponseClient(accessTokenResponseClient());
+            oauth2.tokenEndpoint((tk) -> tk.accessTokenResponseClient(accessTokenResponseClient()));
         };
     }
 

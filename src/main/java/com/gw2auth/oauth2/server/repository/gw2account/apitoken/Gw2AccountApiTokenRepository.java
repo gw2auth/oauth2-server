@@ -46,33 +46,27 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
                                   @Param("last_valid_check_time") Instant lastValidCheckTime);
 
     @Query("""
-    SELECT tk.*, acc.display_name, acc.order_rank
-    FROM gw2_account_api_tokens tk
-    INNER JOIN gw2_accounts acc
-    ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
-    WHERE tk.account_id = :account_id
+    SELECT *
+    FROM gw2_account_api_tokens
+    WHERE account_id = :account_id
     """)
-    List<Gw2AccountApiTokenWithPreferencesEntity> findAllWithPreferencesByAccountId(@Param("account_id") UUID accountId);
+    List<Gw2AccountApiTokenEntity> findAllByAccountId(@Param("account_id") UUID accountId);
 
     @Query("""
-    SELECT tk.*, acc.display_name, acc.order_rank
-    FROM gw2_account_api_tokens tk
-    INNER JOIN gw2_accounts acc
-    ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
-    WHERE tk.account_id = :account_id
-    AND tk.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
+    SELECT *
+    FROM gw2_account_api_tokens
+    WHERE account_id = :account_id
+    AND gw2_account_id = :gw2_account_id
     """)
-    List<Gw2AccountApiTokenWithPreferencesEntity> findAllWithPreferencesByAccountIdAndGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
+    Optional<Gw2AccountApiTokenEntity> findAllByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 
     @Query("""
-    SELECT tk.*, acc.display_name, acc.order_rank
-    FROM gw2_account_api_tokens tk
-    INNER JOIN gw2_accounts acc
-    ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
-    WHERE tk.account_id = :account_id
-    AND tk.gw2_account_id = :gw2_account_id
+    SELECT *
+    FROM gw2_account_api_tokens
+    WHERE account_id = :account_id
+    AND gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
     """)
-    Optional<Gw2AccountApiTokenWithPreferencesEntity> findWithPreferencesByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
+    List<Gw2AccountApiTokenEntity> findAllByAccountIdAndGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
 
     @Query("""
     SELECT *
@@ -83,13 +77,15 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
     Optional<Gw2AccountApiTokenEntity> findByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 
     @Query("""
-    SELECT *
-    FROM gw2_account_api_tokens
-    WHERE last_valid_time >= :last_valid_time
-    AND last_valid_check_time <= :last_valid_check_time
+    SELECT tk.account_id, tk.gw2_account_id, acc.gw2_account_name, tk.gw2_api_token
+    FROM gw2_account_api_tokens tk
+    INNER JOIN gw2_accounts acc
+    ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
+    WHERE tk.last_valid_time >= :last_valid_time
+    AND tk.last_valid_check_time <= :last_valid_check_time
     LIMIT :limit
     """)
-    List<Gw2AccountApiTokenEntity> findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(@Param("last_valid_time") Instant lastValidTimeGTE, @Param("last_valid_check_time") Instant lastValidCheckTimeLTE, @Param("limit") int limit);
+    List<Gw2AccountApiTokenValidCheckEntity> findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(@Param("last_valid_time") Instant lastValidTimeGTE, @Param("last_valid_check_time") Instant lastValidCheckTimeLTE, @Param("limit") int limit);
 
     @Modifying
     @Query("""

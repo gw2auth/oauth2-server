@@ -153,7 +153,9 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     Optional<ApplicationClientAuthorizationEntity> findByIdAndAccountId(@Param("id") String id, @Param("account_id") UUID accountId);
 
     @Query("""
-    SELECT auth.*, ARRAY_AGG(auth_acc.gw2_account_id) AS gw2_account_ids
+    SELECT
+        auth.*,
+        COALESCE(ARRAY_AGG(auth_acc.gw2_account_id) FILTER ( WHERE auth_acc.gw2_account_id IS NOT NULL ), ARRAY[]::UUID[]) AS gw2_account_ids
     FROM application_client_authorizations auth
     LEFT JOIN application_client_authorization_gw2_accounts auth_acc
     ON auth.id = auth_acc.application_client_authorization_id
@@ -175,7 +177,9 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     Optional<ApplicationClientAuthorizationEntity> findLatestByAccountIdAndApplicationClientIdAndHavingScopes(@Param("account_id") UUID accountId, @Param("application_client_id") UUID applicationClientId, @Param("authorized_scopes") Set<String> scopes);
 
     @Query("""
-    SELECT auth.*, ARRAY_AGG(auth_acc.gw2_account_id) AS gw2_account_ids
+    SELECT
+        auth.*,
+        COALESCE(ARRAY_AGG(auth_acc.gw2_account_id) FILTER ( WHERE auth_acc.gw2_account_id IS NOT NULL ), ARRAY[]::UUID[]) AS gw2_account_ids
     FROM application_client_authorizations auth
     LEFT JOIN application_client_authorization_gw2_accounts auth_acc
     ON auth.id = auth_acc.application_client_authorization_id
@@ -186,7 +190,9 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> findAllWithGw2AccountIdsByAccountIdAndLinkedGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
 
     @Query("""
-    SELECT auth.*, ARRAY_AGG(auth_acc.gw2_account_id) AS gw2_account_ids
+    SELECT
+        auth.*,
+        COALESCE(ARRAY_AGG(auth_acc.gw2_account_id) FILTER ( WHERE auth_acc.gw2_account_id IS NOT NULL ), ARRAY[]::UUID[]) AS gw2_account_ids
     FROM application_client_authorizations auth
     LEFT JOIN application_client_authorization_gw2_accounts auth_acc
     ON auth.id = auth_acc.application_client_authorization_id

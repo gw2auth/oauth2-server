@@ -31,6 +31,6 @@ public final class CookieHelper {
 
     private static String getRequestContext(HttpServletRequest request) {
         String contextPath = request.getContextPath();
-        return (contextPath.length() > 0) ? contextPath : "/";
+        return contextPath.isEmpty() ? "/" : contextPath;
     }
 }

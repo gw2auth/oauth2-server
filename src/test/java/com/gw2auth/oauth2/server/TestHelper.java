@@ -1,6 +1,9 @@
 package com.gw2auth.oauth2.server;
 
-import com.gw2auth.oauth2.server.repository.account.*;
+import com.gw2auth.oauth2.server.repository.account.AccountEntity;
+import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
+import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
+import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.application.ApplicationEntity;
 import com.gw2auth.oauth2.server.repository.application.ApplicationRepository;
 import com.gw2auth.oauth2.server.repository.application.account.ApplicationAccountRepository;
@@ -18,10 +21,10 @@ import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
-import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenWithPreferencesEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.account.AccountSession;
@@ -53,6 +56,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @TestComponent
 public class TestHelper {
@@ -135,19 +140,17 @@ public class TestHelper {
         return collection.stream().findFirst();
     }
 
-    public Gw2AccountApiTokenWithPreferencesEntity createApiToken(UUID accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+    public Pair<Gw2AccountEntity, Gw2AccountApiTokenEntity> createApiToken(UUID accountId, UUID gw2AccountId, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
         return createApiToken(accountId, gw2AccountId, randomRootToken(), gw2ApiPermissions, name);
     }
 
-    public Gw2AccountApiTokenWithPreferencesEntity createApiToken(UUID accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+    public Pair<Gw2AccountEntity, Gw2AccountApiTokenEntity> createApiToken(UUID accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name) {
+        return createApiToken(accountId, gw2AccountId, gw2ApiToken, gw2ApiPermissions, name + ".1234", name);
+    }
+
+    public Pair<Gw2AccountEntity, Gw2AccountApiTokenEntity> createApiToken(UUID accountId, UUID gw2AccountId, String gw2ApiToken, Set<Gw2ApiPermission> gw2ApiPermissions, String name, String displayName) {
         final Instant now = Instant.now();
-        final Gw2AccountEntity gw2AccountEntity = this.gw2AccountRepository.save(new Gw2AccountEntity(
-                accountId,
-                gw2AccountId,
-                now,
-                name,
-                "A"
-        ));
+        final Gw2AccountEntity gw2AccountEntity = getOrCreateGw2Account(accountId, gw2AccountId, name, displayName);
 
         final Gw2AccountApiTokenEntity gw2AccountApiTokenEntity = this.gw2AccountApiTokenRepository.save(new Gw2AccountApiTokenEntity(
                 accountId,
@@ -159,17 +162,7 @@ public class TestHelper {
                 now
         ));
 
-        return new Gw2AccountApiTokenWithPreferencesEntity(
-                gw2AccountApiTokenEntity.accountId(),
-                gw2AccountApiTokenEntity.gw2AccountId(),
-                gw2AccountApiTokenEntity.creationTime(),
-                gw2AccountApiTokenEntity.gw2ApiToken(),
-                gw2AccountApiTokenEntity.gw2ApiPermissionsBitSet(),
-                gw2AccountApiTokenEntity.lastValidTime(),
-                gw2AccountApiTokenEntity.lastValidCheckTime(),
-                gw2AccountEntity.displayName(),
-                gw2AccountEntity.orderRank()
-        );
+        return new Pair<>(gw2AccountEntity, gw2AccountApiTokenEntity);
     }
 
     public ApplicationClientEntity createClientRegistration(UUID accountId, String name) {
@@ -192,15 +185,16 @@ public class TestHelper {
                 UUID.randomUUID().toString(),
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
                 redirectUris,
-                false
+                false,
+                0
         ));
     }
 
-    public ApplicationClientAccountEntity createClientConsent(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
+    public ApplicationClientAccountEntity createClientConsent(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
         return createClientConsent2(accountId, clientRegistrationId, scopes).v2();
     }
 
-    public Pair<UUID, ApplicationClientAccountEntity> createClientConsent2(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
+    public Pair<UUID, ApplicationClientAccountEntity> createClientConsent2(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
         final UUID applicationId = this.applicationClientRepository.findById(clientRegistrationId).orElseThrow().applicationId();
 
         final ApplicationAccountSubEntity applicationAccountSubEntity = this.applicationAccountSubRepository.findOrCreate(
@@ -219,7 +213,7 @@ public class TestHelper {
                 applicationId,
                 ApplicationClientAccount.ApprovalStatus.APPROVED.name(),
                 "UNIT-TEST",
-                scopes
+                scopes.stream().map(OAuth2Scope::oauth2).collect(Collectors.toUnmodifiableSet())
         ));
 
         return new Pair<>(applicationAccountSubEntity.accountSub(), applicationClientAccountEntity);
@@ -240,11 +234,25 @@ public class TestHelper {
         ));
     }
 
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<String> scopes) {
+    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, ApplicationClientAccountEntity entity) {
+        final Set<OAuth2Scope> scopes = entity.authorizedScopes().stream().map(OAuth2Scope::fromOAuth2Required).collect(Collectors.toUnmodifiableSet());
+        assertEquals(entity.authorizedScopes().size(), scopes.size());
+
+        return createClientAuthorization(accountId, entity.applicationClientId(), scopes);
+    }
+
+    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
         return createClientAuthorization(accountId, clientRegistrationId, Instant.now(), scopes, false);
     }
 
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, Set<String> scopes, boolean fillTokens) {
+    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, ApplicationClientAccountEntity entity, boolean fillTokens) {
+        final Set<OAuth2Scope> scopes = entity.authorizedScopes().stream().map(OAuth2Scope::fromOAuth2Required).collect(Collectors.toUnmodifiableSet());
+        assertEquals(entity.authorizedScopes().size(), scopes.size());
+
+        return createClientAuthorization(accountId, clientRegistrationId, creationTime, scopes, fillTokens);
+    }
+
+    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, Set<OAuth2Scope> scopes, boolean fillTokens) {
         String authorizationCodeValue = null;
         Instant authorizationCodeIssuedAt = null;
         Instant authorizationCodeExpiresAt = null;
@@ -275,6 +283,10 @@ public class TestHelper {
             refreshTokenMetadata = "{}";
         }
 
+        final Set<String> rawScopes = scopes.stream()
+                .map(OAuth2Scope::oauth2)
+                .collect(Collectors.toUnmodifiableSet());
+
         return this.applicationClientAuthorizationRepository.save(new ApplicationClientAuthorizationEntity(
                 UUID.randomUUID().toString(),
                 accountId,
@@ -283,7 +295,7 @@ public class TestHelper {
                 creationTime,
                 "Name",
                 AuthorizationGrantType.JWT_BEARER.getValue(),
-                scopes,
+                rawScopes,
                 "",
                 UUID.randomUUID().toString(),
                 authorizationCodeValue,
@@ -295,7 +307,7 @@ public class TestHelper {
                 accessTokenExpiresAt,
                 accessTokenMetadata,
                 accessTokenType,
-                scopes,
+                rawScopes,
                 refreshTokenValue,
                 refreshTokenIssuedAt,
                 refreshTokenExpiresAt,
@@ -318,11 +330,16 @@ public class TestHelper {
     }
 
     public Gw2AccountEntity getOrCreateGw2Account(UUID accountId, UUID gw2AccountId) {
+        return getOrCreateGw2Account(accountId, gw2AccountId, "Name.1234", "Name");
+    }
+
+    public Gw2AccountEntity getOrCreateGw2Account(UUID accountId, UUID gw2AccountId, String name, String displayName) {
         return this.gw2AccountRepository.save(
                 accountId,
                 gw2AccountId,
+                name,
                 Instant.now(),
-                "Name",
+                displayName,
                 "A",
                 null,
                 null
@@ -331,7 +348,7 @@ public class TestHelper {
 
     public Gw2AccountVerificationEntity createAccountVerification(UUID accountId, UUID gw2AccountId) {
         getOrCreateGw2Account(accountId, gw2AccountId);
-        return this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountId, accountId));
+        return this.gw2AccountVerificationRepository.save(gw2AccountId, accountId);
     }
 
     public Optional<Jwt> getJwtForCookie(SessionHandle sessionHandle) {

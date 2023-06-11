@@ -42,7 +42,8 @@ public class Gw2AuthClientProperties implements InitializingBean {
         private String clientId;
         private String clientSecret;
         private Set<String> authorizationGrantTypes;
-        private String redirectUri;
+        private Set<String> redirectUris;
+        private int clientApiVersion;
 
         public String getAccount() {
             return account;
@@ -84,12 +85,20 @@ public class Gw2AuthClientProperties implements InitializingBean {
             this.authorizationGrantTypes = authorizationGrantTypes;
         }
 
-        public String getRedirectUri() {
-            return redirectUri;
+        public Set<String> getRedirectUris() {
+            return redirectUris;
         }
 
-        public void setRedirectUri(String redirectUri) {
-            this.redirectUri = redirectUri;
+        public void setRedirectUris(Set<String> redirectUris) {
+            this.redirectUris = redirectUris;
+        }
+
+        public int getClientApiVersion() {
+            return clientApiVersion;
+        }
+
+        public void setClientApiVersion(int clientApiVersion) {
+            this.clientApiVersion = clientApiVersion;
         }
     }
 

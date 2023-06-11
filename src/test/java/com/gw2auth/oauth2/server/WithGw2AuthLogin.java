@@ -1,18 +1,12 @@
 package com.gw2auth.oauth2.server;
 
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.stream.Stream;
 
 @Retention(RetentionPolicy.RUNTIME)
-@ParameterizedTest
-@ArgumentsSource(WithGw2AuthLogin.SessionCookieArgumentProvider.class)
+@ArgumentsSource(Gw2AuthArgumentsProvider.class)
 public @interface WithGw2AuthLogin {
 
     String issuer() default "test-issuer";
@@ -21,15 +15,4 @@ public @interface WithGw2AuthLogin {
     String city() default SessionHandle.DEFAULT_CITY;
     double latitude() default SessionHandle.DEFAULT_LATITUDE;
     double longitude() default SessionHandle.DEFAULT_LONGITUDE;
-
-    class SessionCookieArgumentProvider implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            // has to be created here because this happens first
-            final SessionHandle sessionHandle = context.getStore(Gw2AuthLoginExtension.NAMESPACE).getOrComputeIfAbsent("cookies", k -> new SessionHandle(), SessionHandle.class);
-
-            return Stream.of(Arguments.of(sessionHandle));
-        }
-    }
 }

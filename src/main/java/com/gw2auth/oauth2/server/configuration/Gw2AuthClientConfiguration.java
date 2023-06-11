@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.configuration;
 
 import com.gw2auth.oauth2.server.configuration.properties.Gw2AuthClientProperties;
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.Application;
@@ -74,19 +75,20 @@ public class Gw2AuthClientConfiguration {
                         application.id(),
                         registrationConfig.getDisplayName(),
                         registrationConfig.getAuthorizationGrantTypes(),
-                        Set.of(registrationConfig.getRedirectUri())
+                        registrationConfig.getRedirectUris(),
+                        OAuth2ClientApiVersion.fromValueRequired(registrationConfig.getClientApiVersion())
                 );
 
                 this.jdbcOperations.update(
                         "UPDATE application_clients SET id = ?, client_secret = ? WHERE id = ?",
                         clientId,
                         this.passwordEncoder.encode(registrationConfig.getClientSecret()),
-                        applicationClientCreation.id()
+                        applicationClientCreation.client().id()
                 );
 
-                LOG.debug("Created Gw2Auth Client with client-id={} from configuration", registrationConfig.getClientId());
+                LOG.debug("created gw2auth client with client-id={} from configuration", registrationConfig.getClientId());
             } else {
-                LOG.debug("Gw2Auth Client with client-id={} already exists", registrationConfig.getClientId());
+                LOG.debug("gw2auth client with client-id={} already exists", registrationConfig.getClientId());
             }
         }
     }

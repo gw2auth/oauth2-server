@@ -202,7 +202,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http, @Qualifier("actuator-request-matcher") RequestMatcher requestMatcher) throws Exception {
         http
                 .securityMatcher(requestMatcher)
-                .authorizeHttpRequests().anyRequest().permitAll();
+                .authorizeHttpRequests((auth) -> auth.anyRequest().permitAll());
 
         return http.build();
     }

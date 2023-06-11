@@ -11,12 +11,13 @@ import com.gw2auth.oauth2.server.repository.application.client.ApplicationClient
 import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountEntity;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
-import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenWithPreferencesEntity;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.summary.SummaryServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -83,6 +84,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationsEmpty(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(get("/api/client/registration").with(sessionHandle))
@@ -91,6 +93,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(jsonPath("$.length()").value("0"));
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrations(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -155,6 +158,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -165,6 +169,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationNotExisting(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(get("/api/client/registration/{clientId}", UUID.randomUUID()).with(sessionHandle))
@@ -172,6 +177,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistration(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -193,6 +199,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationSummaryOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -203,6 +210,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationSummaryNotExisting(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(get("/api/client/registration/{clientId}/summary", UUID.randomUUID()).with(sessionHandle))
@@ -210,6 +218,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getClientRegistrationSummary(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -217,23 +226,23 @@ class ClientRegistrationControllerTest {
         final Clock clock = Clock.fixed(now, ZoneId.systemDefault());
         this.summaryService.setClock(clock);
 
-        final List<Gw2AccountApiTokenWithPreferencesEntity> apiTokens = List.of(
-                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenA"),
-                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenB")
+        final List<Gw2AccountApiTokenEntity> apiTokens = List.of(
+                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenA").v2(),
+                this.testHelper.createApiToken(accountId, UUID.randomUUID(), Gw2ApiPermission.all(), "TokenB").v2()
         );
 
         final ApplicationClientEntity applicationClientEntity = this.testHelper.createClientRegistration(accountId, "NameA");
-        final ApplicationClientAccountEntity applicationClientAccountEntity = this.testHelper.createClientConsent(accountId, applicationClientEntity.id(), Set.of(Gw2ApiPermission.ACCOUNT.oauth2()));
+        final ApplicationClientAccountEntity applicationClientAccountEntity = this.testHelper.createClientConsent(accountId, applicationClientEntity.id(), Set.of(OAuth2Scope.GW2_ACCOUNT));
 
         final List<ApplicationClientAuthorizationEntity> clientAuthorizations = List.of(
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity.authorizedScopes(), false), // this one should not be counted (no tokens)
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(31L)), applicationClientAccountEntity.authorizedScopes(), true), // this one should not be counted (too long ago)
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(29L)), applicationClientAccountEntity.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(8L)), applicationClientAccountEntity.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(6L)), applicationClientAccountEntity.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(4L)), applicationClientAccountEntity.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(2L)), applicationClientAccountEntity.authorizedScopes(), true),
-                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity.authorizedScopes(), true)
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity, false), // this one should not be counted (no tokens)
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(31L)), applicationClientAccountEntity, true), // this one should not be counted (too long ago)
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(29L)), applicationClientAccountEntity, true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(8L)), applicationClientAccountEntity, true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(6L)), applicationClientAccountEntity, true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(4L)), applicationClientAccountEntity, true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now.minus(Duration.ofDays(2L)), applicationClientAccountEntity, true),
+                this.testHelper.createClientAuthorization(accountId, applicationClientEntity.id(), now, applicationClientAccountEntity, true)
         );
 
         for (ApplicationClientAuthorizationEntity clientAuthorization : clientAuthorizations) {
@@ -259,6 +268,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteClientRegistrationOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -269,6 +279,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteClientRegistrationNotExisting(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(delete("/api/client/registration/{clientId}", UUID.randomUUID()).with(sessionHandle).with(csrf()))
@@ -276,6 +287,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteClientRegistration(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -302,6 +314,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void createClientRegistrationMissingParameters(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -317,6 +330,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void createClientRegistrationInvalidRedirectURI(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -332,6 +346,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void createClientRegistration(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -367,6 +382,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void addRedirectUriOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -383,6 +399,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void addInvalidRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -399,6 +416,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void addRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -441,6 +459,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void removeRedirectUriOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -457,6 +476,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void removeLastRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -477,6 +497,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void removeRedirectUri(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -514,6 +535,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void regenerateClientSecretOfOtherUser(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
@@ -528,6 +550,7 @@ class ClientRegistrationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void regenerateClientSecret(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();

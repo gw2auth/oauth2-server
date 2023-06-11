@@ -1,15 +1,17 @@
 package com.gw2auth.oauth2.server.web.oauth2.consent;
 
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClientService;
-import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorization;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2Account;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountWithApiToken;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
-import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenService;
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationService;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
@@ -38,19 +40,19 @@ import java.util.stream.Collectors;
 @RestController
 public class OAuth2ConsentController extends AbstractRestController {
 
-    private final Gw2AccountApiTokenService gw2AccountApiTokenService;
+    private final Gw2AccountService gw2AccountService;
     private final ApplicationClientService applicationClientService;
     private final ApplicationClientAuthorizationService applicationClientAuthorizationService;
     private final OAuth2AuthorizationService auth2AuthorizationService;
     private final Gw2AccountVerificationService gw2AccountVerificationService;
 
     @Autowired
-    public OAuth2ConsentController(Gw2AccountApiTokenService gw2AccountApiTokenService,
+    public OAuth2ConsentController(Gw2AccountService gw2AccountService,
                                    ApplicationClientService applicationClientService,
                                    ApplicationClientAuthorizationService applicationClientAuthorizationService,
                                    OAuth2AuthorizationService auth2AuthorizationService,
                                    Gw2AccountVerificationService gw2AccountVerificationService) {
-        this.gw2AccountApiTokenService = gw2AccountApiTokenService;
+        this.gw2AccountService = gw2AccountService;
         this.applicationClientService = applicationClientService;
         this.applicationClientAuthorizationService = applicationClientAuthorizationService;
         this.auth2AuthorizationService = auth2AuthorizationService;
@@ -64,29 +66,31 @@ public class OAuth2ConsentController extends AbstractRestController {
                                                               @RequestParam(OAuth2ParameterNames.SCOPE) String scopes) {
 
         final ApplicationClient applicationClient = this.applicationClientService.getApplicationClients(Set.of(clientId)).stream().findAny().orElseThrow();
-        final Set<String> requestedScopes = Utils.split(scopes, " ").collect(Collectors.toSet());
+        final Set<OAuth2Scope> requestedScopes = Utils.split(scopes, " ")
+                .map(OAuth2Scope::fromOAuth2Required)
+                .collect(Collectors.toUnmodifiableSet());
         final Set<Gw2ApiPermission> requestedGw2ApiPermissions = requestedScopes.stream()
-                .flatMap((scope) -> Gw2ApiPermission.fromOAuth2(scope).stream())
-                .collect(Collectors.toSet());
-        final boolean requestedVerifiedInformation = requestedScopes.contains(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE);
+                .flatMap((scope) -> Gw2ApiPermission.fromScope(scope).stream())
+                .collect(Collectors.toUnmodifiableSet());
 
-        final List<Gw2AccountApiToken> gw2AccountApiTokens = this.gw2AccountApiTokenService.getApiTokens(user.getAccountId()).stream()
-                .sorted(Comparator.comparing(Gw2AccountApiToken::creationTime))
+        final List<Gw2AccountWithApiToken> gw2AccountWithApiTokens = this.gw2AccountService.getWithApiTokens(user.getAccountId()).stream()
+                .sorted(Comparator.comparing((v) -> v.account().creationTime()))
                 .toList();
 
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithSufficientPermissionResponses = new ArrayList<>();
         final List<OAuth2ConsentInfoResponse.MinimalApiToken> apiTokensWithInsufficientPermissionResponses = new ArrayList<>();
-        final Set<UUID> verifiedGw2AccountIds;
-        if (gw2AccountApiTokens.isEmpty() || !requestedVerifiedInformation) {
-            verifiedGw2AccountIds = Set.of();
-        } else {
-            verifiedGw2AccountIds = this.gw2AccountVerificationService.getVerifiedGw2AccountIds(user.getAccountId());
-        }
+        final Set<UUID> verifiedGw2AccountIds = this.gw2AccountVerificationService.getVerifiedGw2AccountIds(user.getAccountId());
 
-        for (Gw2AccountApiToken gw2AccountApiToken : gw2AccountApiTokens) {
-            final OAuth2ConsentInfoResponse.MinimalApiToken resultApiToken = OAuth2ConsentInfoResponse.MinimalApiToken.create(gw2AccountApiToken, verifiedGw2AccountIds.contains(gw2AccountApiToken.gw2AccountId()));
+        for (Gw2AccountWithApiToken gw2AccountWithApiToken : gw2AccountWithApiTokens) {
+            final Gw2Account gw2Account = gw2AccountWithApiToken.account();
+            final Gw2AccountApiToken apiToken = gw2AccountWithApiToken.apiToken();
+            final OAuth2ConsentInfoResponse.MinimalApiToken resultApiToken = OAuth2ConsentInfoResponse.MinimalApiToken.create(
+                    gw2Account,
+                    apiToken,
+                    verifiedGw2AccountIds.contains(gw2Account.gw2AccountId())
+            );
 
-            if (gw2AccountApiToken.gw2ApiPermissions().containsAll(requestedGw2ApiPermissions)) {
+            if (apiToken.gw2ApiPermissions().containsAll(requestedGw2ApiPermissions)) {
                 apiTokensWithSufficientPermissionResponses.add(resultApiToken);
             } else {
                 apiTokensWithInsufficientPermissionResponses.add(resultApiToken);
@@ -104,7 +108,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         submitFormParameters.set(OAuth2ParameterNames.CLIENT_ID, clientId.toString());
         submitFormParameters.set(OAuth2ParameterNames.STATE, state);
 
-        requestedScopes.forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope));
+        requestedScopes.forEach((scope) -> submitFormParameters.add(OAuth2ParameterNames.SCOPE, scope.oauth2()));
 
         final String cancelUri = UriComponentsBuilder.fromPath("/api/oauth2/consent-deny")
                 .replaceQueryParam(OAuth2ParameterNames.CLIENT_ID, clientId)
@@ -113,14 +117,14 @@ public class OAuth2ConsentController extends AbstractRestController {
 
         return new OAuth2ConsentInfoResponse(
                 ClientRegistrationPublicResponse.create(applicationClient),
-                requestedGw2ApiPermissions,
-                requestedVerifiedInformation,
+                requestedScopes,
                 "/oauth2/authorize",
                 submitFormParameters,
                 cancelUri,
                 apiTokensWithSufficientPermissionResponses,
                 apiTokensWithInsufficientPermissionResponses,
-                previouslyConsentedGw2AccountIds
+                previouslyConsentedGw2AccountIds,
+                OAuth2Scope.containsAnyGw2AccountRelatedScopes(requestedScopes)
         );
     }
 

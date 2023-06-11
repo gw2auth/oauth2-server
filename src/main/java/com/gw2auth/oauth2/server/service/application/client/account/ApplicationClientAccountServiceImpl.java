@@ -9,6 +9,8 @@ import com.gw2auth.oauth2.server.repository.application.client.account.Applicati
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
 import org.slf4j.Logger;
@@ -24,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ApplicationClientAccountServiceImpl implements ApplicationClientAccountService, OAuth2AuthorizationConsentService, Clocked {
@@ -104,15 +108,33 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
     @Override
     @Transactional
     public void save(OAuth2AuthorizationConsent authorizationConsent) {
-        if (!authorizationConsent.getScopes().containsAll(this.authorizationCodeParamAccessor.getRequestedScopes())) {
-            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.INSUFFICIENT_SCOPE));
+        final Set<OAuth2Scope> requestedScopes = this.authorizationCodeParamAccessor.getRequestedScopes().stream()
+                .map(OAuth2Scope::fromOAuth2Required)
+                .collect(Collectors.toUnmodifiableSet());
+
+        final Set<OAuth2Scope> submittedScopes = authorizationConsent.getScopes().stream()
+                .map(OAuth2Scope::fromOAuth2Required)
+                .collect(Collectors.toUnmodifiableSet());
+
+        if (!Objects.equals(requestedScopes, submittedScopes)) {
+            LOG.warn("attempt to save OAuth2AuthorizationConsent with invalid scopes; requested={} submitted={}", requestedScopes, submittedScopes);
+            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.INVALID_SCOPE));
         }
 
         final UUID accountId = UUID.fromString(authorizationConsent.getPrincipalName());
         final UUID applicationClientId = UUID.fromString(authorizationConsent.getRegisteredClientId());
 
+        // verify all scopes are allowed for this client api version
+        final ApplicationClientEntity applicationClientEntity = this.applicationClientRepository.findById(applicationClientId).orElseThrow();
+        final Set<OAuth2Scope> allowedScopes = OAuth2Scope.allForVersion(OAuth2ClientApiVersion.fromValueRequired(applicationClientEntity.apiVersion()))
+                .collect(Collectors.toUnmodifiableSet());
+
+        if (!allowedScopes.containsAll(submittedScopes)) {
+            throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.INVALID_SCOPE));
+        }
+
         ApplicationClientAccountEntity entity = this.applicationClientAccountRepository.findByApplicationClientIdAndAccountId(applicationClientId, accountId)
-                .map((v) -> v.withAdditionalScopes(authorizationConsent.getScopes()))
+                .map((v) -> withAdditionalScopes(v, submittedScopes))
                 .orElseThrow();
 
         entity = this.applicationClientAccountRepository.save(entity);
@@ -214,5 +236,19 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
         return entity.approvalStatus().equals(ApplicationClientAccount.ApprovalStatus.APPROVED.name())
                 && entity.authorizedScopes() != null
                 && !entity.authorizedScopes().isEmpty();
+    }
+
+    private static ApplicationClientAccountEntity withAdditionalScopes(ApplicationClientAccountEntity entity, Set<OAuth2Scope> _additionalScopes) {
+        final Stream<String> existingScopes = entity.authorizedScopes().stream();
+        final Stream<String> additionalScopes = _additionalScopes.stream().map(OAuth2Scope::oauth2);
+
+        return new ApplicationClientAccountEntity(
+                entity.applicationClientId(),
+                entity.accountId(),
+                entity.applicationId(),
+                entity.approvalStatus(),
+                entity.approvalRequestMessage(),
+                Stream.concat(existingScopes, additionalScopes).collect(Collectors.toUnmodifiableSet())
+        );
     }
 }

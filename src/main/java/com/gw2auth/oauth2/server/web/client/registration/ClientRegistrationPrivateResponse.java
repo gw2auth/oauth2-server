@@ -14,7 +14,8 @@ public record ClientRegistrationPrivateResponse(@JsonProperty("creationTime") In
                                                 @JsonProperty("displayName") String displayName,
                                                 @JsonProperty("clientId") UUID clientId,
                                                 @JsonProperty("authorizationGrantTypes") Set<String> authorizationGrantTypes,
-                                                @JsonProperty("redirectUris") Set<String> redirectUris) {
+                                                @JsonProperty("redirectUris") Set<String> redirectUris,
+                                                @JsonProperty("apiVersion") int apiVersion) {
 
     public static ClientRegistrationPrivateResponse create(ApplicationClient applicationClient) {
         return new ClientRegistrationPrivateResponse(
@@ -22,7 +23,8 @@ public record ClientRegistrationPrivateResponse(@JsonProperty("creationTime") In
                 applicationClient.displayName(),
                 applicationClient.id(),
                 applicationClient.authorizationGrantTypes(),
-                applicationClient.redirectUris()
+                applicationClient.redirectUris(),
+                applicationClient.apiVersion().value()
         );
     }
 }

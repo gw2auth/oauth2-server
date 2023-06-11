@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.Gw2AuthTestComponentScan;
 import com.gw2auth.oauth2.server.TestHelper;
 import com.gw2auth.oauth2.server.TruncateTablesExtension;
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.summary.SummaryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -68,7 +69,7 @@ class ApplicationControllerTest {
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of("dummy"));
+            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of(OAuth2Scope.GW2_ACCOUNT));
         }
 
         // add one client authorization without scopes (that should not be counted)

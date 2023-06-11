@@ -1,8 +1,7 @@
 package com.gw2auth.oauth2.server.web.verification;
 
-import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
-import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeStart;
 import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationService;
+import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -44,12 +42,10 @@ public class VerificationController extends AbstractRestController {
 
     @GetMapping(value = "/api/verification", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<VerificationChallengeStartResponse> getStartedChallenge(@AuthenticationPrincipal Gw2AuthUserV2 user) {
-        final Optional<VerificationChallengeStart> optional = this.gw2AccountVerificationService.getStartedChallenge(user.getAccountId());
-        if (optional.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(VerificationChallengeStartResponse.create(optional.get()));
+        return this.gw2AccountVerificationService.getStartedChallenge(user.getAccountId())
+                .map(VerificationChallengeStartResponse::create)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping(value = "/api/verification/pending", produces = MediaType.APPLICATION_JSON_VALUE)

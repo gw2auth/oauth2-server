@@ -12,9 +12,9 @@ public record ApplicationAccount(UUID applicationId,
 
     public static ApplicationAccount fromEntity(ApplicationAccountWithSubEntity entity) {
         return new ApplicationAccount(
-                entity.applicationId(),
-                entity.accountId(),
-                entity.creationTime(),
+                entity.account().applicationId(),
+                entity.account().accountId(),
+                entity.account().creationTime(),
                 entity.accountSub()
         );
     }

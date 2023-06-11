@@ -34,7 +34,15 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
     Optional<AccountEntity> findByFederation(@Param("issuer") String issuer, @Param("id_at_issuer") String idAtIssuer);
 
     @Query("""
-    SELECT acc.id, acc.creation_time, fed_sess.metadata, fed.issuer, fed.id_at_issuer
+    SELECT
+        acc.id AS acc_id,
+        acc.creation_time AS acc_creation_time,
+        fed_sess.id AS sess_id,
+        fed_sess.issuer AS sess_issuer,
+        fed_sess.id_at_issuer AS sess_id_at_issuer,
+        fed_sess.metadata AS sess_metadata,
+        fed_sess.creation_time AS sess_creation_time,
+        fed_sess.expiration_time AS sess_expiration_time
     FROM accounts acc
     INNER JOIN account_federations fed
     ON acc.id = fed.account_id
@@ -42,7 +50,7 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
     ON fed.issuer = fed_sess.issuer AND fed.id_at_issuer = fed_sess.id_at_issuer
     WHERE fed_sess.id = :id AND :now BETWEEN fed_sess.creation_time AND fed_sess.expiration_time
     """)
-    Optional<AccountWithFederationEntity> findByFederationSession(@Param("id") String id, @Param("now") Instant now);
+    Optional<AccountWithSessionEntity> findByFederationSession(@Param("id") String id, @Param("now") Instant now);
 
     @Modifying
     @Query("DELETE FROM accounts WHERE id = :id")

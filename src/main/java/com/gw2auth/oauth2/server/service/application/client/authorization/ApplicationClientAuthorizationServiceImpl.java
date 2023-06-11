@@ -5,11 +5,15 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.adapt.Java9CollectionJackson2Module;
 import com.gw2auth.oauth2.server.adapt.LinkedHashSetJackson2Module;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientRepository;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenEntity;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
@@ -55,6 +59,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationClientAuthorizationServiceImpl.class);
 
     private final AccountService accountService;
+    private final ApplicationClientRepository applicationClientRepository;
     private final ApplicationClientAuthorizationRepository applicationClientAuthorizationRepository;
     private final ApplicationClientAuthorizationTokenRepository applicationClientAuthorizationTokenRepository;
     private final RegisteredClientRepository registeredClientRepository;
@@ -66,12 +71,14 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
     @Autowired
     public ApplicationClientAuthorizationServiceImpl(Environment environment,
                                                      AccountService accountService,
+                                                     ApplicationClientRepository applicationClientRepository,
                                                      ApplicationClientAuthorizationRepository applicationClientAuthorizationRepository,
                                                      ApplicationClientAuthorizationTokenRepository applicationClientAuthorizationTokenRepository,
                                                      RegisteredClientRepository registeredClientRepository,
                                                      AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
         this.accountService = accountService;
 
+        this.applicationClientRepository = applicationClientRepository;
         this.applicationClientAuthorizationRepository = applicationClientAuthorizationRepository;
         this.applicationClientAuthorizationTokenRepository = applicationClientAuthorizationTokenRepository;
         this.registeredClientRepository = registeredClientRepository;
@@ -149,11 +156,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
         final Optional<OAuth2Authorization.Token<OAuth2AccessToken>> accessToken = Optional.ofNullable(authorization.getAccessToken());
         final Optional<OAuth2Authorization.Token<OAuth2RefreshToken>> refreshToken = Optional.ofNullable(authorization.getRefreshToken());
 
-        final Map<String, Object> attributes = new HashMap<>(authorization.getAttributes());
-        final Set<String> authorizedScopes = authorization.getAuthorizedScopes();
-
         final String name;
-
         if (this.authorizationCodeParamAccessor.isInCodeRequest()) {
             name = this.authorizationCodeParamAccessor.getAdditionalParameters()
                     .filter((e) -> e.getKey().equals(AUTHORIZATION_NAME_PARAM))
@@ -166,6 +169,9 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
             name = null;
         }
 
+        final Map<String, Object> attributes = new HashMap<>(authorization.getAttributes());
+        final Set<String> rawAuthorizedScopes = authorization.getAuthorizedScopes();
+
         final Instant now = this.clock.instant();
         final ApplicationClientAuthorizationEntity entity = this.applicationClientAuthorizationRepository.save(new ApplicationClientAuthorizationEntity(
                 authorization.getId(),
@@ -175,7 +181,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
                 now,
                 Optional.ofNullable(name).orElse(authorization.getId()),
                 authorization.getAuthorizationGrantType().getValue(),
-                Optional.ofNullable(authorizedScopes).orElse(Set.of()),
+                Optional.ofNullable(rawAuthorizedScopes).orElse(Set.of()),
                 writeJson(attributes),
                 authorization.getAttribute(OAuth2ParameterNames.STATE),
                 authorizationCode.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
@@ -198,14 +204,25 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
             final String copyGw2AccountIdsFromClientAuthorizationId = this.authorizationCodeParamAccessor.<String>getValue("COPY_FROM_CLIENT_AUTHORIZATION_ID").orElse(null);
 
             if (copyGw2AccountIdsFromClientAuthorizationId != null || this.authorizationCodeParamAccessor.isInConsentContext()) {
+                final ApplicationClientEntity applicationClient = this.applicationClientRepository.findById(applicationClientId).orElseThrow();
+                final OAuth2ClientApiVersion clientApiVersion = OAuth2ClientApiVersion.fromValueRequired(applicationClient.apiVersion());
+                final Set<OAuth2Scope> scopes = entity.authorizedScopes().stream()
+                        .map(OAuth2Scope::fromOAuth2Required)
+                        .collect(Collectors.toUnmodifiableSet());
+
                 try (AccountService.LoggingContext logging = this.accountService.log(accountId, Map.of("type", "AUTHORIZATION", "client_id", applicationClientId))) {
+                    logging.log(String.format("New authorization with name '%s' (id %s)", entity.displayName(), entity.id()));
+                    logging.log(String.format("Authorized scopes for this authorization: %s", entity.authorizedScopes()));
+
+                    this.applicationClientAuthorizationTokenRepository.deleteAllByAccountIdAndApplicationClientAuthorizationId(accountId, entity.id());
+
                     final Set<UUID> authorizedTokenGw2AccountIds;
 
                     if (copyGw2AccountIdsFromClientAuthorizationId != null) {
                         logging.log("Using API-Tokens of existing authorization for same client and scopes");
                         authorizedTokenGw2AccountIds = this.applicationClientAuthorizationTokenRepository.findAllByApplicationClientAuthorizationIdAndAccountId(copyGw2AccountIdsFromClientAuthorizationId, accountId).stream()
                                 .map(ApplicationClientAuthorizationTokenEntity::gw2AccountId)
-                                .collect(Collectors.toSet());
+                                .collect(Collectors.toUnmodifiableSet());
                     } else {
                         authorizedTokenGw2AccountIds = this.authorizationCodeParamAccessor.getAdditionalParameters()
                                 .map(Map.Entry::getKey)
@@ -218,10 +235,11 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
                                         return Stream.empty();
                                     }
                                 })
-                                .collect(Collectors.toSet());
+                                .collect(Collectors.toUnmodifiableSet());
                     }
 
-                    if (authorizedTokenGw2AccountIds.isEmpty()) {
+                    final boolean gw2AccountsRequired = clientApiVersion == OAuth2ClientApiVersion.V0 || OAuth2Scope.containsAnyGw2AccountRelatedScopes(scopes);
+                    if (gw2AccountsRequired && authorizedTokenGw2AccountIds.isEmpty()) {
                         throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
                     }
 
@@ -231,11 +249,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
                         tokensToAdd.add(new ApplicationClientAuthorizationTokenEntity(entity.id(), accountId, authorizedTokenGw2AccountId));
                     }
 
-                    this.applicationClientAuthorizationTokenRepository.deleteAllByAccountIdAndApplicationClientAuthorizationId(accountId, entity.id());
                     this.applicationClientAuthorizationTokenRepository.saveAll(tokensToAdd);
-
-                    logging.log(String.format("New authorization with name '%s' (id %s)", entity.displayName(), entity.id()));
-                    logging.log(String.format("Authorized scopes for this authorization: %s", entity.authorizedScopes()));
                     logging.log(String.format("%d API-Tokens are authorized for this authorization", authorizedTokenGw2AccountIds.size()));
                 }
             }
@@ -366,9 +380,9 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
 
     private Map<String, Object> readJson(String data) {
         try {
-            return this.objectMapper.readValue(data, new TypeReference<Map<String, Object>>() {});
-        } catch (Exception ex) {
-            throw new IllegalArgumentException(ex.getMessage(), ex);
+            return this.objectMapper.readValue(data, new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
     // endregion

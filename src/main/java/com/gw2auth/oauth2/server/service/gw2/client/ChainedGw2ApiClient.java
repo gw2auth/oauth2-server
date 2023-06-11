@@ -56,13 +56,10 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
         ClientAndMetadata clientAndMetadata;
         ResponseEntity<Resource> response = null;
 
-        while (response == null && it.hasNext()) {
-            now = Instant.now();
+        while (response == null && (now = Instant.now()).isBefore(timeoutAt) && it.hasNext()) {
             clientAndMetadata = it.next();
 
-            if (now.isAfter(timeoutAt)) {
-                response = ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(null);
-            } else if (now.isAfter(clientAndMetadata.cooldownUntil)) {
+            if (now.isAfter(clientAndMetadata.cooldownUntil)) {
                 try {
                     if (timeoutAt == Instant.MAX) {
                         response = clientAndMetadata.client.get(path, query, headers);
@@ -74,7 +71,9 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
                 }
 
                 if (response != null) {
-                    if (response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    if (response.getStatusCode() == HttpStatus.REQUEST_TIMEOUT) {
+                        response = null;
+                    } else if (response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                         clientAndMetadata.cooldownUntil = Instant.now().plus(this.cooldownDuration);
                         response = null;
                     }
@@ -83,7 +82,8 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
         }
 
         if (response == null) {
-            throw new RuntimeException("end of chain reached; all clients are cooling down");
+            LOG.warn("end of chain reached; all clients are cooling down or timed out");
+            response = ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(null);
         }
 
         return response;

@@ -3,9 +3,11 @@ package com.gw2auth.oauth2.server.web.account;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import org.hamcrest.core.StringEndsWith;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,6 +56,7 @@ class AccountControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getAccountSummary(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -79,7 +82,7 @@ class AccountControllerTest {
         }
 
         for (int i = 0; i < clientAuthorizations; i++) {
-            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of("dummy"));
+            this.testHelper.createClientConsent(accountId, applicationClientEntities.poll().id(), Set.of(OAuth2Scope.GW2_ACCOUNT));
         }
 
         // add one client authorization without scopes (that should not be counted)
@@ -105,6 +108,7 @@ class AccountControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "test-iss", idAtIssuer = "test-id")
     public void getAccountFederations(SessionHandle sessionHandle) throws Exception {
         final String sessionId = this.testHelper.getSessionIdForCookie(sessionHandle).orElseThrow();
@@ -134,6 +138,7 @@ class AccountControllerTest {
         ).andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
     public void deleteAccountFederationCurrentFederation(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -147,6 +152,7 @@ class AccountControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteAccountFederationHavingLessThan2(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -160,6 +166,7 @@ class AccountControllerTest {
                 .andExpect(status().isNotAcceptable());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
     public void deleteAccountFederation(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -189,6 +196,7 @@ class AccountControllerTest {
         ).andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "test", idAtIssuer = "test")
     public void deleteSessionCurrentSession(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -201,6 +209,7 @@ class AccountControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "issuer", idAtIssuer = "idAtIssuer")
     public void deleteSession(SessionHandle sessionHandle) throws Exception {
         final SessionHandle otherSessionSessionHandle = new SessionHandle();
@@ -231,6 +240,7 @@ class AccountControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void deleteAccount(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -247,6 +257,7 @@ class AccountControllerTest {
         assertTrue(this.accountRepository.findById(accountId).isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
     public void addAccountFederationUnknownProvider(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(get("/api/account/federation/{provider}", UUID.randomUUID().toString()).with(sessionHandle))
@@ -254,6 +265,7 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
     public void addAccountFederation(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -274,6 +286,7 @@ class AccountControllerTest {
         )));
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
     public void addAccountFederationAlreadyLinkedToOtherAccount(SessionHandle sessionHandle) throws Exception {
         final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();

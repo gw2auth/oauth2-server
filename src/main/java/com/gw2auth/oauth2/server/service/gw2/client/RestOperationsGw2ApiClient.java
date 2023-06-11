@@ -4,8 +4,10 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -57,8 +59,11 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
                     Resource.class,
                     params
             );
+        } catch (ResourceAccessException e) {
+            // thrown if a clientside connection timeout passed (read/connect)
+            response = ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(null);
         } catch (RestClientResponseException e) {
-            response = ResponseEntity.status(e.getRawStatusCode())
+            response = ResponseEntity.status(e.getStatusCode())
                     .headers(e.getResponseHeaders())
                     .body(new ByteArrayResource(e.getResponseBodyAsByteArray()));
         }

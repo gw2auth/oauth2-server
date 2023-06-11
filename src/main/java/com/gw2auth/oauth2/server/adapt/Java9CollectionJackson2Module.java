@@ -14,6 +14,7 @@ import org.springframework.security.jackson2.SecurityJackson2Modules;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class Java9CollectionJackson2Module extends SimpleModule {
 
@@ -76,21 +77,7 @@ public class Java9CollectionJackson2Module extends SimpleModule {
 
         @Override
         public Set<?> deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-            final ObjectMapper mapper = (ObjectMapper) parser.getCodec();
-            final JsonNode setNode = mapper.readTree(parser);
-            final Set<Object> result = new LinkedHashSet<>();
-
-            if (setNode != null && setNode.isArray()) {
-                final Iterator<JsonNode> elements = setNode.elements();
-                JsonNode element;
-
-                while (elements.hasNext()) {
-                    element = elements.next();
-                    result.add(mapper.readValue(element.traverse(mapper), Object.class));
-                }
-            }
-
-            return Set.copyOf(result);
+            return Set.copyOf(deserializeCollection(parser, HashSet::new));
         }
     }
     // endregion
@@ -109,22 +96,26 @@ public class Java9CollectionJackson2Module extends SimpleModule {
 
         @Override
         public List<?> deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-            final ObjectMapper mapper = (ObjectMapper) parser.getCodec();
-            final JsonNode listNode = mapper.readTree(parser);
-            final List<Object> result = new ArrayList<>();
-
-            if (listNode != null && listNode.isArray()) {
-                final Iterator<JsonNode> elements = listNode.elements();
-                JsonNode element;
-
-                while (elements.hasNext()) {
-                    element = elements.next();
-                    result.add(mapper.readValue(element.traverse(mapper), Object.class));
-                }
-            }
-
-            return List.copyOf(result);
+            return List.copyOf(deserializeCollection(parser, ArrayList::new));
         }
     }
     // endregion
+
+    private static <C extends Collection<Object>> C deserializeCollection(JsonParser parser, Supplier<C> collectionFactory) throws IOException {
+        final ObjectMapper mapper = (ObjectMapper) parser.getCodec();
+        final JsonNode listNode = mapper.readTree(parser);
+        final C result = collectionFactory.get();
+
+        if (listNode != null && listNode.isArray()) {
+            final Iterator<JsonNode> elements = listNode.elements();
+            JsonNode element;
+
+            while (elements.hasNext()) {
+                element = elements.next();
+                result.add(mapper.readValue(element.traverse(mapper), Object.class));
+            }
+        }
+
+        return result;
+    }
 }

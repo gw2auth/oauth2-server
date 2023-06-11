@@ -11,14 +11,15 @@ import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVe
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeStart;
 import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationServiceImpl;
+import com.gw2auth.oauth2.server.service.gw2account.verification.VerificationChallengeStart;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -44,10 +45,9 @@ import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.client.ExpectedCount.max;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -100,6 +100,7 @@ class VerificationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void getBootstrap(SessionHandle sessionHandle) throws Exception {
         // this basically tests 3 other endpoints too
@@ -178,6 +179,7 @@ class VerificationControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startNewChallengeUnknownChallengeId(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -190,6 +192,7 @@ class VerificationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startNewChallengeApiTokenName(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -209,6 +212,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startNewChallengeTPBuyOrder(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -229,6 +233,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startNewChallengeCharacterName(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -248,6 +253,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void submitChallengeNotExisting(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(
@@ -260,6 +266,7 @@ class VerificationControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeWithInsufficientPermissions(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -294,6 +301,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").isPresent());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeUnfulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -349,6 +357,7 @@ class VerificationControllerTest {
         assertNull(verificationChallengeEntity);
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeLaterFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
@@ -400,6 +409,7 @@ class VerificationControllerTest {
         // prepare the api again and now set the name to the requested one
         this.gw2RestServer.reset();
         prepareGw2RestServerForTokenInfoRequest(gw2ApiSubtoken, challengeStart.message().get("apiTokenName").toString(), Set.of(Gw2ApiPermission.ACCOUNT));
+        preparedGw2RestServerForAccountRequest(gw2AccountId, gw2ApiSubtoken);
 
         // simulate scheduled check
         this.verificationService.tryVerifyAllPending();
@@ -416,6 +426,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitApiTokenNameChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
@@ -468,6 +479,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitTPBuyOrderChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
@@ -520,6 +532,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitCharacterNameChallengeDirectlyFulfilled(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
@@ -572,6 +585,7 @@ class VerificationControllerTest {
         assertTrue(this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(otherUserAccountId, gw2AccountId).isEmpty());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startChallengeWithoutWaitingLongEnoughBetween(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -613,6 +627,7 @@ class VerificationControllerTest {
         assertEquals(startedChallenge, this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null));
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startChallengeWithSameChallengeIdAsExisting(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -654,6 +669,7 @@ class VerificationControllerTest {
         assertEquals(startedChallenge, this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, "").orElse(null));
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startChallengeWithLongEnoughBetween(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -702,6 +718,7 @@ class VerificationControllerTest {
         assertNotEquals(startedChallenge, updatedStartedChallenge);
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitChallengeForGw2AccountHavingAPendingVerification(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -765,6 +782,7 @@ class VerificationControllerTest {
         assertEquals(startedChallenge, this.gw2AccountVerificationChallengeRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId.toString()).orElse(null));
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startAndSubmitChallengeForGw2AccountAlreadyVerified(SessionHandle sessionHandle) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -800,6 +818,7 @@ class VerificationControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void startSubmitAndCancelChallenge(SessionHandle sessionHandle) throws Exception {
         final UUID gw2AccountId = UUID.randomUUID();
@@ -946,7 +965,7 @@ class VerificationControllerTest {
     }
 
     private void preparedGw2RestServerForAccountRequest(UUID gw2AccountId, String gw2ApiToken) {
-        this.gw2RestServer.expect(requestTo(new StringStartsWith("/v2/account")))
+        this.gw2RestServer.expect(max(2), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", "Bearer " + gw2ApiToken))
                 .andRespond((request) -> {

@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.web;
 import com.gw2auth.oauth2.server.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +34,7 @@ class AuthInfoControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @ParameterizedTest
     @WithGw2AuthLogin
     public void authInfo(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(head("/api/authinfo").with(sessionHandle))

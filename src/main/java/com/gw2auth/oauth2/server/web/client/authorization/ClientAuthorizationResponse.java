@@ -1,30 +1,30 @@
 package com.gw2auth.oauth2.server.web.client.authorization;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccountService;
+import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorization;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public record ClientAuthorizationResponse(@JsonProperty("id") String id,
                                           @JsonProperty("creationTime") Instant creationTime,
                                           @JsonProperty("lastUpdateTime") Instant lastUpdateTime,
                                           @JsonProperty("displayName") String displayName,
-                                          @JsonProperty("authorizedGw2ApiPermissions") Set<Gw2ApiPermission> authorizedGw2ApiPermissions,
-                                          @JsonProperty("authorizedVerifiedInformation") boolean authorizedVerifiedInformation,
+                                          @JsonProperty("authorizedScopes") Set<OAuth2Scope> authorizedScopes,
                                           @JsonProperty("tokens") List<Token> tokens) {
 
     public static ClientAuthorizationResponse create(ApplicationClientAuthorization authorization, List<Token> tokens) {
-        final Set<Gw2ApiPermission> gw2ApiPermissions = authorization.authorizedScopes().stream()
-                .flatMap((value) -> Gw2ApiPermission.fromOAuth2(value).stream())
-                .collect(Collectors.toSet());
-
-        return new ClientAuthorizationResponse(authorization.id(), authorization.creationTime(), authorization.lastUpdateTime(), authorization.displayName(), gw2ApiPermissions, authorization.authorizedScopes().contains(ApplicationClientAccountService.GW2AUTH_VERIFIED_SCOPE), tokens);
+        return new ClientAuthorizationResponse(
+                authorization.id(),
+                authorization.creationTime(),
+                authorization.lastUpdateTime(),
+                authorization.displayName(),
+                authorization.authorizedScopes(),
+                tokens
+        );
     }
 
     public record Token(@JsonProperty("gw2AccountId") UUID gw2AccountId,

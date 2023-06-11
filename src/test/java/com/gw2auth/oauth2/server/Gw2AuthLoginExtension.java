@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.lang.reflect.Method;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -94,22 +94,18 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     }
 
     public ResultMatcher[] expectLoginSuccess() {
-        return expectLoginSuccess(true);
-    }
-
-    public ResultMatcher[] expectLoginSuccess(boolean expectMetadataInCookie) {
         return new ResultMatcher[]{
                 status().is3xxRedirection(),
                 header().string("Location", new IsNot<>(new StringEndsWith("?error"))),
                 MockMvcResultMatchers.cookie().exists(Constants.ACCESS_TOKEN_COOKIE_NAME),
-                MockMvcResultMatchers.cookie().value(Constants.ACCESS_TOKEN_COOKIE_NAME, accessTokenMatcher(expectMetadataInCookie)),
+                MockMvcResultMatchers.cookie().value(Constants.ACCESS_TOKEN_COOKIE_NAME, accessTokenMatcher()),
                 MockMvcResultMatchers.cookie().httpOnly(Constants.ACCESS_TOKEN_COOKIE_NAME, true),
                 MockMvcResultMatchers.cookie().maxAge(Constants.ACCESS_TOKEN_COOKIE_NAME, Matchers.greaterThan(0))
         };
     }
 
-    private Matcher<String> accessTokenMatcher(boolean expectMetadataInCookie) {
-        return new TypeSafeMatcher<String>() {
+    private Matcher<String> accessTokenMatcher() {
+        return new TypeSafeMatcher<>() {
             @Override
             protected boolean matchesSafely(String item) {
                 final Jwt jwt;
@@ -166,7 +162,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
                 .andReturn();
 
         final String location = Objects.requireNonNull(result.getResponse().getRedirectedUrl());
-        final String state = Utils.parseQuery(new URL(location).getQuery())
+        final String state = Utils.parseQuery(new URI(location).parseServerAuthority().getRawQuery())
                 .filter(QueryParam::hasValue)
                 .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
                 .map(QueryParam::value)

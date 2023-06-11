@@ -11,9 +11,15 @@ import java.util.UUID;
  */
 public record ClientRegistrationPublicResponse(@JsonProperty("creationTime") Instant creationTime,
                                                @JsonProperty("displayName") String displayName,
-                                               @JsonProperty("clientId") UUID clientId) {
+                                               @JsonProperty("clientId") UUID clientId,
+                                               @JsonProperty("apiVersion") int apiVersion) {
 
     public static ClientRegistrationPublicResponse create(ApplicationClient applicationClient) {
-        return new ClientRegistrationPublicResponse(applicationClient.creationTime(), applicationClient.displayName(), applicationClient.id());
+        return new ClientRegistrationPublicResponse(
+                applicationClient.creationTime(),
+                applicationClient.displayName(),
+                applicationClient.id(),
+                applicationClient.apiVersion().value()
+        );
     }
 }

@@ -7,6 +7,7 @@ import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVe
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.gw2.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
@@ -88,7 +89,7 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
     public Set<UUID> getVerifiedGw2AccountIds(UUID accountId) {
         return this.gw2AccountVerificationRepository.findAllByAccountId(accountId).stream()
                 .map(Gw2AccountVerificationEntity::gw2AccountId)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
@@ -264,13 +265,17 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
             this.gw2AccountVerificationChallengeRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
 
             final UUID gw2AccountIdUUID = UUID.fromString(gw2AccountId);
+            final Gw2Account gw2Account = this.gw2ApiService.getAccount(entity.gw2ApiToken());
+
+            if (!gw2Account.id().equals(gw2AccountIdUUID)) {
+                throw new IllegalStateException(String.format("GW2 Account to be verified does not match API response (%s != %s)", gw2Account.id(), gw2AccountIdUUID));
+            }
 
             this.gw2AccountApiTokenRepository.deleteAllByGw2AccountIdExceptForAccountId(gw2AccountIdUUID, accountId);
-            this.gw2AccountService.getOrCreateGw2Account(
-                    accountId,
-                    gw2AccountIdUUID,
-                    gw2AccountId
-            );
+
+            // verifications are linked to gw2_account, the account entity needs to be created first
+            // setting the (GW2Auth) display name of the account entity to its (GW2) display name by default (will be ignored if the entity already exists)
+            this.gw2AccountService.getOrCreateGw2Account(accountId, gw2Account.id(), gw2Account.name(), gw2Account.name());
             this.gw2AccountVerificationRepository.save(new Gw2AccountVerificationEntity(gw2AccountIdUUID, accountId));
 
             logging.log("GW2 account verification succeeded!");

@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.web.client.registration;
 
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.application.Application;
 import com.gw2auth.oauth2.server.service.application.ApplicationService;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
@@ -74,10 +75,14 @@ public class ClientRegistrationController extends AbstractRestController {
                 application.id(),
                 clientRegistrationCreationRequest.displayName(),
                 clientRegistrationCreationRequest.authorizationGrantTypes(),
-                clientRegistrationCreationRequest.redirectUris()
+                clientRegistrationCreationRequest.redirectUris(),
+                OAuth2ClientApiVersion.CURRENT
         );
 
-        return ClientRegistrationCreationResponse.create(applicationClientCreation);
+        return new ClientRegistrationCreationResponse(
+                ClientRegistrationPrivateResponse.create(applicationClientCreation.client()),
+                applicationClientCreation.clientSecret()
+        );
     }
 
     @PutMapping(value = "/api/client/registration/{clientId}/redirect-uris", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -100,10 +105,15 @@ public class ClientRegistrationController extends AbstractRestController {
 
     @PatchMapping(value = "/api/client/registration/{clientId}/client-secret", produces = MediaType.APPLICATION_JSON_VALUE)
     public ClientRegistrationCreationResponse regenerateClientSecret(@AuthenticationPrincipal Gw2AuthUserV2 user, @PathVariable("clientId") UUID clientId) {
-        return ClientRegistrationCreationResponse.create(this.applicationClientService.regenerateClientSecret(
+        final ApplicationClientCreation applicationClientCreation = this.applicationClientService.regenerateClientSecret(
                 user.getAccountId(),
                 clientId
-        ));
+        );
+
+        return new ClientRegistrationCreationResponse(
+                ClientRegistrationPrivateResponse.create(applicationClientCreation.client()),
+                applicationClientCreation.clientSecret()
+        );
     }
 
     @DeleteMapping("/api/client/registration/{clientId}")

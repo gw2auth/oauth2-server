@@ -5,7 +5,9 @@ import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClientService;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorization;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorizationService;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
+import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountWithApiToken;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenService;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenServiceException;
@@ -46,12 +48,12 @@ public class ApiTokenController extends AbstractRestController {
 
     @GetMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<ApiTokenResponse> getApiTokens(@AuthenticationPrincipal Gw2AuthUserV2 user) {
-        final List<Gw2AccountApiToken> gw2AccountApiTokens  = this.gw2AccountApiTokenService.getApiTokens(user.getAccountId());
+        final List<Gw2AccountWithApiToken> gw2AccountWithApiTokens  = this.gw2AccountService.getWithApiTokens(user.getAccountId());
 
         // get all gw2 account ids for authorization batch lookup
-        final Set<UUID> gw2AccountIds = gw2AccountApiTokens.stream()
-                .map(Gw2AccountApiToken::gw2AccountId)
-                .collect(Collectors.toSet());
+        final Set<UUID> gw2AccountIds = gw2AccountWithApiTokens.stream()
+                .map((v) -> v.account().gw2AccountId())
+                .collect(Collectors.toUnmodifiableSet());
 
         // aggregate authorizations for later lookup
         final List<ApplicationClientAuthorization> applicationClientAuthorizations = this.applicationClientAuthorizationService.getApplicationClientAuthorizations(user.getAccountId(), gw2AccountIds);
@@ -73,10 +75,12 @@ public class ApiTokenController extends AbstractRestController {
         // find all verified gw2 account ids for this account (better than querying for every single one)
         final Set<UUID> verifiedGw2AccountIds = this.gw2AccountVerificationService.getVerifiedGw2AccountIds(user.getAccountId());
 
-        final List<ApiTokenResponse> response = new ArrayList<>(gw2AccountApiTokens.size());
+        final List<ApiTokenResponse> response = new ArrayList<>(gw2AccountWithApiTokens.size());
 
-        for (Gw2AccountApiToken gw2AccountApiToken : gw2AccountApiTokens) {
-            final Set<UUID> applicationClientIdsForThisToken = applicationClientIdsByGw2AccountId.get(gw2AccountApiToken.gw2AccountId());
+        for (Gw2AccountWithApiToken gw2AccountWithApiToken : gw2AccountWithApiTokens) {
+            final Gw2Account gw2Account = gw2AccountWithApiToken.account();
+            final Gw2AccountApiToken apiToken = gw2AccountWithApiToken.apiToken();
+            final Set<UUID> applicationClientIdsForThisToken = applicationClientIdsByGw2AccountId.get(gw2Account.gw2AccountId());
             final List<ApiTokenResponse.Authorization> authorizations;
 
             if (applicationClientIdsForThisToken != null && !applicationClientIdsForThisToken.isEmpty()) {
@@ -93,7 +97,7 @@ public class ApiTokenController extends AbstractRestController {
                 authorizations = List.of();
             }
 
-            response.add(ApiTokenResponse.create(gw2AccountApiToken, verifiedGw2AccountIds.contains(gw2AccountApiToken.gw2AccountId()), authorizations));
+            response.add(ApiTokenResponse.create(gw2Account, apiToken, verifiedGw2AccountIds.contains(gw2Account.gw2AccountId()), authorizations));
         }
 
         return response.stream()
@@ -104,9 +108,10 @@ public class ApiTokenController extends AbstractRestController {
     @PostMapping(value = "/api/token", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiTokenResponse addApiToken(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestBody String token) {
         final Gw2AccountApiToken apiToken = this.gw2AccountApiTokenService.addOrUpdateApiToken(user.getAccountId(), token);
+        final Gw2Account gw2Account = this.gw2AccountService.getGw2Account(user.getAccountId(), apiToken.gw2AccountId()).orElseThrow();
         final boolean isVerified = Objects.equals(this.gw2AccountVerificationService.getVerifiedAccountId(apiToken.gw2AccountId()).orElse(null), user.getAccountId());
 
-        return ApiTokenResponse.create(apiToken, isVerified, List.of());
+        return ApiTokenResponse.create(gw2Account, apiToken, isVerified, List.of());
     }
 
     @PatchMapping(value = "/api/token/{gw2AccountId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -115,8 +120,10 @@ public class ApiTokenController extends AbstractRestController {
                                                           @RequestParam(value = "displayName", required = false) String displayName,
                                                           @RequestParam(value = "gw2ApiToken", required = false) String gw2ApiToken) {
 
-        Gw2AccountApiToken gw2AccountApiToken = this.gw2AccountApiTokenService.getApiToken(user.getAccountId(), gw2AccountId)
+        Gw2AccountWithApiToken gw2AccountWithApiToken = this.gw2AccountService.getWithApiToken(user.getAccountId(), gw2AccountId)
                 .orElseThrow(() -> new Gw2AuthServiceException("The API Token does not yet exist", HttpStatus.NOT_FOUND));
+
+        Gw2AccountApiToken gw2AccountApiToken = gw2AccountWithApiToken.apiToken();
 
         if (gw2ApiToken != null) {
             gw2AccountApiToken = this.gw2AccountApiTokenService.addOrUpdateApiToken(user.getAccountId(), gw2ApiToken);
@@ -129,7 +136,7 @@ public class ApiTokenController extends AbstractRestController {
         if (displayName != null) {
             this.gw2AccountService.updateDisplayName(user.getAccountId(), gw2AccountApiToken.gw2AccountId(), displayName);
         } else {
-            displayName = gw2AccountApiToken.displayName();
+            displayName = gw2AccountWithApiToken.account().displayName();
         }
 
         final List<ApplicationClientAuthorization> applicationClientAuthorizations = this.applicationClientAuthorizationService.getApplicationClientAuthorizations(user.getAccountId(), Set.of(gw2AccountApiToken.gw2AccountId()));
@@ -138,7 +145,7 @@ public class ApiTokenController extends AbstractRestController {
         if (!applicationClientAuthorizations.isEmpty()) {
             final Set<UUID> clientRegistrationIds = applicationClientAuthorizations.stream()
                     .map(ApplicationClientAuthorization::applicationClientId)
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toUnmodifiableSet());
 
             authorizations = this.applicationClientService.getApplicationClients(clientRegistrationIds).stream()
                     .map(ApiTokenResponse.Authorization::create)

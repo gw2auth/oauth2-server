@@ -50,7 +50,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     @Override
     public Gw2TokenInfo getTokenInfo(String gw2ApiToken) {
-        return getFromAPI("/v2/tokeninfo", gw2ApiToken,Gw2TokenInfo.class);
+        return getFromAPI("/v2/tokeninfo", gw2ApiToken, Gw2TokenInfo.class);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     @Override
     public List<String> getCharacters(String gw2ApiToken) {
-        return getFromAPI("/v2/characters", gw2ApiToken, new TypeReference<List<String>>(){});
+        return getFromAPI("/v2/characters", gw2ApiToken, new TypeReference<>() {});
     }
 
     @Override
@@ -77,7 +77,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
                     .stream()
                     .flatMap(List::stream)
                     .flatMap((permission) -> Gw2ApiPermission.fromGw2(permission).stream())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toUnmodifiableSet());
         } catch (ParseException e) {
             throw new Gw2ApiServiceException(Gw2ApiServiceException.SUBTOKEN_JWT_PARSING_ERROR);
         }
@@ -87,7 +87,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     @Override
     public List<Gw2Transaction> getCurrentBuyTransactions(String token) {
-        return getFromAPI("/v2/commerce/transactions/current/buys", token, new TypeReference<List<Gw2Transaction>>() {});
+        return getFromAPI("/v2/commerce/transactions/current/buys", token, new TypeReference<>() {});
     }
 
     @Override
