@@ -19,9 +19,9 @@ import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenService;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiTokenValidUpdate;
+import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
-import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationService;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.slf4j.Logger;
@@ -149,10 +149,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         final ApplicationAccount applicationAccount = this.applicationAccountService.getApplicationAccount(userAccountId, applicationId).orElseThrow();
         final ApplicationClientAccount applicationClientAccount = this.applicationClientAccountService.getApplicationClientAccount(userAccountId, applicationClientId).orElseThrow();
 
-        try (AccountService.LoggingContext userLogging = this.accountService.log(userAccountId, Map.of("type", "ACCESS_TOKEN", "application_id", applicationId,  "client_id", applicationClientId, "user_id", applicationAccount.accountSub()))) {
-            try (AccountService.LoggingContext clientOwnerLogging = this.accountService.log(application.accountId(), Map.of("type", "oauth2.user.token.refresh", "application_id", applicationId, "client_id", applicationClientId, "user_id", applicationAccount.accountSub()))) {
-                customize(ctx, userAccountId, applicationAccount, applicationClientAccount, authorization, userLogging, clientOwnerLogging);
-            }
+        try (AccountService.LoggingContext logging = this.accountService.log(userAccountId, Map.of("type", "ACCESS_TOKEN", "application_id", applicationId,  "client_id", applicationClientId, "user_id", applicationAccount.accountSub()))) {
+            customize(ctx, userAccountId, applicationAccount, applicationClientAccount, authorization, logging);
         }
     }
 
@@ -160,8 +158,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                            ApplicationAccount applicationAccount,
                            ApplicationClientAccount applicationClientAccount,
                            ApplicationClientAuthorization authorization,
-                           AccountService.LoggingContext userLogging,
-                           AccountService.LoggingContext clientOwnerLogging) {
+                           AccountService.LoggingContext logging) {
 
         final Set<String> effectiveAuthorizedScopes = new HashSet<>(applicationClientAccount.authorizedScopes());
         effectiveAuthorizedScopes.retainAll(authorization.authorizedScopes());
@@ -172,7 +169,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 .collect(Collectors.toSet());
 
         if (authorizedGw2ApiPermissions.isEmpty() || authorizedGw2AccountIds.isEmpty()) {
-            logForBoth(userLogging, clientOwnerLogging, "The consent has been removed: responding with ACCESS_DENIED");
+            logging.log("The consent has been removed: responding with ACCESS_DENIED");
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
@@ -180,7 +177,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
         // in theory, this should not happen since authorized-tokens and root-tokens are related via foreign key
         if (authorizedRootTokens.isEmpty()) {
-            logForBoth(userLogging, clientOwnerLogging, "All linked root API Tokens have been removed: responding with ACCESS_DENIED");
+            logging.log("All linked root API Tokens have been removed: responding with ACCESS_DENIED");
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
@@ -239,7 +236,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
 
             if (potentialExistingSubToken != null && potentialExistingSubToken.expirationTime().equals(expirationTime)) {
                 tokenForJWT.put("token", potentialExistingSubToken.gw2ApiSubtoken());
-                logForBoth(userLogging, clientOwnerLogging, String.format("Using existing and valid subtoken for the root API Token named '%s'", displayName));
+                logging.log(String.format("Using existing and valid subtoken for the root API Token named '%s'", displayName));
             } else {
                 if (authorizedRootToken.gw2ApiPermissions().containsAll(authorizedGw2ApiPermissions)) {
                     final String gw2ApiToken = authorizedRootToken.gw2ApiToken();
@@ -261,14 +258,14 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     );
                 } else {
                     tokenForJWT.put("error", "Failed to obtain new subtoken");
-                    logForBoth(userLogging, clientOwnerLogging, String.format("The root API Token named '%s' has less permissions than the authorization", displayName));
+                    logging.log(String.format("The root API Token named '%s' has less permissions than the authorization", displayName));
                 }
             }
 
             if (hasGw2AuthVerifiedScope) {
                 final boolean isVerified = verifiedGw2AccountIds.contains(gw2AccountId);
                 tokenForJWT.put("verified", isVerified);
-                logForBoth(userLogging, clientOwnerLogging, String.format("Including verified=%s for the root API Token named '%s'", isVerified, displayName));
+                logging.log(String.format("Including verified=%s for the root API Token named '%s'", isVerified, displayName));
             }
 
             tokensForJWT.put(gw2AccountId, tokenForJWT);
@@ -289,16 +286,16 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                     apiSubTokenEntitiesToSave.add(new Gw2AccountApiSubtokenEntity(userAccountId, gw2AccountId, gw2ApiPermissionsBitSet, gw2SubToken.value(), expirationTime));
 
                     tokenForJWT.put("token", gw2SubToken.value());
-                    logForBoth(userLogging, clientOwnerLogging, String.format("Added subtoken for the root API Token named '%s'", displayName));
+                    logging.log(String.format("Added subtoken for the root API Token named '%s'", displayName));
                 } else {
                     tokenForJWT.put("error", "Failed to obtain new subtoken");
-                    logForBoth(userLogging, clientOwnerLogging, String.format("The retrieved subtoken for the root API Token named '%s' appears to have less permissions than the authorization", displayName));
+                    logging.log(String.format("The retrieved subtoken for the root API Token named '%s' appears to have less permissions than the authorization", displayName));
                 }
 
                 apiTokenValidityUpdates.add(new Gw2AccountApiTokenValidUpdate(userAccountId, gw2AccountId, true));
             } else {
                 tokenForJWT.put("error", "Failed to obtain new subtoken");
-                logForBoth(userLogging, clientOwnerLogging, String.format("Failed to retrieve a new subtoken for the root API Token named '%s' from the GW2 API", displayName));
+                logging.log(String.format("Failed to retrieve a new subtoken for the root API Token named '%s' from the GW2 API", displayName));
             }
         }
 
@@ -327,10 +324,5 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 .subject(accountSub.toString())
                 .claim("gw2:permissions", permissionsForJWT)
                 .claim("gw2:tokens", tokensForJWT);
-    }
-
-    private static void logForBoth(AccountService.LoggingContext log1, AccountService.LoggingContext log2, String message) {
-        log1.log(message);
-        log2.log(message);
     }
 }

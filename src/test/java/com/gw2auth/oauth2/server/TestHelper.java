@@ -40,7 +40,6 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.jdbc.core.JdbcOperations;
@@ -84,9 +83,6 @@ public class TestHelper {
 
     @Autowired
     private ApplicationClientAccountRepository applicationClientAccountRepository;
-
-    @Autowired
-    private AccountLogRepository accountLogRepository;
 
     @Autowired
     private ApplicationClientAuthorizationRepository applicationClientAuthorizationRepository;
@@ -241,17 +237,6 @@ public class TestHelper {
                 issuer,
                 idAtIssuer,
                 accountId
-        ));
-    }
-
-    public AccountLogEntity createAccountLog(UUID accountId, String message, Map<String, ?> fields) {
-        return this.accountLogRepository.save(new AccountLogEntity(
-                UUID.randomUUID(),
-                accountId,
-                Instant.now(),
-                message,
-                new JSONObject(fields),
-                false
         ));
     }
 

@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,12 +34,10 @@ import java.util.stream.Collectors;
 public class AccountServiceImpl implements AccountService, Clocked {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccountServiceImpl.class);
-    private static final int MAX_LOG_COUNT = 10_000;
 
     private final AccountRepository accountRepository;
     private final AccountFederationRepository accountFederationRepository;
     private final AccountFederationSessionRepository accountFederationSessionRepository;
-    private final AccountLogRepository accountLogRepository;
     private final AmazonS3 s3;
     private final String bucket;
     private final String prefix;
@@ -50,7 +47,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
     public AccountServiceImpl(AccountRepository accountRepository,
                               AccountFederationRepository accountFederationRepository,
                               AccountFederationSessionRepository accountFederationSessionRepository,
-                              AccountLogRepository accountLogRepository,
                               @Qualifier("oauth2-add-federation-s3-client") AmazonS3 s3,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.bucket}") String bucket,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.prefix}") String prefix) {
@@ -58,7 +54,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
         this.accountRepository = accountRepository;
         this.accountFederationRepository = accountFederationRepository;
         this.accountFederationSessionRepository = accountFederationSessionRepository;
-        this.accountLogRepository = accountLogRepository;
         this.s3 = s3;
         this.bucket = bucket;
         this.prefix = prefix;
@@ -184,14 +179,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
     }
 
     @Override
-    public List<AccountLog> getAccountLogs(UUID accountId, Map<String, ?> fields, int page, int pageSize) {
-        return this.accountLogRepository.findAllByAccountIdAndFields(accountId, new JSONObject(fields), page, pageSize).stream()
-                .map((entity) -> new AccountLog(entity.timestamp(), entity.message(), entity.fields().toMap()))
-                .sorted(Comparator.comparing(AccountLog::timestamp).reversed())
-                .toList();
-    }
-
-    @Override
     @Transactional
     public boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer) {
         final int federationCount = this.accountFederationRepository.countByAccountId(accountId);
@@ -258,20 +245,13 @@ public class AccountServiceImpl implements AccountService, Clocked {
         }
     }
 
-    private final class RootLoggingContext extends AbstractLoggingContext {
+    private static final class RootLoggingContext extends AbstractLoggingContext {
 
         private final UUID accountId;
-        private final List<AccountLogEntity> logs;
 
         private RootLoggingContext(UUID accountId, Map<String, ?> fields) {
             super(fields);
             this.accountId = accountId;
-            /*
-            calls to log() may be concurrent, however the caller should ensure that:
-            - creation of this context and close() are called within the same thread
-            - there should be no threads attempting to log() once close() was entered
-             */
-            this.logs = Collections.synchronizedList(new ArrayList<>());
         }
 
         @Override
@@ -291,30 +271,12 @@ public class AccountServiceImpl implements AccountService, Clocked {
 
             final JSONObject fieldsJson = new JSONObject(combinedFields);
 
-            this.logs.add(new AccountLogEntity(
-                    UUID.randomUUID(),
-                    this.accountId,
-                    AccountServiceImpl.this.clock.instant(),
-                    message,
-                    fieldsJson,
-                    persistent
-            ));
-
             LOG.info("account log; account_id={} fields={} persistent={}; {}", this.accountId, fieldsJson, persistent, message);
         }
 
-        @Transactional
         @Override
         public void close() {
-            if (!this.logs.isEmpty()) {
-                try {
-                    AccountServiceImpl.this.accountLogRepository.deleteAllByAccountIdExceptLatestN(this.accountId, MAX_LOG_COUNT - this.logs.size());
-                } catch (DataAccessException e) {
-                    LOG.info("failed to delete old logs", e);
-                }
 
-                AccountServiceImpl.this.accountLogRepository.saveAll(this.logs);
-            }
         }
     }
 

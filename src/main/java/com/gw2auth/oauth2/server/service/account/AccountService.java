@@ -37,8 +37,6 @@ public interface AccountService {
         }
     }
 
-    List<AccountLog> getAccountLogs(UUID accountId, Map<String, ?> fields, int page, int pageSize);
-
     boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer);
 
     boolean deleteSession(UUID accountId, String sessionId);
