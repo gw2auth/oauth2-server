@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit;
 public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService, Clocked {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2AccountApiTokenServiceImpl.class);
-    private static final Duration VALIDITY_CHECK_INTERVAL = Duration.ofMinutes(45L);
-    private static final Duration IGNORE_TOKENS_INVALID_FOR_LONGER_THAN = Duration.ofDays(7L);
+    private static final Duration VALIDITY_CHECK_INTERVAL = Duration.ofHours(3L);
+    private static final Duration IGNORE_TOKENS_INVALID_FOR_LONGER_THAN = Duration.ofDays(3L);
     private static final int VALIDITY_CHECK_BATCH_SIZE = 50;
 
     private final Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
