@@ -6,6 +6,8 @@ import java.util.Optional;
 
 public record Gw2AccountWithOptionalApiToken(Gw2Account account, Gw2AccountApiToken apiToken) {
 
+    /** @deprecated Use {@link #optionalApiToken()} instead */
+    @Deprecated
     @Override
     public Gw2AccountApiToken apiToken() {
         throw new UnsupportedOperationException();

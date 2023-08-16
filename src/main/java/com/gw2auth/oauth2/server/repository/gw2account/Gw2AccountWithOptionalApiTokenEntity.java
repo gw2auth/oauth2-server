@@ -8,12 +8,14 @@ import java.util.Optional;
 public record Gw2AccountWithOptionalApiTokenEntity(@Embedded.Empty(prefix = "acc_") Gw2AccountEntity account,
                                                    @Embedded.Nullable(prefix = "tk_") Gw2AccountApiTokenEntity token) {
 
+    /** @deprecated Use {@link #optionalToken()} instead */
+    @Deprecated
     @Override
     public Gw2AccountApiTokenEntity token() {
         throw new UnsupportedOperationException();
     }
 
-    public Optional<Gw2AccountApiTokenEntity> tokenOptional() {
+    public Optional<Gw2AccountApiTokenEntity> optionalToken() {
         return Optional.ofNullable(this.token);
     }
 }
