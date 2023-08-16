@@ -53,42 +53,42 @@ public class Gw2AuthClientConfiguration {
 
     @PostConstruct
     public void initialize() {
-        for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.getRegistration()) {
-            final UUID clientId = UUID.fromString(registrationConfig.getClientId());
+        for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.registration()) {
+            final UUID clientId = UUID.fromString(registrationConfig.clientId());
 
             if (this.applicationClientService.getApplicationClients(Set.of(clientId)).isEmpty()) {
-                final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.getAccount().get(registrationConfig.getAccount());
+                final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.account().get(registrationConfig.account());
                 Account account = null;
 
                 for (Gw2AuthClientProperties.Account accountConfig : accountsConfig) {
                     if (account == null) {
-                        account = this.accountService.getOrCreateAccount(accountConfig.getIssuer(), accountConfig.getIdAtIssuer());
+                        account = this.accountService.getOrCreateAccount(accountConfig.issuer(), accountConfig.idAtIssuer());
                     } else {
-                        account = this.accountService.addAccountFederationOrReturnExisting(account.id(), accountConfig.getIssuer(), accountConfig.getIdAtIssuer());
+                        account = this.accountService.addAccountFederationOrReturnExisting(account.id(), accountConfig.issuer(), accountConfig.idAtIssuer());
                     }
                 }
 
                 final UUID accountId = Objects.requireNonNull(account).id();
-                final Application application = this.applicationService.createApplication(accountId, registrationConfig.getDisplayName());
+                final Application application = this.applicationService.createApplication(accountId, registrationConfig.displayName());
                 final ApplicationClientCreation applicationClientCreation = this.applicationClientService.createApplicationClient(
                         accountId,
                         application.id(),
-                        registrationConfig.getDisplayName(),
-                        registrationConfig.getAuthorizationGrantTypes(),
-                        registrationConfig.getRedirectUris(),
-                        OAuth2ClientApiVersion.fromValueRequired(registrationConfig.getClientApiVersion())
+                        registrationConfig.displayName(),
+                        registrationConfig.authorizationGrantTypes(),
+                        registrationConfig.redirectUris(),
+                        OAuth2ClientApiVersion.fromValueRequired(registrationConfig.clientApiVersion())
                 );
 
                 this.jdbcOperations.update(
                         "UPDATE application_clients SET id = ?, client_secret = ? WHERE id = ?",
                         clientId,
-                        this.passwordEncoder.encode(registrationConfig.getClientSecret()),
+                        this.passwordEncoder.encode(registrationConfig.clientSecret()),
                         applicationClientCreation.client().id()
                 );
 
-                LOG.debug("created gw2auth client with client-id={} from configuration", registrationConfig.getClientId());
+                LOG.debug("created gw2auth client with client-id={} from configuration", registrationConfig.clientId());
             } else {
-                LOG.debug("gw2auth client with client-id={} already exists", registrationConfig.getClientId());
+                LOG.debug("gw2auth client with client-id={} already exists", registrationConfig.clientId());
             }
         }
     }
