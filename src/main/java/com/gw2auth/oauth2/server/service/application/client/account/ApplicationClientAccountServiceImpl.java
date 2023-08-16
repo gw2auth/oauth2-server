@@ -116,7 +116,7 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
                 .map(OAuth2Scope::fromOAuth2Required)
                 .collect(Collectors.toUnmodifiableSet());
 
-        if (!Objects.equals(requestedScopes, submittedScopes)) {
+        if (!submittedScopes.containsAll(requestedScopes)) {
             LOG.warn("attempt to save OAuth2AuthorizationConsent with invalid scopes; requested={} submitted={}", requestedScopes, submittedScopes);
             throw this.authorizationCodeParamAccessor.error(new OAuth2Error(OAuth2ErrorCodes.INVALID_SCOPE));
         }
