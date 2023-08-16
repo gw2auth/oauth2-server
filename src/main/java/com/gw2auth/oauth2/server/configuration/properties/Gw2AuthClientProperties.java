@@ -2,23 +2,15 @@ package com.gw2auth.oauth2.server.configuration.properties;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.util.*;
 
 @ConfigurationProperties(prefix = "com.gw2auth.client")
-public class Gw2AuthClientProperties implements InitializingBean {
-
-    private final Map<String, List<Account>> account = new HashMap<>();
-
-    private final List<Registration> registration = new ArrayList<>();
-
-    public Map<String, List<Account>> getAccount() {
-        return account;
-    }
-
-    public List<Registration> getRegistration() {
-        return registration;
-    }
+public record Gw2AuthClientProperties(
+    @DefaultValue Map<String, List<Account>> account,
+    @DefaultValue List<Registration> registration
+) implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
@@ -27,100 +19,24 @@ public class Gw2AuthClientProperties implements InitializingBean {
 
     private void validate() {
         for (Registration registration : this.registration) {
-            if (!this.account.containsKey(registration.getAccount())) {
-                throw new IllegalStateException("Referenced account does not exist: " + registration.getAccount());
-            } else if (registration.getClientId().isEmpty()) {
+            if (!this.account.containsKey(registration.account())) {
+                throw new IllegalStateException("Referenced account does not exist: " + registration.account());
+            } else if (registration.clientId().isEmpty()) {
                 throw new IllegalStateException("client-id must not be empty");
             }
         }
     }
 
-    public static class Registration {
+    public record Registration(
+        String account,
+        String displayName,
+        String clientId,
+        String clientSecret,
+        Set<String> authorizationGrantTypes,
+        Set<String> redirectUris,
+        int clientApiVersion
+    ) {}
 
-        private String account;
-        private String displayName;
-        private String clientId;
-        private String clientSecret;
-        private Set<String> authorizationGrantTypes;
-        private Set<String> redirectUris;
-        private int clientApiVersion;
+    public record Account(String issuer, String idAtIssuer) {}
 
-        public String getAccount() {
-            return account;
-        }
-
-        public void setAccount(String account) {
-            this.account = account;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            this.displayName = displayName;
-        }
-
-        public String getClientId() {
-            return clientId;
-        }
-
-        public void setClientId(String clientId) {
-            this.clientId = clientId;
-        }
-
-        public String getClientSecret() {
-            return clientSecret;
-        }
-
-        public void setClientSecret(String clientSecret) {
-            this.clientSecret = clientSecret;
-        }
-
-        public Set<String> getAuthorizationGrantTypes() {
-            return authorizationGrantTypes;
-        }
-
-        public void setAuthorizationGrantTypes(Set<String> authorizationGrantTypes) {
-            this.authorizationGrantTypes = authorizationGrantTypes;
-        }
-
-        public Set<String> getRedirectUris() {
-            return redirectUris;
-        }
-
-        public void setRedirectUris(Set<String> redirectUris) {
-            this.redirectUris = redirectUris;
-        }
-
-        public int getClientApiVersion() {
-            return clientApiVersion;
-        }
-
-        public void setClientApiVersion(int clientApiVersion) {
-            this.clientApiVersion = clientApiVersion;
-        }
-    }
-
-    public static class Account {
-
-        private String issuer;
-        private String idAtIssuer;
-
-        public String getIssuer() {
-            return issuer;
-        }
-
-        public void setIssuer(String issuer) {
-            this.issuer = issuer;
-        }
-
-        public String getIdAtIssuer() {
-            return idAtIssuer;
-        }
-
-        public void setIdAtIssuer(String idAtIssuer) {
-            this.idAtIssuer = idAtIssuer;
-        }
-    }
 }
