@@ -24,7 +24,7 @@ jobs:
           java-version: '17'
           cache: 'maven'
       - name: 'Build'
-        run: mvn clean package
+        run: ./mvnw clean package
       - name: 'Upload artifact'
         uses: actions/upload-artifact@v3
         with:
