@@ -112,7 +112,7 @@ public class Gw2AccountServiceImpl implements Gw2AccountService, Clocked {
 
     private static Gw2AccountWithOptionalApiToken mapWithOptionalToken(Gw2AccountWithOptionalApiTokenEntity entity) {
         final Gw2Account account = Gw2Account.fromEntity(entity.account());
-        final Gw2AccountApiToken apiToken =  entity.tokenOptional()
+        final Gw2AccountApiToken apiToken =  entity.optionalToken()
                 .map(Gw2AccountApiToken::fromEntity)
                 .orElse(null);
 
