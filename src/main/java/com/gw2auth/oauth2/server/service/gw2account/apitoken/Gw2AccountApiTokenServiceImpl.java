@@ -14,6 +14,7 @@ import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
 import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,10 +32,10 @@ import java.util.concurrent.TimeUnit;
 public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService, Clocked {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2AccountApiTokenServiceImpl.class);
-    private static final Duration VALIDITY_CHECK_INTERVAL = Duration.ofHours(3L);
-    private static final Duration IGNORE_TOKENS_INVALID_FOR_LONGER_THAN = Duration.ofDays(3L);
     private static final int VALIDITY_CHECK_BATCH_SIZE = 50;
 
+    private final Duration validCheckInterval;
+    private final Duration validCheckIgnoreAfter;
     private final Gw2AccountRepository gw2AccountRepository;
     private final Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
     private final AccountService accountService;
@@ -43,13 +44,17 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     private final Gw2ApiService gw2ApiService;
     private Clock clock;
 
-    public Gw2AccountApiTokenServiceImpl(Gw2AccountRepository gw2AccountRepository,
+    public Gw2AccountApiTokenServiceImpl(@Value("${com.gw2auth.token.valid-check.interval}") Duration validCheckInterval,
+                                         @Value("${com.gw2auth.token.valid-check.ignore-after}") Duration validCheckIgnoreAfter,
+                                         Gw2AccountRepository gw2AccountRepository,
                                          Gw2AccountApiTokenRepository gw2AccountApiTokenRepository,
                                          AccountService accountService,
                                          Gw2AccountService gw2AccountService,
                                          Gw2AccountVerificationService gw2AccountVerificationService,
                                          Gw2ApiService gw2ApiService) {
 
+        this.validCheckInterval = validCheckInterval;
+        this.validCheckIgnoreAfter = validCheckIgnoreAfter;
         this.gw2AccountRepository = gw2AccountRepository;
         this.gw2AccountApiTokenRepository = gw2AccountApiTokenRepository;
         this.accountService = accountService;
@@ -146,8 +151,8 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     public void checkTokenValidity() {
         final Instant now = this.clock.instant();
         final List<Gw2AccountApiTokenValidCheckEntity> tokensToCheck = this.gw2AccountApiTokenRepository.findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(
-                now.minus(IGNORE_TOKENS_INVALID_FOR_LONGER_THAN),
-                now.minus(VALIDITY_CHECK_INTERVAL),
+                now.minus(this.validCheckIgnoreAfter),
+                now.minus(this.validCheckInterval),
                 VALIDITY_CHECK_BATCH_SIZE
         );
         final List<Gw2AccountApiTokenValidUpdateEntity> validUpdateEntities = new ArrayList<>(tokensToCheck.size());

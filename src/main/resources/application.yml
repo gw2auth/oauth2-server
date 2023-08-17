@@ -12,6 +12,10 @@ com.gw2auth:
     client:
       aws-lambda-proxy:
         arns: ${AWS_LAMBDA_PROXY_ARNS}
+  token:
+    valid-check:
+      interval: ${GW2AUTH_TOKEN_VALID_CHECK_INTERVAL}
+      ignore-after: ${GW2AUTH_TOKEN_VALID_CHECK_IGNORE_AFTER}
 
 spring:
   security:

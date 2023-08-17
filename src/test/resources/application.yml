@@ -19,6 +19,10 @@ com.gw2auth:
     keypair:
       id: "generate"
       path: "generate"
+  token:
+    valid-check:
+      interval: "PT3H"
+      ignore-after: "P3D"
 
 spring:
   profiles:
