@@ -1,0 +1,51 @@
+services:
+  cockroach:
+    image: "cockroachdb/cockroach:v23.1.8"
+    ports:
+      - "127.0.0.1:26257:26257"
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: "[[ \"$(curl -o /dev/null -s -w \"%{http_code}\n\" http://localhost:8080/health)\" == \"200\" ]] || exit 1"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    command: "start-single-node --insecure"
+  localstack:
+    image: "localstack/localstack:2.2"
+    ports:
+      - "127.0.0.1:4566:4566"
+      - "127.0.0.1:4510-4559:4510-4559"
+    environment:
+      DEBUG: "1"
+  cockroach_init:
+    image: "cockroachdb/cockroach:v23.1.8"
+    depends_on:
+      cockroach:
+        condition: service_healthy
+    restart: no
+    entrypoint:
+      - "cockroach"
+      - "sql"
+      - "--execute"
+      - "CREATE USER gw2auth_app; CREATE USER flyway;"
+      - "--insecure"
+      - "--host"
+      - "cockroach:26257"
+  localstack_init:
+    image: "amazon/aws-cli"
+    depends_on:
+      localstack:
+        condition: service_healthy
+    restart: no
+    environment:
+      AWS_ACCESS_KEY_ID: "accesskey"
+      AWS_SECRET_ACCESS_KEY: "secretkey"
+      AWS_DEFAULT_REGION: "us-east-1"
+    entrypoint:
+      - "aws"
+      - "--endpoint-url"
+      - "http://localstack:4566"
+      - "s3api"
+      - "create-bucket"
+      - "--bucket"
+      - "gw2auth-session-local"
