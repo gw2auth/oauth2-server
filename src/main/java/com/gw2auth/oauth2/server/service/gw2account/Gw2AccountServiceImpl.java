@@ -44,6 +44,7 @@ public class Gw2AccountServiceImpl implements Gw2AccountService, Clocked {
                 gw2AccountId,
                 gw2AccountName,
                 now,
+                now,
                 displayName,
                 "A",
                 null,

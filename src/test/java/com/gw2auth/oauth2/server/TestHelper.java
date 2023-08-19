@@ -45,6 +45,7 @@ import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -334,11 +335,14 @@ public class TestHelper {
     }
 
     public Gw2AccountEntity getOrCreateGw2Account(UUID accountId, UUID gw2AccountId, String name, String displayName) {
+        Instant now = Instant.now();
+
         return this.gw2AccountRepository.save(
                 accountId,
                 gw2AccountId,
                 name,
-                Instant.now(),
+                now,
+                now,
                 displayName,
                 "A",
                 null,
