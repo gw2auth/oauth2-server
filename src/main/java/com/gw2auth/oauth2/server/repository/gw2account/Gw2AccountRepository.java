@@ -21,6 +21,7 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
                 entity.accountId(),
                 entity.gw2AccountId(),
                 entity.gw2AccountName(),
+                entity.lastNameCheckTime(),
                 entity.creationTime(),
                 entity.displayName(),
                 entity.orderRank(),
@@ -31,9 +32,9 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
 
     @Query("""
     INSERT INTO gw2_accounts
-    (account_id, gw2_account_id, gw2_account_name, creation_time, display_name, order_rank)
+    (account_id, gw2_account_id, gw2_account_name, last_name_check_time, creation_time, display_name, order_rank)
     VALUES
-    (:account_id, :gw2_account_id, :gw2_account_name, :creation_time, :display_name, :order_rank)
+    (:account_id, :gw2_account_id, :gw2_account_name, :last_name_check_time, :creation_time, :display_name, :order_rank)
     ON CONFLICT (account_id, gw2_account_id) DO UPDATE SET
     gw2_account_name = EXCLUDED.gw2_account_name,
     display_name = COALESCE(:display_name_if_exists, gw2_accounts.display_name),
@@ -43,6 +44,7 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
     Gw2AccountEntity save(@Param("account_id") UUID accountId,
                           @Param("gw2_account_id") UUID gw2AccountId,
                           @Param("gw2_account_name") String gw2AccountName,
+                          @Param("last_name_check_time") Instant lastNameCheckTime,
                           @Param("creation_time") Instant creationTime,
                           @Param("display_name") String displayName,
                           @Param("order_rank") String orderRank,

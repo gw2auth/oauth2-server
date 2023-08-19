@@ -13,6 +13,8 @@ com.gw2auth:
       aws-lambda-proxy:
         arns: ${AWS_LAMBDA_PROXY_ARNS}
   token:
+    name-check:
+      interval: ${GW2AUTH_TOKEN_NAME_CHECK_INTERVAL}
     valid-check:
       interval: ${GW2AUTH_TOKEN_VALID_CHECK_INTERVAL}
       ignore-after: ${GW2AUTH_TOKEN_VALID_CHECK_IGNORE_AFTER}

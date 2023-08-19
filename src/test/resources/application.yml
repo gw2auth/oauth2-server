@@ -20,6 +20,8 @@ com.gw2auth:
       id: "generate"
       path: "generate"
   token:
+    name-check:
+      interval: "P2D"
     valid-check:
       interval: "PT3H"
       ignore-after: "P3D"

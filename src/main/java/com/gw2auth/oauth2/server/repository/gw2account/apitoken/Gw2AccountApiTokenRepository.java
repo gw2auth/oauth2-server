@@ -82,10 +82,15 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
     INNER JOIN gw2_accounts acc
     ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
     WHERE tk.last_valid_time >= :last_valid_time
-    AND tk.last_valid_check_time <= :last_valid_check_time
+    AND (tk.last_valid_check_time <= :last_valid_check_time OR acc.last_name_check_time <= :last_name_check_time)
     LIMIT :limit
     """)
-    List<Gw2AccountApiTokenValidCheckEntity> findAllByLastValidTimeGTEAndLastValidCheckTimeLTE(@Param("last_valid_time") Instant lastValidTimeGTE, @Param("last_valid_check_time") Instant lastValidCheckTimeLTE, @Param("limit") int limit);
+    List<Gw2AccountRefreshEntity> findAllApplicableForRefresh(
+        @Param("last_valid_time") Instant lastValidTimeGTE,
+        @Param("last_valid_check_time") Instant lastValidCheckTimeLTE,
+        @Param("last_name_check_time") Instant lastNameCheckTimeLTE,
+        @Param("limit") int limit
+    );
 
     @Modifying
     @Query("""
