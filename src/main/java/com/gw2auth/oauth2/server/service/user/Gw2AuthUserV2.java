@@ -51,7 +51,7 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
         return getAccountFederation().v2();
     }
 
-    public Pair<String, String> getAccountFederation() {
+    private Pair<String, String> getAccountFederation() {
         // this method should only be called from an actual authentication, not within an oauth2 flow
         return Objects.requireNonNull(this.accountFederation);
     }

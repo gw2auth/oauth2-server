@@ -14,6 +14,41 @@ server:
   tomcat:
     redirect-context-root: false
 
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          cognito:
+            provider: cognito
+            client-name: "Amazon Cognito"
+            client-id: ${AMZ_COGNITO_CLIENT_ID}
+            client-secret: ${AMZ_COGNITO_CLIENT_SECRET}
+            scope: "openid"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/cognito"
+          github:
+            provider: github
+            client-name: "GitHub"
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: [""]
+            redirect-uri: "{baseUrl}/auth/oauth2/code/github"
+          google:
+            provider: google
+            client-name: "Google"
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: "openid"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/google"
+        provider:
+          cognito:
+            issuer-uri: "https://cognito-idp.${AMZ_COGNITO_REGION}.amazonaws.com/${AMZ_COGNITO_POOL_ID}"
+            user-name-attribute: sub
+          github:
+            user-name-attribute: id
+          google:
+            user-name-attribute: sub
+
 management:
   endpoints:
     jmx:

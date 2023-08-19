@@ -77,7 +77,7 @@ public class AccountController extends AbstractRestController {
 
     @DeleteMapping(value = "/api/account/federation", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> deleteAccountFederation(@AuthenticationPrincipal Gw2AuthUserV2 user, @RequestParam("issuer") String issuer, @RequestParam("idAtIssuer") String idAtIssuer) {
-        if (user.getAccountFederation().v1().equals(issuer) && user.getAccountFederation().v2().equals(idAtIssuer)) {
+        if (user.getIssuer().equals(issuer) && user.getIdAtIssuer().equals(idAtIssuer)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 

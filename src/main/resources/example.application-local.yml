@@ -1,0 +1,114 @@
+server:
+  port: 9000
+
+com.gw2auth:
+  url: "http://127.0.0.1:4200"
+  login:
+    user-service:
+      use-dummy: true
+  client:
+    registration:
+      - account: admin
+        display-name: "Debug Client V0"
+        client-id: "9d4f1904-f07a-4052-a968-536c8e98cb50"
+        client-secret: "secret"
+        authorization-grant-types:
+          - authorization_code
+          - refresh_token
+        redirect-uris:
+          - "http://127.0.0.1:4200/account/client/debug"
+        client-api-version: 0
+      - account: admin
+        display-name: "Debug Client V1"
+        client-id: "bdebb7ef-f0a5-4f85-81d7-2e5a40719d63"
+        client-secret: "secret"
+        authorization-grant-types:
+          - authorization_code
+          - refresh_token
+        redirect-uris:
+          - "http://127.0.0.1:4200/account/client/debug"
+        client-api-version: 1
+    account:
+      admin:
+        - issuer: "cognito"
+          id-at-issuer: ${GW2AUTH_USER_ID}
+        - issuer: "github"
+          id-at-issuer: ${GW2AUTH_USER_ID}
+        - issuer: "google"
+          id-at-issuer: ${GW2AUTH_USER_ID}
+  session:
+    key:
+      id: "generate"
+      path: "generate"
+  oauth2:
+    keypair:
+      id: "generate"
+      path: "generate"
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          cognito:
+            provider: gw2auth
+            client-name: "Amazon Cognito"
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/cognito"
+          github:
+            provider: gw2auth
+            client-name: "GitHub"
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/github"
+          google:
+            provider: gw2auth
+            client-name: "Google"
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/google"
+        provider:
+          gw2auth:
+            issuer-uri: "https://gw2auth.com"
+            user-name-attribute: sub
+
+# region login provider
+GW2AUTH_USER_ID: "replaceme"
+GW2AUTH_LOGIN_PROVIDER_CLIENT_ID: "replaceme"
+GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET: "replaceme"
+# endregion
+
+# region token valid check
+GW2AUTH_TOKEN_VALID_CHECK_INTERVAL: "PT3H"
+GW2AUTH_TOKEN_VALID_CHECK_IGNORE_AFTER: "P3D"
+# endregion
+
+# region local cockroach
+SERVER_POSTGRES_HOST: localhost
+SERVER_POSTGRES_PORT: 26257
+SERVER_POSTGRES_OPTIONS: ""
+SERVER_POSTGRES_DB: postgres
+SERVER_POSTGRES_USER: "gw2auth_app"
+SERVER_POSTGRES_PASSWORD: ""
+SERVER_FLYWAY_POSTGRES_USER: "flyway"
+SERVER_FLYWAY_POSTGRES_PASSWORD: ""
+# endregion
+
+AWS_LAMBDA_PROXY_ARNS: ""
+AWS_S3_SESSION_BUCKET: "gw2auth-session-local"
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        exclude: prometheus
+    web:
+      exposure:
+        include: prometheus
+  endpoint:
+    prometheus:
+      enabled: true
