@@ -115,7 +115,7 @@ class Gw2AccountApiTokenServiceImplTest {
         this.gw2AuthClockedExtension.setClock(Clock.fixed(now, ZoneId.systemDefault()));
 
         // trigger validity check
-        this.gw2AccountApiTokenService.checkTokenValidity();
+        this.gw2AccountApiTokenService.refreshTokenValidityAndAccountName();
 
         // verify the account name was updated
         gw2AccountEntity = this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
@@ -169,7 +169,7 @@ class Gw2AccountApiTokenServiceImplTest {
         this.gw2AuthClockedExtension.setClock(Clock.fixed(now, ZoneId.systemDefault()));
 
         // trigger validity check
-        this.gw2AccountApiTokenService.checkTokenValidity();
+        this.gw2AccountApiTokenService.refreshTokenValidityAndAccountName();
 
         // account name should not be updated
         gw2AccountEntity = this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
@@ -223,7 +223,7 @@ class Gw2AccountApiTokenServiceImplTest {
         this.gw2AuthClockedExtension.setClock(Clock.fixed(now, ZoneId.systemDefault()));
 
         // trigger validity check
-        this.gw2AccountApiTokenService.checkTokenValidity();
+        this.gw2AccountApiTokenService.refreshTokenValidityAndAccountName();
 
         // account name should not be updated
         gw2AccountEntity = this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
