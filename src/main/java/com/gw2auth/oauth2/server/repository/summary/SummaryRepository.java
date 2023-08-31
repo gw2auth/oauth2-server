@@ -14,7 +14,7 @@ public interface SummaryRepository extends BaseRepository<ApplicationSummaryEnti
     @Query("""
     SELECT
         (SELECT COUNT(*) FROM accounts) AS accounts,
-        (SELECT COUNT(*) FROM gw2_account_api_tokens) AS api_tokens,
+        (SELECT COUNT(*) FROM gw2_account_api_tokens WHERE last_valid_time = last_valid_check_time) AS api_tokens,
         (SELECT COUNT(*) FROM gw2_account_verifications) AS verified_gw2_accounts,
         (SELECT COUNT(*) FROM application_clients) AS client_registrations,
         (SELECT COUNT(*) FROM application_client_accounts WHERE ARRAY_LENGTH(authorized_scopes, 1) > 0) AS client_authorizations
