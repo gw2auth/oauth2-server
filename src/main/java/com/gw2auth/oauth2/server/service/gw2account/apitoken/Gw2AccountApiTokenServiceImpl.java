@@ -164,6 +164,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
         int validCount = 0;
         int invalidCount = 0;
         int unknownCount = 0;
+        int accountNameChangedCount = 0;
 
         for (Gw2AccountRefreshEntity apiTokenValidCheckEntity : tokensToCheck) {
             Boolean isValidState;
@@ -174,6 +175,10 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
 
                 final boolean hasAccountNameChanged = !gw2Account.name().equals(apiTokenValidCheckEntity.gw2AccountName());
                 nameUpdateEntities.add(new Gw2AccountNameUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), gw2Account.name(), hasAccountNameChanged));
+
+                if (hasAccountNameChanged) {
+                    accountNameChangedCount++;
+                }
             } catch (InvalidApiTokenException e) {
                 isValidState = false;
                 invalidCount++;
@@ -189,12 +194,12 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
 
         if (!validUpdateEntities.isEmpty()) {
             this.gw2AccountApiTokenRepository.updateApiTokensValid(now, validUpdateEntities);
-            LOG.info("updated API-Token validity for {} API-Tokens; valid={} invalid={} unknown={}", tokensToCheck.size(), validCount, invalidCount, unknownCount);
+            LOG.info("updated api token validity for {} api tokens; valid={} invalid={} unknown={}", tokensToCheck.size(), validCount, invalidCount, unknownCount);
         }
 
         if (!nameUpdateEntities.isEmpty()) {
             this.gw2AccountRepository.updateGw2AccountNames(now, nameUpdateEntities);
-            LOG.info("updated GW2 Account names for {} accounts", nameUpdateEntities.size());
+            LOG.info("updated gw2 account names for {} accounts", accountNameChangedCount);
         }
     }
 }
