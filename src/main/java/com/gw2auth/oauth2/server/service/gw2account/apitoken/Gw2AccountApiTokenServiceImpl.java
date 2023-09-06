@@ -177,6 +177,13 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
                 nameUpdateEntities.add(new Gw2AccountNameUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), gw2Account.name(), hasAccountNameChanged));
 
                 if (hasAccountNameChanged) {
+                    LOG.info(
+                            "gw2 account name changed for gw2_account_id={} on account_id={}; old={} new={}",
+                            apiTokenValidCheckEntity.gw2AccountId(),
+                            apiTokenValidCheckEntity.accountId(),
+                            apiTokenValidCheckEntity.gw2AccountName(),
+                            gw2Account.name()
+                    );
                     accountNameChangedCount++;
                 }
             } catch (InvalidApiTokenException e) {
