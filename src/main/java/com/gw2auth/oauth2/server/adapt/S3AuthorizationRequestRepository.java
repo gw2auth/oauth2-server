@@ -1,8 +1,5 @@
 package com.gw2auth.oauth2.server.adapt;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,20 +12,23 @@ import org.springframework.security.oauth2.client.jackson2.OAuth2ClientJackson2M
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public class S3AuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3AuthorizationRequestRepository.class);
-    private final AmazonS3 s3;
+    private final MinimalS3Client s3;
     private final String bucket;
     private final String prefix;
     private final ObjectMapper mapper;
 
-    public S3AuthorizationRequestRepository(AmazonS3 s3, String bucket, String prefix) {
+    public S3AuthorizationRequestRepository(MinimalS3Client s3, String bucket, String prefix) {
         this.s3 = s3;
         this.bucket = bucket;
         this.prefix = prefix;
@@ -85,14 +85,17 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
     private Optional<OAuth2AuthorizationRequest> loadAuthorizationRequest(String state) {
         OAuth2AuthorizationRequest request = null;
 
-        try (S3Object response = this.s3.getObject(this.bucket, buildS3ObjectKey(state))) {
-            try (InputStream in = response.getObjectContent()) {
-                request = this.mapper.readValue(in, OAuth2AuthorizationRequest.class);
-            }
-        } catch (AmazonServiceException e) {
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND.value()) {
-                LOG.warn("got unexpected AmazonServiceException when trying to access OAuth2AuthorizationRequest", e);
-            }
+        final GetObjectRequest s3Request = GetObjectRequest.builder()
+                .bucket(this.bucket)
+                .key(buildS3ObjectKey(state))
+                .build();
+
+        try (ResponseInputStream<GetObjectResponse> response = this.s3.getObject(s3Request)) {
+            request = this.mapper.readValue(response, OAuth2AuthorizationRequest.class);
+        } catch (NoSuchKeyException e) {
+            LOG.info("requested key does not exist", e);
+        } catch (S3Exception e) {
+            LOG.warn("got unexpected S3Exception when trying to access OAuth2AuthorizationRequest", e);
         } catch (IOException e) {
             LOG.warn("got unexpected IOException when trying to access OAuth2AuthorizationRequest", e);
         }
@@ -108,15 +111,25 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
             throw new RuntimeException(e);
         }
 
-        this.s3.putObject(this.bucket, buildS3ObjectKey(state), json);
+        final PutObjectRequest s3Request = PutObjectRequest.builder()
+                .bucket(this.bucket)
+                .key(buildS3ObjectKey(state))
+                .build();
+
+        this.s3.putObject(s3Request, RequestBody.fromString(json, StandardCharsets.UTF_8));
     }
 
     private void deleteAuthorizationRequest(String state) {
+        final DeleteObjectRequest s3Request = DeleteObjectRequest.builder()
+                .bucket(this.bucket)
+                .key(buildS3ObjectKey(state))
+                .build();
+
         try {
-            this.s3.deleteObject(this.bucket, buildS3ObjectKey(state));
-        } catch (AmazonServiceException e) {
+            this.s3.deleteObject(s3Request);
+        } catch (S3Exception e) {
             // dont fail if key didnt exist
-            if (e.getStatusCode() != HttpStatus.NOT_FOUND.value()) {
+            if (e.statusCode() != HttpStatus.NOT_FOUND.value()) {
                 throw e;
             }
         }
@@ -124,5 +137,12 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
 
     private String buildS3ObjectKey(String state) {
         return this.prefix + state;
+    }
+
+    public interface MinimalS3Client {
+
+        ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest request);
+        DeleteObjectResponse deleteObject(DeleteObjectRequest request);
+        PutObjectResponse putObject(PutObjectRequest request, RequestBody body);
     }
 }

@@ -1,6 +1,5 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.gw2auth.oauth2.server.adapt.Gw2AuthSecurityContextRepository;
 import com.gw2auth.oauth2.server.adapt.Gw2AuthSessionDeletionLogoutHandler;
 import com.gw2auth.oauth2.server.adapt.S3AuthorizationRequestRepository;
@@ -11,6 +10,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthLoginUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.CookieHelper;
+import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +40,7 @@ import org.springframework.security.web.savedrequest.CookieRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
@@ -84,13 +85,17 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2-authorization-s3-client") AmazonS3 s3,
+    public Customizer<OAuth2LoginConfigurer<HttpSecurity>> oauth2LoginCustomizer(@Qualifier("oauth2-authorization-s3-client") S3Client s3,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.bucket}") String bucket,
                                                                                  @Value("${com.gw2auth.oauth2.client.s3.prefix}") String prefix,
                                                                                  Gw2AuthInternalJwtConverter jwtConverter,
                                                                                  RequestCache requestCache) {
 
-        final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository = new S3AuthorizationRequestRepository(s3, bucket, prefix);
+        final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository = new S3AuthorizationRequestRepository(
+                DynamicProxy.create(s3, S3Client.class, S3AuthorizationRequestRepository.MinimalS3Client.class),
+                bucket,
+                prefix
+        );
         final SavedRequestAwareAuthenticationSuccessHandler delegate = new SavedRequestAwareAuthenticationSuccessHandler();
         delegate.setRequestCache(requestCache);
         delegate.setDefaultTargetUrl("/account");

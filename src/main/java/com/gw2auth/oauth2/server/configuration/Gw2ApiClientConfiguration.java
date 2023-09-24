@@ -1,18 +1,17 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.arn.Arn;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.gw2.client.*;
+import com.gw2auth.oauth2.server.util.DynamicProxy;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import software.amazon.awssdk.arns.Arn;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -25,9 +24,6 @@ public class Gw2ApiClientConfiguration {
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3L);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(5L);
-    private static final ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration()
-            .withConnectionTimeout((int) CONNECT_TIMEOUT.toMillis())
-            .withClientExecutionTimeout((int) READ_TIMEOUT.toMillis());
 
     @Bean
     public Gw2ApiClient gw2ApiClient(RestTemplateBuilder restTemplateBuilder,
@@ -49,11 +45,15 @@ public class Gw2ApiClientConfiguration {
         ));
 
         for (String awsLambdaProxyARN : awsLambdaProxyARNs) {
-            final AWSLambda lambdaClient = createLambdaClientForARN(awsLambdaProxyARN);
+            final LambdaClient lambdaClient = createLambdaClientForARN(awsLambdaProxyARN);
 
             chain.add(new InstrumentedGw2ApiClient(
-                    new AwsLambdaGw2ApiClient(lambdaClient, awsLambdaProxyARN, objectMapper),
-                    createMetricCollector(metricsEnabled, meterRegistry, "lambda." + Arn.fromString(awsLambdaProxyARN).getRegion())
+                    new AwsLambdaGw2ApiClient(
+                            DynamicProxy.create(lambdaClient, LambdaClient.class, AwsLambdaGw2ApiClient.MinimalLambdaClient.class),
+                            awsLambdaProxyARN,
+                            objectMapper
+                    ),
+                    createMetricCollector(metricsEnabled, meterRegistry, "lambda." + Arn.fromString(awsLambdaProxyARN).region().orElseThrow())
             ));
         }
 
@@ -71,12 +71,14 @@ public class Gw2ApiClientConfiguration {
         return new MicrometerMetricCollector(meterRegistry, "gw2_api_requests", clientName);
     }
 
-    private AWSLambda createLambdaClientForARN(String awsLambdaProxyARN) {
-        final Regions region = Regions.fromName(Arn.fromString(awsLambdaProxyARN).getRegion());
+    private LambdaClient createLambdaClientForARN(String awsLambdaProxyARN) {
+        final Region region = Arn.fromString(awsLambdaProxyARN).region()
+                .map(Region::of)
+                .orElseThrow();
 
-        return AWSLambdaClientBuilder.standard()
-                .withRegion(region)
-                .withClientConfiguration(CLIENT_CONFIGURATION)
+        return LambdaClient.builder()
+                .region(region)
+                .overrideConfiguration((config) -> config.apiCallTimeout(READ_TIMEOUT))
                 .build();
     }
 

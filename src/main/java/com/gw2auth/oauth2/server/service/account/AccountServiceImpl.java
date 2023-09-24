@@ -1,10 +1,8 @@
 package com.gw2auth.oauth2.server.service.account;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.service.Clocked;
+import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -17,9 +15,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -38,7 +40,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
     private final AccountRepository accountRepository;
     private final AccountFederationRepository accountFederationRepository;
     private final AccountFederationSessionRepository accountFederationSessionRepository;
-    private final AmazonS3 s3;
+    private final MinimalS3Client s3;
     private final String bucket;
     private final String prefix;
     private Clock clock;
@@ -47,9 +49,26 @@ public class AccountServiceImpl implements AccountService, Clocked {
     public AccountServiceImpl(AccountRepository accountRepository,
                               AccountFederationRepository accountFederationRepository,
                               AccountFederationSessionRepository accountFederationSessionRepository,
-                              @Qualifier("oauth2-add-federation-s3-client") AmazonS3 s3,
+                              @Qualifier("oauth2-add-federation-s3-client") S3Client s3,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.bucket}") String bucket,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.prefix}") String prefix) {
+
+        this(
+                accountRepository,
+                accountFederationRepository,
+                accountFederationSessionRepository,
+                DynamicProxy.create(s3, S3Client.class, MinimalS3Client.class),
+                bucket,
+                prefix
+        );
+    }
+
+    public AccountServiceImpl(AccountRepository accountRepository,
+                              AccountFederationRepository accountFederationRepository,
+                              AccountFederationSessionRepository accountFederationSessionRepository,
+                              MinimalS3Client s3,
+                              String bucket,
+                              String prefix) {
 
         this.accountRepository = accountRepository;
         this.accountFederationRepository = accountFederationRepository;
@@ -116,18 +135,31 @@ public class AccountServiceImpl implements AccountService, Clocked {
 
     @Override
     public void prepareAddFederation(UUID accountId, String issuer) {
-        this.s3.putObject(this.bucket, this.prefix + accountId, issuer);
+        final PutObjectRequest s3Request = PutObjectRequest.builder()
+                .bucket(this.bucket)
+                .key(this.prefix + accountId)
+                .build();
+
+        this.s3.putObject(s3Request, RequestBody.fromString(issuer, StandardCharsets.UTF_8));
     }
 
     @Override
     public boolean checkAndDeletePrepareAddFederation(UUID accountId, String issuer) {
-        try (S3Object s3Object = this.s3.getObject(this.bucket, this.prefix + accountId)) {
-            this.s3.deleteObject(this.bucket, this.prefix + accountId);
+        final GetObjectRequest s3Request = GetObjectRequest.builder()
+                .bucket(this.bucket)
+                .key(this.prefix + accountId)
+                .build();
 
-            try (InputStream in = s3Object.getObjectContent()) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8).equals(issuer);
-            }
-        } catch (AmazonServiceException | IOException e) {
+        try (ResponseInputStream<GetObjectResponse> s3Object = this.s3.getObject(s3Request)) {
+            this.s3.deleteObject(
+                    DeleteObjectRequest.builder()
+                            .bucket(this.bucket)
+                            .key(this.prefix + accountId)
+                            .build()
+            );
+
+            return new String(s3Object.readAllBytes(), StandardCharsets.UTF_8).equals(issuer);
+        } catch (AwsServiceException | IOException e) {
             return false;
         }
     }
@@ -315,5 +347,12 @@ public class AccountServiceImpl implements AccountService, Clocked {
         public void close() {
             // no-op
         }
+    }
+
+    public interface MinimalS3Client {
+
+        ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest request);
+        DeleteObjectResponse deleteObject(DeleteObjectRequest request);
+        PutObjectResponse putObject(PutObjectRequest request, RequestBody body);
     }
 }
