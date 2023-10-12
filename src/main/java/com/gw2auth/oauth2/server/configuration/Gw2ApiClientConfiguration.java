@@ -84,6 +84,6 @@ public class Gw2ApiClientConfiguration {
 
     @Bean("gw2-api-client-executor-service")
     public ExecutorService gw2ApiClientExecutorService() {
-        return Executors.newCachedThreadPool();
+        return Executors.newVirtualThreadPerTaskExecutor();
     }
 }
