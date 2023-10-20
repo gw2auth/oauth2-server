@@ -14,7 +14,7 @@ public interface Batch<ACC> {
     ACC execute(ExecutorService executorService, Supplier<? extends ACC> accumulatorSupplier, long timeout, TimeUnit timeUnit);
 
     default ACC execute(Supplier<? extends ACC> accumulatorSupplier, long timeout, TimeUnit timeUnit) {
-        return execute(ForkJoinPool.commonPool(), accumulatorSupplier, timeout, timeUnit);
+        return execute(Executors.newVirtualThreadPerTaskExecutor(), accumulatorSupplier, timeout, timeUnit);
     }
 
     @FunctionalInterface
