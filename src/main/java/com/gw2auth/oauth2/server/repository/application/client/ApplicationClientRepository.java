@@ -23,22 +23,24 @@ public interface ApplicationClientRepository extends BaseRepository<ApplicationC
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
                 entity.requiresApproval(),
-                entity.apiVersion()
+                entity.apiVersion(),
+                entity.type()
         );
     }
 
     @Query("""
     INSERT INTO application_clients
-    (id, application_id, creation_time, display_name, client_secret, authorization_grant_types, redirect_uris, requires_approval, api_version)
+    (id, application_id, creation_time, display_name, client_secret, authorization_grant_types, redirect_uris, requires_approval, api_version, type)
     VALUES
-    (:id, :application_id, :creation_time, :display_name, :client_secret, ARRAY[ :authorization_grant_types ]::TEXT[], ARRAY[ :redirect_uris ]::TEXT[], :requires_approval, :api_version)
+    (:id, :application_id, :creation_time, :display_name, :client_secret, ARRAY[ :authorization_grant_types ]::TEXT[], ARRAY[ :redirect_uris ]::TEXT[], :requires_approval, :api_version, :type)
     ON CONFLICT (id) DO UPDATE SET
     display_name = EXCLUDED.display_name,
     client_secret = EXCLUDED.client_secret,
     authorization_grant_types = EXCLUDED.authorization_grant_types,
     redirect_uris = EXCLUDED.redirect_uris,
     requires_approval = EXCLUDED.requires_approval,
-    api_version = EXCLUDED.api_version
+    api_version = EXCLUDED.api_version,
+    type = EXCLUDED.type
     RETURNING *
     """)
     ApplicationClientEntity save(@Param("id") UUID id,
@@ -49,7 +51,8 @@ public interface ApplicationClientRepository extends BaseRepository<ApplicationC
                                  @Param("authorization_grant_types") Collection<String> authorizationGrantTypes,
                                  @Param("redirect_uris") Collection<String> redirectUris,
                                  @Param("requires_approval") boolean requiresApproval,
-                                 @Param("api_version") int apiVersion);
+                                 @Param("api_version") int apiVersion,
+                                 @Param("type") String type);
 
     @Query("""
     SELECT c.*

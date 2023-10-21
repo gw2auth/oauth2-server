@@ -16,5 +16,6 @@ public record ApplicationClientEntity(@Column("id") UUID id,
                                       @Column("authorization_grant_types") Set<String> authorizationGrantTypes,
                                       @Column("redirect_uris") Set<String> redirectUris,
                                       @Column("requires_approval") boolean requiresApproval,
-                                      @Column("api_version") int apiVersion) {
+                                      @Column("api_version") int apiVersion,
+                                      @Column("type") String type) {
 }

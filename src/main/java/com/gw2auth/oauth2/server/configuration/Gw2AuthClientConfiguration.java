@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.configuration;
 
 import com.gw2auth.oauth2.server.configuration.properties.Gw2AuthClientProperties;
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.Application;
@@ -76,7 +77,8 @@ public class Gw2AuthClientConfiguration {
                         registrationConfig.displayName(),
                         registrationConfig.authorizationGrantTypes(),
                         registrationConfig.redirectUris(),
-                        OAuth2ClientApiVersion.fromValueRequired(registrationConfig.clientApiVersion())
+                        OAuth2ClientApiVersion.fromValueRequired(registrationConfig.clientApiVersion()),
+                        OAuth2ClientType.CONFIDENTIAL
                 );
 
                 this.jdbcOperations.update(

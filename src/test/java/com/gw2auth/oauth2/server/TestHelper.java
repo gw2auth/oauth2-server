@@ -24,7 +24,9 @@ import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTok
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
+import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.account.AccountSession;
@@ -45,7 +47,6 @@ import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
-import org.springframework.data.relational.core.sql.In;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -187,7 +188,8 @@ public class TestHelper {
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
                 redirectUris,
                 false,
-                0
+                OAuth2ClientApiVersion.V0.value(),
+                OAuth2ClientType.CONFIDENTIAL.name()
         ));
     }
 

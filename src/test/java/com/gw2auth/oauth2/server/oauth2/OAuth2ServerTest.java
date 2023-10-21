@@ -22,6 +22,7 @@ import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVe
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClientCreation;
@@ -63,6 +64,8 @@ import org.springframework.web.util.UriComponents;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -207,7 +210,7 @@ public class OAuth2ServerTest {
 
     @Test
     public void authorizationCodeRequestNotLoggedIn() throws Exception {
-        performAuthorizeWithNewClient(null, OAuth2ClientApiVersion.CURRENT)
+        performAuthorizeWithNewClient(null, OAuth2ClientApiVersion.CURRENT, OAuth2ClientType.CONFIDENTIAL)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", new StringEndsWith("/login")));
     }
@@ -215,8 +218,9 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void authorizationCodeRequestConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
-        performAuthorizeWithNewClient(sessionHandle, clientApiVersion, Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2_TRADINGPOST))
+    @WithOAuth2ClientType
+    public void authorizationCodeRequestConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
+        performAuthorizeWithNewClient(sessionHandle, clientApiVersion, clientType, Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2_TRADINGPOST))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", asUri(new AllOf<>(
                         new Matchers.MappingMatcher<>("Path", UriComponents::getPath, new IsEqual<>("/oauth2-consent")),
@@ -231,9 +235,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void authorizationCodeRequestWithExistingConsentButWithoutAPITokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion).client();
+        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion, clientType).client();
 
         this.applicationAccountSubRepository.findOrCreate(
                 applicationClient.applicationId(),
@@ -271,9 +276,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void authorizationCodeRequestWithUpgradingConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void authorizationCodeRequestWithUpgradingConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion).client();
+        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion, clientType).client();
 
         this.applicationAccountSubRepository.findOrCreate(
                 applicationClient.applicationId(),
@@ -311,9 +317,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void authorizationCodeRequestWithExistingConsentAndPromptConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void authorizationCodeRequestWithExistingConsentAndPromptConsent(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion).client();
+        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion, clientType).client();
 
         this.applicationAccountSubRepository.findOrCreate(
                 applicationClient.applicationId(),
@@ -351,9 +358,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitAndHappyFlowGeneric(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndHappyFlowGeneric(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -443,9 +451,10 @@ public class OAuth2ServerTest {
 
     @ParameterizedTest
     @WithGw2AuthLogin
-    public void consentSubmitAndHappyFlowV1_NoGw2AccRelatedScopes(SessionHandle sessionHandle) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndHappyFlowV1_NoGw2AccRelatedScopes(SessionHandle sessionHandle, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         final UUID accountSub = this.applicationAccountSubRepository.findOrCreate(applicationClient.applicationId(), accountId, UUID.randomUUID()).accountSub();
@@ -515,9 +524,10 @@ public class OAuth2ServerTest {
 
     @ParameterizedTest
     @WithGw2AuthLogin
-    public void consentSubmitAndHappyFlowV1_Gw2AccNameScope(SessionHandle sessionHandle) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndHappyFlowV1_Gw2AccNameScope(SessionHandle sessionHandle, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         final UUID accountSub = this.applicationAccountSubRepository.findOrCreate(applicationClient.applicationId(), accountId, UUID.randomUUID()).accountSub();
@@ -626,9 +636,10 @@ public class OAuth2ServerTest {
 
     @ParameterizedTest
     @WithGw2AuthLogin
-    public void consentSubmitAndHappyFlowV1_Gw2AccDisplayNameScope(SessionHandle sessionHandle) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndHappyFlowV1_Gw2AccDisplayNameScope(SessionHandle sessionHandle, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         final UUID accountSub = this.applicationAccountSubRepository.findOrCreate(applicationClient.applicationId(), accountId, UUID.randomUUID()).accountSub();
@@ -737,9 +748,10 @@ public class OAuth2ServerTest {
 
     @ParameterizedTest
     @WithGw2AuthLogin
-    public void consentSubmitAndHappyFlowV1_AllV1Scopes(SessionHandle sessionHandle) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndHappyFlowV1_AllV1Scopes(SessionHandle sessionHandle, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(OAuth2ClientApiVersion.V1, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         final UUID accountSub = this.applicationAccountSubRepository.findOrCreate(applicationClient.applicationId(), accountId, UUID.randomUUID()).accountSub();
@@ -883,9 +895,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithExpiredSubtokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithExpiredSubtokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1012,9 +1025,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithSubtokenRetrievalError(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithSubtokenRetrievalError(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1139,9 +1153,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithUnexpectedGW2APIException(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithUnexpectedGW2APIException(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1268,9 +1283,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithLaterRemovedRootApiTokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithLaterRemovedRootApiTokens(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1371,9 +1387,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithLessScopesThanRequested(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithLessScopesThanRequested(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion).client();
+        final ApplicationClient applicationClient = createApplicationClient(clientApiVersion, clientType).client();
         // perform authorization request (which should redirect to the consent page)
         MvcResult result = performAuthorizeWithClient(sessionHandle, applicationClient, Set.of(OAuth2Scope.GW2_ACCOUNT, OAuth2Scope.GW2_TRADINGPOST)).andReturn();
 
@@ -1457,9 +1474,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitWithGw2AuthVerifiedScope(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitWithGw2AuthVerifiedScope(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1563,9 +1581,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void consentSubmitAndSubmitAgainWithLessScopes(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void consentSubmitAndSubmitAgainWithLessScopes(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1677,9 +1696,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void revokeAccessToken(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void revokeAccessToken(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1732,9 +1752,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void revokeAccessTokenWithInvalidClientSecret(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void revokeAccessTokenWithInvalidClientSecret(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1787,9 +1808,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void revokeRefreshToken(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void revokeRefreshToken(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1854,9 +1876,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
-    public void revokeRefreshTokenWithInvalidClientSecret(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void revokeRefreshTokenWithInvalidClientSecret(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -1909,9 +1932,10 @@ public class OAuth2ServerTest {
     @ParameterizedTest
     @WithGw2AuthLogin(issuer = "testissuer", idAtIssuer = "testidatissuer")
     @WithOAuth2ClientApiVersion
-    public void refreshWithLegacyAttributes(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
+    @WithOAuth2ClientType
+    public void refreshWithLegacyAttributes(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion);
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
         final ApplicationClient applicationClient = applicationClientCreation.client();
         final String clientSecret = applicationClientCreation.clientSecret();
         // perform authorization request (which should redirect to the consent page)
@@ -2115,13 +2139,18 @@ public class OAuth2ServerTest {
     }
 
     private ResultActions performRetrieveTokensByRefreshToken(ApplicationClient applicationClient, String clientSecret, String refreshToken) throws Exception {
-        return this.mockMvc.perform(
-                        post("/oauth2/token")
-                                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.REFRESH_TOKEN.getValue())
-                                .queryParam(OAuth2ParameterNames.REFRESH_TOKEN, refreshToken)
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret)
-                );
+        MockHttpServletRequestBuilder builder = post("/oauth2/token")
+                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.REFRESH_TOKEN.getValue())
+                .queryParam(OAuth2ParameterNames.REFRESH_TOKEN, refreshToken)
+                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString());
+
+        if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
+            builder = builder.queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret);
+        } else {
+            // builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
+        }
+
+        return this.mockMvc.perform(builder);
     }
 
     private ResultActions performRetrieveTokenByCodeAndExpectValid(ApplicationClient applicationClient, String clientSecret, URI redirectedURI, Map<String, String> subtokenByGw2ApiToken) throws Exception {
@@ -2142,16 +2171,21 @@ public class OAuth2ServerTest {
         // prepare the mocked gw2 api server to respond with dummy JWTs
         prepareGw2RestServerForCreateSubToken(subtokenByGw2ApiToken, expectedGw2ApiPermissions);
 
+        MockHttpServletRequestBuilder builder = post("/oauth2/token")
+                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
+                .queryParam(OAuth2ParameterNames.CODE, codeParam)
+                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
+                .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow());
+
+        if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
+            builder = builder.queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret);
+        } else {
+            builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
+        }
+
         // retrieve an access token
         // dont use the user session here!
-        return this.mockMvc.perform(
-                        post("/oauth2/token")
-                                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
-                                .queryParam(OAuth2ParameterNames.CODE, codeParam)
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret)
-                                .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow())
-                );
+        return this.mockMvc.perform(builder);
     }
 
     private void prepareGw2RestServerForCreateSubToken(Map<String, String> subtokenByGw2ApiToken) {
@@ -2459,12 +2493,12 @@ public class OAuth2ServerTest {
         return expectValidTokenResponse(OAuth2Scope.GW2_ACCOUNT);
     }
 
-    private ResultActions performAuthorizeWithNewClient(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion) throws Exception {
-        return performAuthorizeWithNewClient(sessionHandle, clientApiVersion, Set.of(OAuth2Scope.GW2_ACCOUNT));
+    private ResultActions performAuthorizeWithNewClient(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
+        return performAuthorizeWithNewClient(sessionHandle, clientApiVersion, clientType, Set.of(OAuth2Scope.GW2_ACCOUNT));
     }
 
-    private ResultActions performAuthorizeWithNewClient(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, Set<OAuth2Scope> scopes) throws Exception {
-        return performAuthorizeWithClient(sessionHandle, createApplicationClient(clientApiVersion).client(), scopes, false);
+    private ResultActions performAuthorizeWithNewClient(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType, Set<OAuth2Scope> scopes) throws Exception {
+        return performAuthorizeWithClient(sessionHandle, createApplicationClient(clientApiVersion, clientType).client(), scopes, false);
     }
 
     private ResultActions performAuthorizeWithClient(SessionHandle sessionHandle, ApplicationClient applicationClient, Set<OAuth2Scope> scopes) throws Exception {
@@ -2484,6 +2518,15 @@ public class OAuth2ServerTest {
             builder = builder.queryParam("prompt", "consent");
         }
 
+        if (applicationClient.type() == OAuth2ClientType.PUBLIC) {
+            final String codeChallenge = generateCodeChallenge(applicationClient);
+            final String b64CodeChallenge = encodeCodeChallenge(codeChallenge);
+
+            builder = builder
+                    .queryParam("code_challenge", b64CodeChallenge)
+                    .queryParam("code_challenge_method", "S256");
+        }
+
         ResultActions resultActions =  this.mockMvc.perform(
                 builder
                         .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
@@ -2500,7 +2543,7 @@ public class OAuth2ServerTest {
         return resultActions;
     }
 
-    private ApplicationClientCreation createApplicationClient(OAuth2ClientApiVersion clientApiVersion) {
+    private ApplicationClientCreation createApplicationClient(OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) {
         // attach this client to a loose account
         final AccountEntity accountEntity = this.testHelper.createAccount();
 
@@ -2517,8 +2560,25 @@ public class OAuth2ServerTest {
                 "Test",
                 Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
                 Set.of("https://clientapplication.gw2auth.com/callback"),
-                clientApiVersion
+                clientApiVersion,
+                clientType
         );
+    }
+
+    private static String generateCodeChallenge(ApplicationClient applicationClient) {
+        return String.format("%s%s", applicationClient.id(), applicationClient.displayName());
+    }
+
+    private static String encodeCodeChallenge(String codeChallenge) {
+        final MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
+        final byte[] bytes = md.digest(codeChallenge.getBytes(StandardCharsets.UTF_8));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
 

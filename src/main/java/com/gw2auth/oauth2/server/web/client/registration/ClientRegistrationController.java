@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.web.client.registration;
 
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.application.Application;
 import com.gw2auth.oauth2.server.service.application.ApplicationService;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
@@ -76,7 +77,8 @@ public class ClientRegistrationController extends AbstractRestController {
                 clientRegistrationCreationRequest.displayName(),
                 clientRegistrationCreationRequest.authorizationGrantTypes(),
                 clientRegistrationCreationRequest.redirectUris(),
-                OAuth2ClientApiVersion.CURRENT
+                OAuth2ClientApiVersion.CURRENT,
+                OAuth2ClientType.CONFIDENTIAL
         );
 
         return new ClientRegistrationCreationResponse(

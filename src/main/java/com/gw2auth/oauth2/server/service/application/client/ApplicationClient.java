@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.service.application.client;
 
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 
 import java.time.Instant;
 import java.util.Set;
@@ -14,7 +15,8 @@ public record ApplicationClient(UUID id,
                                 Set<String> authorizationGrantTypes,
                                 Set<String> redirectUris,
                                 boolean requiresApproval,
-                                OAuth2ClientApiVersion apiVersion) {
+                                OAuth2ClientApiVersion apiVersion,
+                                OAuth2ClientType type) {
 
     public static ApplicationClient fromEntity(ApplicationClientEntity entity) {
         return new ApplicationClient(
@@ -25,7 +27,9 @@ public record ApplicationClient(UUID id,
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
                 entity.requiresApproval(),
-                OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion())
+                OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion()),
+                OAuth2ClientType.valueOf(entity.type())
         );
     }
+
 }

@@ -6,6 +6,7 @@ import com.gw2auth.oauth2.server.repository.application.client.ApplicationClient
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
+import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +34,11 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     private static final Logger LOG = LoggerFactory.getLogger(ApplicationClientServiceImpl.class);
     private static final int CLIENT_SECRET_LENGTH = 64;
     private static final String CLIENT_SECRET_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final Set<AuthorizationGrantType> ALLOWED_GRANT_TYPES = Set.of(AuthorizationGrantType.AUTHORIZATION_CODE, AuthorizationGrantType.REFRESH_TOKEN, AuthorizationGrantType.CLIENT_CREDENTIALS);
+    private static final Set<AuthorizationGrantType> ALLOWED_GRANT_TYPES = Set.of(
+            AuthorizationGrantType.AUTHORIZATION_CODE,
+            AuthorizationGrantType.REFRESH_TOKEN,
+            AuthorizationGrantType.CLIENT_CREDENTIALS
+    );
 
     private final AccountService accountService;
     private final ApplicationRepository applicationRepository;
@@ -83,7 +89,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
 
     @Override
     @Transactional
-    public ApplicationClientCreation createApplicationClient(UUID accountId, UUID applicationId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris, OAuth2ClientApiVersion clientApiVersion) {
+    public ApplicationClientCreation createApplicationClient(UUID accountId, UUID applicationId, String displayName, Set<String> authorizationGrantTypes, Set<String> redirectUris, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) {
         if (redirectUris.isEmpty()) {
             throw new ApplicationClientServiceException(ApplicationClientServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
         } else if (!redirectUris.stream().allMatch(this.redirectUriValidator::validate)) {
@@ -92,8 +98,16 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
             throw new ApplicationClientServiceException(ApplicationClientServiceException.APPLICATION_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
-        final String clientSecret = generateClientSecret();
-        final String encodedClientSecret = this.passwordEncoder.encode(clientSecret);
+        final String clientSecret;
+        final String encodedClientSecret;
+
+        if (clientType == OAuth2ClientType.CONFIDENTIAL) {
+            clientSecret = generateClientSecret();
+            encodedClientSecret = this.passwordEncoder.encode(clientSecret);
+        } else {
+            clientSecret = null;
+            encodedClientSecret = null;
+        }
 
         final ApplicationClientEntity entity = this.applicationClientRepository.save(new ApplicationClientEntity(
                 UUID.randomUUID(),
@@ -104,7 +118,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 authorizationGrantTypes,
                 redirectUris,
                 false,
-                clientApiVersion.value()
+                clientApiVersion.value(),
+                clientType.name()
         ));
 
         this.accountService.log(
@@ -179,7 +194,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
                 entity.requiresApproval(),
-                entity.apiVersion()
+                entity.apiVersion(),
+                entity.type()
         ));
 
         this.accountService.log(
@@ -233,7 +249,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 entity.authorizationGrantTypes(),
                 entity.redirectUris(),
                 entity.requiresApproval(),
-                entity.apiVersion()
+                entity.apiVersion(),
+                entity.type()
         );
     }
 
@@ -252,16 +269,12 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         final RegisteredClient.Builder builder = RegisteredClient.withId(entity.id().toString())
                 .clientName(entity.displayName())
                 .clientId(entity.id().toString())
-                .clientSecret(entity.clientSecret())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(entity.redirectUris()))
-                //.clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_JWT)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
-                //.clientAuthenticationMethod(ClientAuthenticationMethod.PRIVATE_KEY_JWT)
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
                 .tokenSettings(
                         TokenSettings.builder()
+                                .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
                                 .accessTokenTimeToLive(Duration.ofMinutes(30L))
                                 .refreshTokenTimeToLive(Duration.ofDays(180L))
                                 .reuseRefreshTokens(false)
@@ -272,6 +285,14 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 .map(AuthorizationGrantType::new)
                 .filter(ALLOWED_GRANT_TYPES::contains)
                 .forEach(builder::authorizationGrantType);
+
+        switch (OAuth2ClientType.valueOf(entity.type())) {
+            case CONFIDENTIAL -> builder
+                    .clientSecret(Objects.requireNonNull(entity.clientSecret()))
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST);
+            case PUBLIC -> builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE);
+        }
 
         final OAuth2ClientApiVersion clientApiVersion = OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion());
         OAuth2Scope.allForVersion(clientApiVersion)
