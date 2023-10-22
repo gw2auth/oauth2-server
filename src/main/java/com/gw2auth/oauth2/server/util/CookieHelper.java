@@ -34,8 +34,7 @@ public final class CookieHelper {
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if (cookie.getName().equals(name)) {
-                    cookie.setMaxAge(0);
-                    response.addCookie(cookie);
+                    clearCookie(request, response, name);
                     break;
                 }
             }
