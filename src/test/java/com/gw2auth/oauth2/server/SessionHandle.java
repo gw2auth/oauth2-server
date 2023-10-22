@@ -34,7 +34,7 @@ public class SessionHandle implements RequestPostProcessor, ResultHandler {
     }
 
     public void addCookie(Cookie cookie) {
-        if (cookie.getMaxAge() > 0) {
+        if (cookie.getMaxAge() != 0) {
             this.cookies.put(cookie.getName(), cookie);
         } else {
             this.cookies.remove(cookie.getName());
@@ -72,14 +72,14 @@ public class SessionHandle implements RequestPostProcessor, ResultHandler {
 
         if (existingCookies != null) {
             for (Cookie cookie : existingCookies) {
-                if (cookie.getMaxAge() > 0) {
+                if (cookie.getMaxAge() != 0) {
                     totalCookies.putIfAbsent(cookie.getName(), cookie);
                 }
             }
         }
 
         for (Map.Entry<String, Cookie> entry : this.cookies.entrySet()) {
-            if (entry.getValue().getMaxAge() > 0) {
+            if (entry.getValue().getMaxAge() != 0) {
                 totalCookies.putIfAbsent(entry.getKey(), entry.getValue());
             }
         }

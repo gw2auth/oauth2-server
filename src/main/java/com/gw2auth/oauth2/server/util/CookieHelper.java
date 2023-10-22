@@ -29,6 +29,19 @@ public final class CookieHelper {
         response.addCookie(cookie);
     }
 
+    public static void clearCookieIfPresent(HttpServletRequest request, HttpServletResponse response, String name) {
+        final Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
+                    cookie.setMaxAge(0);
+                    response.addCookie(cookie);
+                    break;
+                }
+            }
+        }
+    }
+
     private static String getRequestContext(HttpServletRequest request) {
         String contextPath = request.getContextPath();
         return contextPath.isEmpty() ? "/" : contextPath;

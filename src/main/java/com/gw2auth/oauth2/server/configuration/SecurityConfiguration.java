@@ -120,6 +120,7 @@ public class SecurityConfiguration {
                         }
 
                         delegate.onAuthenticationSuccess(request, response, authentication);
+                        requestCache.removeRequest(request, response);
                     });
         };
     }
