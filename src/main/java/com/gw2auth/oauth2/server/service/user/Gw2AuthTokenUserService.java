@@ -8,8 +8,10 @@ import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.Pair;
 import com.gw2auth.oauth2.server.util.SymEncryption;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -28,14 +30,16 @@ public class Gw2AuthTokenUserService implements Clocked {
     private final RequestSessionMetadataExtractor requestSessionMetadataExtractor;
     private final SessionMetadataService sessionMetadataService;
     private final AccountService accountService;
+    private final RequestCache requestCache;
     private Clock clock;
 
     @Autowired
-    public Gw2AuthTokenUserService(Gw2AuthInternalJwtConverter jwtConverter, RequestSessionMetadataExtractor requestSessionMetadataExtractor, SessionMetadataService sessionMetadataService, AccountService accountService) {
+    public Gw2AuthTokenUserService(Gw2AuthInternalJwtConverter jwtConverter, RequestSessionMetadataExtractor requestSessionMetadataExtractor, SessionMetadataService sessionMetadataService, AccountService accountService, RequestCache requestCache) {
         this.jwtConverter = jwtConverter;
         this.requestSessionMetadataExtractor = requestSessionMetadataExtractor;
         this.sessionMetadataService = sessionMetadataService;
         this.accountService = accountService;
+        this.requestCache = requestCache;
         this.clock = Clock.systemUTC();
     }
 
@@ -116,7 +120,10 @@ public class Gw2AuthTokenUserService implements Clocked {
         user = new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId, currentSessionMetadata, encryptionKeyBytes);
         request.setAttribute(REQUEST_ATTRIBUTE_NAME, user);
 
-        CookieHelper.clearCookieIfPresent(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.REDIRECT_URI_COOKIE_NAME);
+        HttpServletResponse response = AuthenticationHelper.getCurrentResponse().orElseThrow();
+        if (this.requestCache.getRequest(request, response) != null) {
+            this.requestCache.removeRequest(request, response);
+        }
 
         return Optional.of(user);
     }
