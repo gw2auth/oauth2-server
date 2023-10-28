@@ -11,6 +11,7 @@ import java.io.ObjectStreamField;
 import java.io.Serial;
 import java.io.Serializable;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.*;
 
 public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrincipal, Serializable {
@@ -25,17 +26,19 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
     private final Pair<String, String> accountFederation;
     private final String sessionId;
     private final SessionMetadata sessionMetadata;
+    private final Instant sessionCreationTime;
     private final byte[] encryptionKey;
 
     public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer) {
-        this(accountId, issuer, idAtIssuer, null, null, null);
+        this(accountId, issuer, idAtIssuer, null, null, null, null);
     }
 
-    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId, SessionMetadata sessionMetadata, byte[] encryptionKey) {
+    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId, SessionMetadata sessionMetadata, Instant sessionCreationTime, byte[] encryptionKey) {
         this.accountId = accountId;
         this.accountFederation = new Pair<>(issuer, idAtIssuer);
         this.sessionId = sessionId;
         this.sessionMetadata = sessionMetadata;
+        this.sessionCreationTime = sessionCreationTime;
         this.encryptionKey = encryptionKey;
     }
 
@@ -63,6 +66,11 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
     public Optional<SessionMetadata> getSessionMetadata() {
         // empty if session has no metadata or if not in actual authentication (oauth2 server side context)
         return Optional.ofNullable(this.sessionMetadata);
+    }
+
+    public Optional<Instant> getSessionCreationTime() {
+        // empty if not in actual authentication (oauth2 server side context)
+        return Optional.ofNullable(this.sessionCreationTime);
     }
 
     public Optional<byte[]> getEncryptionKey() {

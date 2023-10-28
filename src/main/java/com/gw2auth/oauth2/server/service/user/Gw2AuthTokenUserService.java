@@ -117,7 +117,15 @@ public class Gw2AuthTokenUserService implements Clocked {
             CookieHelper.addCookie(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
         }
 
-        user = new Gw2AuthUserV2(account.id(), accountFederation.issuer(), accountFederation.idAtIssuer(), sessionId, currentSessionMetadata, encryptionKeyBytes);
+        user = new Gw2AuthUserV2(
+                account.id(),
+                accountFederation.issuer(),
+                accountFederation.idAtIssuer(),
+                sessionId,
+                currentSessionMetadata,
+                accountSession.sessionCreationTime(),
+                encryptionKeyBytes
+        );
         request.setAttribute(REQUEST_ATTRIBUTE_NAME, user);
 
         HttpServletResponse response = AuthenticationHelper.getCurrentResponse().orElseThrow();

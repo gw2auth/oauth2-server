@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -28,17 +29,39 @@ class AuthInfoControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private TestHelper testHelper;
+
     @Test
-    public void authInfoUnauthorized() throws Exception {
+    public void headAuthInfoUnauthorized() throws Exception {
         this.mockMvc.perform(head("/api/authinfo"))
                 .andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest
     @WithGw2AuthLogin
-    public void authInfo(SessionHandle sessionHandle) throws Exception {
+    public void headAuthInfo(SessionHandle sessionHandle) throws Exception {
         this.mockMvc.perform(head("/api/authinfo").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isAccepted());
+    }
+
+    @Test
+    public void authInfoUnauthorized() throws Exception {
+        this.mockMvc.perform(get("/api/authinfo"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest
+    @WithGw2AuthLogin(issuer = "authInfoTestIssuer")
+    public void authInfo(SessionHandle sessionHandle) throws Exception {
+        final String sessionId = this.testHelper.getSessionIdForCookie(sessionHandle).orElseThrow();
+
+        this.mockMvc.perform(get("/api/authinfo").with(sessionHandle))
+                .andDo(sessionHandle)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value(sessionId))
+                .andExpect(jsonPath("$.sessionCreationTime").isString())
+                .andExpect(jsonPath("$.issuer").value("authInfoTestIssuer"));
     }
 }
