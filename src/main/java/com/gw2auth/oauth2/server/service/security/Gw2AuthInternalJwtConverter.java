@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 
 public class Gw2AuthInternalJwtConverter implements Clocked {
 
@@ -24,6 +25,7 @@ public class Gw2AuthInternalJwtConverter implements Clocked {
     private final JwtTimestampValidator jwtTimestampValidator;
     private final JwtDecoder jwtDecoder;
     private final JwtEncoder jwtEncoder;
+    private Clock clock;
 
     public Gw2AuthInternalJwtConverter(String keyId, RSAPublicKey publicKey, RSAPrivateKey privateKey) throws JOSEException {
         this.jwtTimestampValidator = new JwtTimestampValidator();
@@ -33,11 +35,13 @@ public class Gw2AuthInternalJwtConverter implements Clocked {
 
         this.jwtDecoder = jwtDecoder;
         this.jwtEncoder = new NimbusJwtEncoder(JWKHelper.jwkSourceForKeyPair(new KeyPair(publicKey, privateKey), keyId));
+        this.clock = Clock.systemUTC();
     }
 
     @Override
     public void setClock(Clock clock) {
         this.jwtTimestampValidator.setClock(clock);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     public Jwt readJWT(String jwtStr) {
@@ -61,10 +65,11 @@ public class Gw2AuthInternalJwtConverter implements Clocked {
         return Base64.getDecoder().decode(jwt.getClaimAsString(ENCRYPTION_KEY_CLAIM));
     }
 
-    public Jwt writeJWT(String sessionId, byte[] encryptionKey, Instant creationTime, Instant expirationTime) {
+    public Jwt writeJWT(String sessionId, byte[] encryptionKey, Instant expirationTime) {
+        final Instant now = this.clock.instant();
         final JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
-                .issuedAt(creationTime)
-                .notBefore(creationTime)
+                .issuedAt(now)
+                .notBefore(now)
                 .expiresAt(expirationTime)
                 .issuer(ISSUER)
                 .claim(SESSION_CLAIM, sessionId)

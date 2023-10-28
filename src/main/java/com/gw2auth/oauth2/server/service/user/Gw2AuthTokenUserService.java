@@ -113,7 +113,7 @@ public class Gw2AuthTokenUserService implements Clocked {
                     metadataBytes
             );
 
-            jwt = this.jwtConverter.writeJWT(updatedSession.id(), encryptionKeyBytes, updatedSession.creationTime(), updatedSession.expirationTime());
+            jwt = this.jwtConverter.writeJWT(updatedSession.id(), encryptionKeyBytes, updatedSession.expirationTime());
             CookieHelper.addCookie(request, AuthenticationHelper.getCurrentResponse().orElseThrow(), Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
         }
 

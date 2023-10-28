@@ -115,7 +115,7 @@ public class SecurityConfiguration {
                             final AccountFederationSession session = user.session();
                             final byte[] encryptionKey = user.encryptionKey();
 
-                            final Jwt jwt = jwtConverter.writeJWT(session.id(), encryptionKey, session.creationTime(), session.expirationTime());
+                            final Jwt jwt = jwtConverter.writeJWT(session.id(), encryptionKey, session.expirationTime());
                             CookieHelper.addCookie(request, response, Constants.ACCESS_TOKEN_COOKIE_NAME, jwt.getTokenValue(), jwt.getExpiresAt());
                         }
 

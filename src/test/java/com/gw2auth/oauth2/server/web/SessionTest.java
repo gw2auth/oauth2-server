@@ -150,7 +150,7 @@ public class SessionTest {
         final AccountFederationSession otherUserSession = this.accountService.createNewSession("second", "someotherid", accountFederationSessionEntity.metadata());
 
         final Jwt myJwt = this.jwtConverter.readJWT(sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).getValue());
-        final Jwt otherUsersJwt = this.jwtConverter.writeJWT(otherUserSession.id(), this.jwtConverter.readEncryptionKey(myJwt), otherUserSession.creationTime(), otherUserSession.expirationTime());
+        final Jwt otherUsersJwt = this.jwtConverter.writeJWT(otherUserSession.id(), this.jwtConverter.readEncryptionKey(myJwt), otherUserSession.expirationTime());
 
         // using the "real" cookie of another user should work too
         sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).setValue(otherUsersJwt.getTokenValue());

@@ -53,16 +53,15 @@ public interface AccountFederationSessionRepository extends BaseRepository<Accou
     issuer = EXCLUDED.issuer,
     id_at_issuer = EXCLUDED.id_at_issuer,
     metadata = EXCLUDED.metadata,
-    creation_time = EXCLUDED.creation_time,
     expiration_time = EXCLUDED.expiration_time
     RETURNING *
     """)
     AccountFederationSessionEntity updateSession(@Param("id") String id,
-                          @Param("issuer") String issuer,
-                          @Param("id_at_issuer") String idAtIssuer,
-                          @Param("metadata") byte[] metadata,
-                          @Param("creation_time") Instant creationTime,
-                          @Param("expiration_time") Instant expirationTime);
+                                                 @Param("issuer") String issuer,
+                                                 @Param("id_at_issuer") String idAtIssuer,
+                                                 @Param("metadata") byte[] metadata,
+                                                 @Param("creation_time") Instant creationTime,
+                                                 @Param("expiration_time") Instant expirationTime);
 
     @Query("""
     SELECT fed_sess.*
