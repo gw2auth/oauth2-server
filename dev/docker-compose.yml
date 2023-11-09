@@ -1,6 +1,8 @@
 services:
   cockroach:
     image: "cockroachdb/cockroach:v23.1.8"
+    volumes:
+      - "cockroach_data:/cockroach/cockroach-data"
     ports:
       - "127.0.0.1:26257:26257"
       - "127.0.0.1:8080:8080"
@@ -49,3 +51,6 @@ services:
       - "create-bucket"
       - "--bucket"
       - "gw2auth-session-local"
+
+volumes:
+  cockroach_data:
