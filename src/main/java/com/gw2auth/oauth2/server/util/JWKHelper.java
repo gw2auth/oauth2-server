@@ -42,35 +42,26 @@ public final class JWKHelper {
     }
 
     public static KeyPair loadRsaKeyPair(String _privateKeyPath, String _publicKeyPath) throws IOException, GeneralSecurityException {
-        final Path privateKeyPath = Paths.get(_privateKeyPath);
-        final Path publicKeyPath = Paths.get(_publicKeyPath);
+        return new KeyPair(loadRsaPublicKey(_publicKeyPath), loadRsaPrivateKey(_privateKeyPath));
+    }
+
+    public static PrivateKey loadRsaPrivateKey(String _path) throws IOException, GeneralSecurityException {
+        final Path path = Paths.get(_path);
+        final KeyFactory kf = KeyFactory.getInstance("RSA");
         try {
-            return loadPemRsaKeyPair(privateKeyPath, publicKeyPath);
+            return loadPemRsaPrivateKey(kf, path);
         } catch (Exception e) {
-            return loadPlainRsaKeyPair(privateKeyPath, publicKeyPath);
+            return loadPlainRsaPrivateKey(kf, path);
         }
     }
 
-    private static KeyPair loadPlainRsaKeyPair(Path privateKeyPath, Path publicKeyPath) throws IOException, GeneralSecurityException {
-        final KeyFactory kf = KeyFactory.getInstance("RSA");
-        final PrivateKey privateKey;
-        final PublicKey publicKey;
-
-        KeySpec spec = new PKCS8EncodedKeySpec(Files.readAllBytes(privateKeyPath));
-        privateKey = kf.generatePrivate(spec);
-
-        spec = new X509EncodedKeySpec(Files.readAllBytes(publicKeyPath));
-        publicKey = kf.generatePublic(spec);
-
-        return new KeyPair(publicKey, privateKey);
+    private static PrivateKey loadPlainRsaPrivateKey(KeyFactory kf, Path path) throws IOException, GeneralSecurityException {
+        final KeySpec spec = new PKCS8EncodedKeySpec(Files.readAllBytes(path));
+        return kf.generatePrivate(spec);
     }
 
-    private static KeyPair loadPemRsaKeyPair(Path privateKeyPath, Path publicKeyPath) throws IOException, GeneralSecurityException {
-        final KeyFactory kf = KeyFactory.getInstance("RSA");
-        final PrivateKey privateKey;
-        final PublicKey publicKey;
-
-        try (Reader reader = Files.newBufferedReader(privateKeyPath, StandardCharsets.UTF_8)) {
+    private static PrivateKey loadPemRsaPrivateKey(KeyFactory kf, Path path) throws IOException, GeneralSecurityException {
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             try (PemReader pemReader = new PemReader(reader)) {
                 final PemObject pemObject = pemReader.readPemObject();
                 if (!pemObject.getType().equals("PKCS#8")) {
@@ -78,11 +69,28 @@ public final class JWKHelper {
                 }
 
                 final KeySpec spec = new PKCS8EncodedKeySpec(pemObject.getContent());
-                privateKey = kf.generatePrivate(spec);
+                return kf.generatePrivate(spec);
             }
         }
+    }
 
-        try (Reader reader = Files.newBufferedReader(publicKeyPath, StandardCharsets.UTF_8)) {
+    public static PublicKey loadRsaPublicKey(String _path) throws IOException, GeneralSecurityException {
+        final Path path = Paths.get(_path);
+        final KeyFactory kf = KeyFactory.getInstance("RSA");
+        try {
+            return loadPemRsaPublicKey(kf, path);
+        } catch (Exception e) {
+            return loadPlainRsaPublicKey(kf, path);
+        }
+    }
+
+    private static PublicKey loadPlainRsaPublicKey(KeyFactory kf, Path path) throws IOException, GeneralSecurityException {
+        final KeySpec spec = new X509EncodedKeySpec(Files.readAllBytes(path));
+        return kf.generatePublic(spec);
+    }
+
+    private static PublicKey loadPemRsaPublicKey(KeyFactory kf, Path path) throws IOException, GeneralSecurityException {
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             try (PemReader pemReader = new PemReader(reader)) {
                 final PemObject pemObject = pemReader.readPemObject();
                 if (!pemObject.getType().equals("X.509")) {
@@ -90,11 +98,9 @@ public final class JWKHelper {
                 }
 
                 final KeySpec spec = new X509EncodedKeySpec(pemObject.getContent());
-                publicKey = kf.generatePublic(spec);
+                return kf.generatePublic(spec);
             }
         }
-
-        return new KeyPair(publicKey, privateKey);
     }
 
     public static KeyPair generateRsaKeyPair() throws GeneralSecurityException {

@@ -12,6 +12,8 @@ import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.JWKHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -19,6 +21,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -43,30 +47,79 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class);
+
     @Bean
-    public Gw2AuthInternalJwtConverter gw2AuthInternalJwtConverter(@Value("${com.gw2auth.session.key.id}") String sessionKeyId,
-                                                                   @Value("${com.gw2auth.session.key.path}") String sessionKeyPath) throws Exception {
+    public Gw2AuthInternalJwtConverter gw2AuthInternalJwtConverter(@Value("${com.gw2auth.session.priv.id}") String privateKeyId,
+                                                                   @Value("${com.gw2auth.session.priv.path}") String privateKeyPath,
+                                                                   @Value("${com.gw2auth.session.pub1.id}") String pub1KeyId,
+                                                                   @Value("${com.gw2auth.session.pub1.path}") String pub1KeyPath,
+                                                                   @Value("${com.gw2auth.session.pub2.id}") String pub2KeyId,
+                                                                   @Value("${com.gw2auth.session.pub2.path}") String pub2KeyPath,
+                                                                   Environment environment) throws Exception {
 
-        if (sessionKeyId.equals("generate")) {
-            sessionKeyId = UUID.randomUUID().toString();
+        if (pub1KeyId.equals(pub2KeyId)) {
+            throw new IllegalStateException("key ids are not unique");
         }
 
-        final KeyPair keyPair;
-        if (sessionKeyPath.equals("generate")) {
-            keyPair = JWKHelper.generateRsaKeyPair();
+        final boolean isTest = environment.acceptsProfiles(Profiles.of("test"));
+        final PrivateKey privateKey;
+        final PublicKey privateKeyMatchingPublic;
+
+        if (privateKeyPath.equals("generate")) {
+            if (!isTest) {
+                throw new IllegalStateException("key generation only enabled for tests");
+            }
+
+            final KeyPair keyPair = JWKHelper.generateRsaKeyPair();
+            privateKey = keyPair.getPrivate();
+            privateKeyMatchingPublic = keyPair.getPublic();
         } else {
-            keyPair = JWKHelper.loadRsaKeyPair(sessionKeyPath, sessionKeyPath + ".pub");
+            privateKey = JWKHelper.loadRsaPrivateKey(privateKeyPath);
+            privateKeyMatchingPublic = null;
         }
 
-        return new Gw2AuthInternalJwtConverter(sessionKeyId, (RSAPublicKey) keyPair.getPublic(), (RSAPrivateKey) keyPair.getPrivate());
+        final Map<String, String> pubKeyPaths = Map.of(
+                pub1KeyId, pub1KeyPath,
+                pub2KeyId, pub2KeyPath
+        );
+        final Map<String, RSAPublicKey> publicKeys = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : pubKeyPaths.entrySet()) {
+            final String keyId = entry.getKey();
+            final String keyPath = entry.getValue();
+            final PublicKey publicKey;
+
+            if (keyPath.equals("generate")) {
+                if (!isTest) {
+                    throw new IllegalStateException("key generation only enabled for tests");
+                }
+
+                if (keyId.equals(privateKeyId)) {
+                    publicKey = Objects.requireNonNull(privateKeyMatchingPublic);
+                } else {
+                    publicKey = JWKHelper.generateRsaKeyPair().getPublic();
+                }
+            } else {
+                publicKey = JWKHelper.loadRsaPublicKey(keyPath);
+            }
+
+            publicKeys.put(keyId, (RSAPublicKey) publicKey);
+        }
+
+        return new Gw2AuthInternalJwtConverter(privateKeyId, (RSAPrivateKey) privateKey, publicKeys);
     }
 
     @Bean

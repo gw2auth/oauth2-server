@@ -16,6 +16,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -117,15 +119,15 @@ public class OAuth2ServerConfiguration {
 
     @Bean
     public JWKSource<SecurityContext> jwkSource(@Value("${com.gw2auth.oauth2.keypair.id}") String keyPairId,
-                                                @Value("${com.gw2auth.oauth2.keypair.path}") String keyPairPath) throws IOException, GeneralSecurityException, JOSEException {
-
-        if (keyPairId.equals("generate")) {
-            keyPairId = UUID.randomUUID().toString();
-        }
+                                                @Value("${com.gw2auth.oauth2.keypair.path}") String keyPairPath,
+                                                Environment environment) throws IOException, GeneralSecurityException, JOSEException {
 
         final KeyPair keyPair;
-
         if (keyPairPath.equals("generate")) {
+            if (!environment.acceptsProfiles(Profiles.of("test"))) {
+                throw new IllegalStateException("key generation only enabled for tests");
+            }
+
             keyPair = JWKHelper.generateRsaKeyPair();
         } else {
             keyPair = JWKHelper.loadRsaKeyPair(keyPairPath, keyPairPath + ".pub");

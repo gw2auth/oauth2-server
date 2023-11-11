@@ -4,8 +4,14 @@ com.gw2auth:
     user-service:
       use-dummy: true
   session:
-    key:
-      id: "generate"
+    priv:
+      id: "cf3a364d-4ad2-4df3-b8d1-0ef263c75bda"
+      path: "generate"
+    pub1:
+      id: "cf3a364d-4ad2-4df3-b8d1-0ef263c75bda"
+      path: "generate"
+    pub2:
+      id: "bac0053f-687e-4b41-9fe8-45b9b2053f7c"
       path: "generate"
   oauth2:
     client:
@@ -17,7 +23,7 @@ com.gw2auth:
         bucket: "dummy"
         prefix: "oauth2/addfederation/"
     keypair:
-      id: "generate"
+      id: "62ccb4c0-a746-4fcf-9043-e72b65256bfb"
       path: "generate"
   token:
     name-check:

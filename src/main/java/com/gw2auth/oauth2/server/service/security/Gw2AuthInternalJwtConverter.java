@@ -3,6 +3,16 @@ package com.gw2auth.oauth2.server.service.security;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -14,6 +24,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class Gw2AuthInternalJwtConverter implements Clocked {
@@ -27,14 +38,24 @@ public class Gw2AuthInternalJwtConverter implements Clocked {
     private final JwtEncoder jwtEncoder;
     private Clock clock;
 
-    public Gw2AuthInternalJwtConverter(String keyId, RSAPublicKey publicKey, RSAPrivateKey privateKey) throws JOSEException {
+    public Gw2AuthInternalJwtConverter(String privateKeyId, RSAPrivateKey privateKey, Map<String, RSAPublicKey> publicKeys) throws JOSEException {
         this.jwtTimestampValidator = new JwtTimestampValidator();
 
-        final NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
+        final RSAPublicKey privPublicKey = Objects.requireNonNull(publicKeys.get(privateKeyId));
+        final List<JWK> decodePublicKeys = publicKeys.entrySet().stream()
+                .<JWK>map((e) -> new RSAKey.Builder(e.getValue()).keyUse(KeyUse.SIGNATURE).keyID(e.getKey()).build())
+                .toList();
+
+        final JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(decodePublicKeys));
+        final DefaultJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+        jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
+        jwtProcessor.setJWTClaimsSetVerifier((claims, context) -> {});
+
+        final NimbusJwtDecoder jwtDecoder = new NimbusJwtDecoder(jwtProcessor);
         jwtDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(List.of(this.jwtTimestampValidator, new JwtIssuerValidator(ISSUER))));
 
         this.jwtDecoder = jwtDecoder;
-        this.jwtEncoder = new NimbusJwtEncoder(JWKHelper.jwkSourceForKeyPair(new KeyPair(publicKey, privateKey), keyId));
+        this.jwtEncoder = new NimbusJwtEncoder(JWKHelper.jwkSourceForKeyPair(new KeyPair(privPublicKey, privateKey), privateKeyId));
         this.clock = Clock.systemUTC();
     }
 
