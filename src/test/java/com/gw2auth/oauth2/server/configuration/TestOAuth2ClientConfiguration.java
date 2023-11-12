@@ -17,9 +17,9 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenRespon
 import java.util.Set;
 
 @TestConfiguration
-public class OAuth2ClientConfiguration {
+public class TestOAuth2ClientConfiguration {
 
-    @Bean
+    @Bean("testClientRegistrationRepository")
     @Primary
     public TestClientRegistrationRepository clientRegistrationRepository() {
         return new TestClientRegistrationRepository();
