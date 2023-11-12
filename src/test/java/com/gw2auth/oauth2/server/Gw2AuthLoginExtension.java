@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server;
 
-import com.gw2auth.oauth2.server.configuration.OAuth2ClientConfiguration;
+import com.gw2auth.oauth2.server.configuration.TestClientRegistrationRepository;
 import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.QueryParam;
@@ -42,12 +42,12 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     public static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(Gw2AuthLoginExtension.class);
 
     private final MockMvc mockMvc;
-    private final OAuth2ClientConfiguration.TestClientRegistrationRepository testClientRegistrationRepository;
+    private final TestClientRegistrationRepository testClientRegistrationRepository;
     private final Gw2AuthInternalJwtConverter jwtConverter;
     private ExtensionContext context;
 
     @Autowired
-    public Gw2AuthLoginExtension(MockMvc mockMvc, OAuth2ClientConfiguration.TestClientRegistrationRepository testClientRegistrationRepository, Gw2AuthInternalJwtConverter jwtConverter) {
+    public Gw2AuthLoginExtension(MockMvc mockMvc, TestClientRegistrationRepository testClientRegistrationRepository, Gw2AuthInternalJwtConverter jwtConverter) {
         this.mockMvc = mockMvc;
         this.testClientRegistrationRepository = testClientRegistrationRepository;
         this.jwtConverter = jwtConverter;
