@@ -1,18 +1,18 @@
 com.gw2auth:
-  url: "https://gw2auth.com"
+  url: "https://beta.gw2auth.com"
   session:
     priv:
-      id: "cd6fb64f-4724-49ad-9ebb-eec6ec3de9ed"
+      id: "14c8cabe-2c94-4b7a-92b8-0396d6b2c656"
       path: "/opt/app/session_id_rsa_1"
     pub1:
-      id: "cd6fb64f-4724-49ad-9ebb-eec6ec3de9ed"
+      id: "14c8cabe-2c94-4b7a-92b8-0396d6b2c656"
       path: "/opt/app/session_id_rsa_1.pub"
     pub2:
-      id: "eb8423b2-3580-4dc8-9805-acf7d9c93af0"
+      id: "2509411e-fe82-45ad-8af0-d84658cad893"
       path: "/opt/app/session_id_rsa_2.pub"
   oauth2:
     keypair:
-      id: "9b051022-aeba-4767-9e98-d6f1b7b4d09f"
+      id: "c14e1a11-7351-442c-ba3f-25509c3d0ef2"
       path: "/opt/app/id_rsa"
 
 server:
@@ -26,33 +26,29 @@ spring:
       client:
         registration:
           cognito:
-            provider: cognito
+            provider: gw2auth
             client-name: "Amazon Cognito"
-            client-id: ${AMZ_COGNITO_CLIENT_ID}
-            client-secret: ${AMZ_COGNITO_CLIENT_SECRET}
-            scope: "openid"
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/cognito"
           github:
-            provider: github
+            provider: gw2auth
             client-name: "GitHub"
-            client-id: ${GITHUB_CLIENT_ID}
-            client-secret: ${GITHUB_CLIENT_SECRET}
-            scope: [""]
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/github"
           google:
-            provider: google
+            provider: gw2auth
             client-name: "Google"
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope: "openid"
+            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
+            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/google"
         provider:
-          cognito:
-            issuer-uri: "https://cognito-idp.${AMZ_COGNITO_REGION}.amazonaws.com/${AMZ_COGNITO_POOL_ID}"
-            user-name-attribute: sub
-          github:
-            user-name-attribute: id
-          google:
+          gw2auth:
+            issuer-uri: "https://gw2auth.com"
             user-name-attribute: sub
 
 management:
