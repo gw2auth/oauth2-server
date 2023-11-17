@@ -41,19 +41,46 @@ public class Gw2AuthOAuth2UserService extends AbstractUserService implements OAu
 
     private static OAuth2UserService<OAuth2UserRequest, OAuth2User> getUserService(boolean useDummyUserService) {
         if (useDummyUserService) {
-            return (request) -> {
-                final String userNameAttribute = request.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
-                final Map<String, Object> attributes;
-                try {
-                    attributes = JWTParser.parse(request.getAccessToken().getTokenValue()).getJWTClaimsSet().getClaims();
-                } catch (ParseException e) {
-                    throw new IllegalArgumentException(e);
-                }
+            return new JWTOAuth2UserService();
+        }
 
-                return new DefaultOAuth2User(List.of(new SimpleGrantedAuthority("USER")), attributes, userNameAttribute);
-            };
-        } else {
-            return new DefaultOAuth2UserService();
+        return new CustomOAuth2UserService(new DefaultOAuth2UserService(), new JWTOAuth2UserService());
+    }
+
+    private static final class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
+        private final OAuth2UserService<OAuth2UserRequest, OAuth2User> standard;
+        private final OAuth2UserService<OAuth2UserRequest, OAuth2User> internal;
+
+        private CustomOAuth2UserService(OAuth2UserService<OAuth2UserRequest, OAuth2User> standard, OAuth2UserService<OAuth2UserRequest, OAuth2User> internal) {
+            this.standard = standard;
+            this.internal = internal;
+        }
+
+        @Override
+        public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
+            final String issuerUri = request.getClientRegistration().getProviderDetails().getIssuerUri();
+            if (issuerUri.contains("https://gw2auth.com")) {
+                return this.internal.loadUser(request);
+            }
+
+            return this.standard.loadUser(request);
+        }
+    }
+
+    private static final class JWTOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
+        @Override
+        public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
+            final String userNameAttribute = request.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
+            final Map<String, Object> attributes;
+            try {
+                attributes = JWTParser.parse(request.getAccessToken().getTokenValue()).getJWTClaimsSet().getClaims();
+            } catch (ParseException e) {
+                throw new IllegalArgumentException(e);
+            }
+
+            return new DefaultOAuth2User(List.of(new SimpleGrantedAuthority("USER")), attributes, userNameAttribute);
         }
     }
 }
