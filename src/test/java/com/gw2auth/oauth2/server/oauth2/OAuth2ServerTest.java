@@ -33,6 +33,7 @@ import com.gw2auth.oauth2.server.util.QueryParam;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
+import jakarta.servlet.http.Part;
 import org.hamcrest.core.AllOf;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringEndsWith;
@@ -50,6 +51,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
+import org.springframework.mock.web.MockPart;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
@@ -60,6 +62,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.web.util.UriComponents;
 
 import java.net.URI;
@@ -79,8 +82,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.client.ExpectedCount.times;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -2226,13 +2228,13 @@ public class OAuth2ServerTest {
     }
 
     private ResultActions performRetrieveTokensByRefreshToken(ApplicationClient applicationClient, String clientSecret, String refreshToken) throws Exception {
-        MockHttpServletRequestBuilder builder = post("/oauth2/token")
-                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.REFRESH_TOKEN.getValue())
-                .queryParam(OAuth2ParameterNames.REFRESH_TOKEN, refreshToken)
-                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString());
+        MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.POST, "/oauth2/token")
+                .part(part(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.REFRESH_TOKEN.getValue()))
+                .part(part(OAuth2ParameterNames.REFRESH_TOKEN, refreshToken))
+                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()));
 
         if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
-            builder = builder.queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret);
+            builder = builder.part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret));
         } else {
             // builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
         }
@@ -2258,16 +2260,16 @@ public class OAuth2ServerTest {
         // prepare the mocked gw2 api server to respond with dummy JWTs
         prepareGw2RestServerForCreateSubToken(subtokenByGw2ApiToken, expectedGw2ApiPermissions);
 
-        MockHttpServletRequestBuilder builder = post("/oauth2/token")
-                .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
-                .queryParam(OAuth2ParameterNames.CODE, codeParam)
-                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow());
+        MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.POST, "/oauth2/token")
+                .part(part(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue()))
+                .part(part(OAuth2ParameterNames.CODE, codeParam))
+                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                .part(part(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow()));
 
         if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
-            builder = builder.queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret);
+            builder = builder.part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret));
         } else {
-            builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
+            builder = builder.part(part("code_verifier", generateCodeChallenge(applicationClient)));
         }
 
         // retrieve an access token
@@ -2666,6 +2668,10 @@ public class OAuth2ServerTest {
 
         final byte[] bytes = md.digest(codeChallenge.getBytes(StandardCharsets.UTF_8));
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private static Part part(String name, String value) {
+        return new MockPart(name, value.getBytes(StandardCharsets.UTF_8));
     }
 }
 
