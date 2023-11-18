@@ -1,5 +1,8 @@
 package com.gw2auth.oauth2.server.service.account;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.util.Pair;
@@ -43,6 +46,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
     private final S3Client s3;
     private final String bucket;
     private final String prefix;
+    private final ObjectMapper mapper;
     private Clock clock;
 
     @Autowired
@@ -51,7 +55,8 @@ public class AccountServiceImpl implements AccountService, Clocked {
                               AccountFederationSessionRepository accountFederationSessionRepository,
                               @Qualifier("oauth2-add-federation-s3-client") S3Client s3,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.bucket}") String bucket,
-                              @Value("${com.gw2auth.oauth2.addfederation.s3.prefix}") String prefix) {
+                              @Value("${com.gw2auth.oauth2.addfederation.s3.prefix}") String prefix,
+                              ObjectMapper mapper) {
 
         this.accountRepository = accountRepository;
         this.accountFederationRepository = accountFederationRepository;
@@ -59,6 +64,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
         this.s3 = s3;
         this.bucket = bucket;
         this.prefix = prefix;
+        this.mapper = mapper;
         this.clock = Clock.systemUTC();
     }
 
@@ -191,7 +197,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
 
     @Override
     public LoggingContext log(UUID accountId, Map<String, ?> fields) {
-        return new RootLoggingContext(accountId, fields);
+        return new RootLoggingContext(this.mapper, accountId, fields);
     }
 
     @Override
@@ -263,10 +269,12 @@ public class AccountServiceImpl implements AccountService, Clocked {
 
     private static final class RootLoggingContext extends AbstractLoggingContext {
 
+        private final ObjectMapper mapper;
         private final UUID accountId;
 
-        private RootLoggingContext(UUID accountId, Map<String, ?> fields) {
+        private RootLoggingContext(ObjectMapper mapper, UUID accountId, Map<String, ?> fields) {
             super(fields);
+            this.mapper = mapper;
             this.accountId = accountId;
         }
 
@@ -287,7 +295,19 @@ public class AccountServiceImpl implements AccountService, Clocked {
 
             final List<MDC.MDCCloseable> mdcCloseables = new ArrayList<>();
             for (Map.Entry<String, ?> entry : combinedFields.entrySet()) {
-                mdcCloseables.add(MDC.putCloseable(entry.getKey(), new JSONObject(entry.getValue()).toString()));
+                final JsonNode node = this.mapper.valueToTree(entry.getValue());
+                final String value;
+                if (node.isTextual()) {
+                    value = node.textValue();
+                } else {
+                    try {
+                        value = this.mapper.writeValueAsString(node);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                mdcCloseables.add(MDC.putCloseable(entry.getKey(), value));
             }
 
             try (MDC.MDCCloseable mdc = MDC.putCloseable("account_id", this.accountId.toString())) {
