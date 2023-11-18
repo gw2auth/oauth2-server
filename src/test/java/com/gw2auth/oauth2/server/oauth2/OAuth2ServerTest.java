@@ -1238,12 +1238,12 @@ public class OAuth2ServerTest {
         // retrieve an access token
         // dont use the user session here!
         result = this.mockMvc.perform(
-                post("/oauth2/token")
-                        .queryParam(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue())
-                        .queryParam(OAuth2ParameterNames.CODE, codeParam)
-                        .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                        .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret)
-                        .queryParam(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow())
+                multipart(HttpMethod.POST, "/oauth2/token")
+                        .part(part(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue()))
+                        .part(part(OAuth2ParameterNames.CODE, codeParam))
+                        .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                        .part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret))
+                        .part(part(OAuth2ParameterNames.REDIRECT_URI, TestHelper.first(applicationClient.redirectUris()).orElseThrow()))
         )
                 .andExpectAll(expectValidTokenResponse())
                 .andReturn();
@@ -1738,11 +1738,11 @@ public class OAuth2ServerTest {
         final String accessToken = tokenResponse.get("access_token").textValue();
 
         this.mockMvc.perform(
-                post("/oauth2/revoke")
-                        .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                        .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret)
-                        .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
-                        .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
+                multipart(HttpMethod.POST, "/oauth2/revoke")
+                        .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                        .part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret))
+                        .part(part(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue()))
+                        .part(part(OAuth2ParameterNames.TOKEN, accessToken))
         )
                 .andExpect(status().isOk());
 
@@ -1794,11 +1794,11 @@ public class OAuth2ServerTest {
         final String accessToken = tokenResponse.get("access_token").textValue();
 
         this.mockMvc.perform(
-                        post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
-                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue())
-                                .queryParam(OAuth2ParameterNames.TOKEN, accessToken)
+                        multipart(HttpMethod.POST, "/oauth2/revoke")
+                                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                                .part(part(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret"))
+                                .part(part(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.ACCESS_TOKEN.getValue()))
+                                .part(part(OAuth2ParameterNames.TOKEN, accessToken))
                 )
                 .andExpect(status().isUnauthorized());
 
@@ -1850,11 +1850,11 @@ public class OAuth2ServerTest {
         final String refreshToken = tokenResponse.get("refresh_token").textValue();
 
         this.mockMvc.perform(
-                        post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, clientSecret)
-                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
-                                .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
+                        multipart(HttpMethod.POST, "/oauth2/revoke")
+                                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                                .part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret))
+                                .part(part(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue()))
+                                .part(part(OAuth2ParameterNames.TOKEN, refreshToken))
                 )
                 .andExpect(status().isOk());
 
@@ -1918,11 +1918,11 @@ public class OAuth2ServerTest {
         final String refreshToken = tokenResponse.get("refresh_token").textValue();
 
         this.mockMvc.perform(
-                        post("/oauth2/revoke")
-                                .queryParam(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString())
-                                .queryParam(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret")
-                                .queryParam(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue())
-                                .queryParam(OAuth2ParameterNames.TOKEN, refreshToken)
+                        multipart(HttpMethod.POST, "/oauth2/revoke")
+                                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                                .part(part(OAuth2ParameterNames.CLIENT_SECRET, "Not the correct client secret"))
+                                .part(part(OAuth2ParameterNames.TOKEN_TYPE_HINT, OAuth2TokenType.REFRESH_TOKEN.getValue()))
+                                .part(part(OAuth2ParameterNames.TOKEN, refreshToken))
                 )
                 .andExpect(status().isUnauthorized());
 

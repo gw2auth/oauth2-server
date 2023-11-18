@@ -6,7 +6,7 @@
 
     <groupId>com.gw2auth</groupId>
     <artifactId>oauth2-server</artifactId>
-    <version>1.63.2</version>
+    <version>1.63.3</version>
     <packaging>jar</packaging>
 
     <parent>
