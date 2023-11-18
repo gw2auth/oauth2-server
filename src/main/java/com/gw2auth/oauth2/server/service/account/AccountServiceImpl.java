@@ -2,11 +2,11 @@ package com.gw2auth.oauth2.server.service.account;
 
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.service.Clocked;
-import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.Pair;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +40,7 @@ public class AccountServiceImpl implements AccountService, Clocked {
     private final AccountRepository accountRepository;
     private final AccountFederationRepository accountFederationRepository;
     private final AccountFederationSessionRepository accountFederationSessionRepository;
-    private final MinimalS3Client s3;
+    private final S3Client s3;
     private final String bucket;
     private final String prefix;
     private Clock clock;
@@ -52,23 +52,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
                               @Qualifier("oauth2-add-federation-s3-client") S3Client s3,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.bucket}") String bucket,
                               @Value("${com.gw2auth.oauth2.addfederation.s3.prefix}") String prefix) {
-
-        this(
-                accountRepository,
-                accountFederationRepository,
-                accountFederationSessionRepository,
-                DynamicProxy.create(s3, S3Client.class, MinimalS3Client.class),
-                bucket,
-                prefix
-        );
-    }
-
-    public AccountServiceImpl(AccountRepository accountRepository,
-                              AccountFederationRepository accountFederationRepository,
-                              AccountFederationSessionRepository accountFederationSessionRepository,
-                              MinimalS3Client s3,
-                              String bucket,
-                              String prefix) {
 
         this.accountRepository = accountRepository;
         this.accountFederationRepository = accountFederationRepository;
@@ -302,8 +285,16 @@ public class AccountServiceImpl implements AccountService, Clocked {
             combinedFields.putAll(this.fields);
             combinedFields.putAll(fields);
 
-            final JSONObject fieldsJson = new JSONObject(combinedFields);
-            LOG.info("account log; account_id={} fields={} persistent={}; {}", this.accountId, fieldsJson, persistent, message);
+            final List<MDC.MDCCloseable> mdcCloseables = new ArrayList<>();
+            for (Map.Entry<String, ?> entry : combinedFields.entrySet()) {
+                mdcCloseables.add(MDC.putCloseable(entry.getKey(), new JSONObject(entry.getValue()).toString()));
+            }
+
+            try (MDC.MDCCloseable mdc = MDC.putCloseable("account_id", this.accountId.toString())) {
+                try (ComposedMDCCloseable unused = new ComposedMDCCloseable(mdcCloseables)) {
+                    LOG.info("account log; {}", message);
+                }
+            }
         }
 
         @Override
@@ -349,10 +340,38 @@ public class AccountServiceImpl implements AccountService, Clocked {
         }
     }
 
-    public interface MinimalS3Client {
+    private static final class ComposedMDCCloseable implements AutoCloseable {
 
-        ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest request);
-        DeleteObjectResponse deleteObject(DeleteObjectRequest request);
-        PutObjectResponse putObject(PutObjectRequest request, RequestBody body);
+        private final Iterable<MDC.MDCCloseable> mdcCloseables;
+
+        private ComposedMDCCloseable(Iterable<MDC.MDCCloseable> mdcCloseables) {
+            this.mdcCloseables = mdcCloseables;
+        }
+
+        @Override
+        public void close() {
+            RuntimeException first = null;
+
+            for (MDC.MDCCloseable mdcCloseable : this.mdcCloseables) {
+                try {
+                    mdcCloseable.close();
+                } catch (Exception e) {
+                    first = wrap(first, e);
+                }
+            }
+
+            if (first != null) {
+                throw first;
+            }
+        }
+
+        private static RuntimeException wrap(RuntimeException first, Exception curr) {
+            if (first == null) {
+                return new RuntimeException(curr);
+            }
+
+            first.addSuppressed(curr);
+            return first;
+        }
     }
 }
