@@ -60,7 +60,7 @@ public class Gw2AuthOAuth2UserService extends AbstractUserService implements OAu
         @Override
         public OAuth2User loadUser(OAuth2UserRequest request) throws OAuth2AuthenticationException {
             final String issuerUri = request.getClientRegistration().getProviderDetails().getIssuerUri();
-            if (issuerUri.contains("https://gw2auth.com")) {
+            if (issuerUri != null && issuerUri.contains("https://gw2auth.com")) {
                 return this.internal.loadUser(request);
             }
 
