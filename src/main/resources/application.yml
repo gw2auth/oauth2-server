@@ -31,6 +31,9 @@ spring:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}${SERVER_POSTGRES_OPTIONS}"
     user: ${SERVER_FLYWAY_POSTGRES_USER}
     password: ${SERVER_FLYWAY_POSTGRES_PASSWORD}
+  threads:
+    virtual:
+      enabled: true
 
 management:
   endpoints:
