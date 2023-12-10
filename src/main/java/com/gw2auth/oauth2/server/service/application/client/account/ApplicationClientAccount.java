@@ -29,6 +29,7 @@ public record ApplicationClientAccount(UUID applicationClientId,
 
     public enum ApprovalStatus {
         PENDING,
-        APPROVED
+        APPROVED,
+        BLOCKED,
     }
 }
