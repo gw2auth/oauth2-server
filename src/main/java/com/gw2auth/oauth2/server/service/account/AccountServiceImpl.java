@@ -87,11 +87,11 @@ public class AccountServiceImpl implements AccountService, Clocked {
     @Override
     public AccountFederationSession createNewSession(String issuer, String idAtIssuer, byte[] metadata) {
         final Instant now = this.clock.instant();
-        final byte[] sessionIdBytes = new byte[128];
+        final byte[] sessionIdBytes = new byte[64];
         new SecureRandom().nextBytes(sessionIdBytes);
 
         final AccountFederationSessionEntity entity = this.accountFederationSessionRepository.save(new AccountFederationSessionEntity(
-                Base64.getEncoder().withoutPadding().encodeToString(sessionIdBytes),
+                Base64.getUrlEncoder().withoutPadding().encodeToString(sessionIdBytes),
                 issuer,
                 idAtIssuer,
                 metadata,
