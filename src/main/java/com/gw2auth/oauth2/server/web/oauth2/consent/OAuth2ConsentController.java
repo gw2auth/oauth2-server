@@ -31,6 +31,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -124,29 +125,43 @@ public class OAuth2ConsentController extends AbstractRestController {
                 apiTokensWithSufficientPermissionResponses,
                 apiTokensWithInsufficientPermissionResponses,
                 previouslyConsentedGw2AccountIds,
-                OAuth2Scope.containsAnyGw2AccountRelatedScopes(requestedScopes)
+                OAuth2Scope.containsAnyGw2AccountRelatedScopes(requestedScopes),
+                findRedirectUriByState(state).orElseThrow()
         );
     }
 
     @GetMapping(value = "/api/oauth2/consent-deny")
     public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.STATE) String state) {
+        final URI redirectUri = findRedirectUriByState(state)
+                .map(UriComponentsBuilder::fromHttpUrl)
+                .map((v) -> {
+                    return v
+                            .replaceQueryParam(OAuth2ParameterNames.STATE, state)
+                            .replaceQueryParam(OAuth2ParameterNames.ERROR, OAuth2ErrorCodes.ACCESS_DENIED)
+                            .replaceQueryParam(OAuth2ParameterNames.ERROR_DESCRIPTION, "The user has denied your application access.");
+                })
+                .map(UriComponentsBuilder::build)
+                .map(UriComponents::toUri)
+                .orElse(null);
+
+        if (redirectUri == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
+    }
+
+    private Optional<String> findRedirectUriByState(String state) {
         final OAuth2Authorization oauth2Authorization = this.auth2AuthorizationService.findByToken(state, new OAuth2TokenType((OAuth2ParameterNames.STATE)));
         if (oauth2Authorization == null) {
-            return ResponseEntity.badRequest().build();
+            return Optional.empty();
         }
 
         final OAuth2AuthorizationRequest authorizationRequest = oauth2Authorization.getAttribute(OAuth2AuthorizationRequest.class.getName());
         if (authorizationRequest == null) {
-            return ResponseEntity.badRequest().build();
+            return Optional.empty();
         }
 
-        final URI redirectUri = UriComponentsBuilder.fromHttpUrl(authorizationRequest.getRedirectUri())
-                .replaceQueryParam(OAuth2ParameterNames.STATE, authorizationRequest.getState())
-                .replaceQueryParam(OAuth2ParameterNames.ERROR, OAuth2ErrorCodes.ACCESS_DENIED)
-                .replaceQueryParam(OAuth2ParameterNames.ERROR_DESCRIPTION, "The user has denied your application access.")
-                .build()
-                .toUri();
-
-        return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
+        return Optional.of(authorizationRequest.getRedirectUri());
     }
 }
