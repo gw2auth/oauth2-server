@@ -18,4 +18,9 @@ public interface VerificationChallenge<S> {
 
     S start();
     boolean verify(S state, String gw2ApiToken);
+
+    default boolean verify(String state, String gw2ApiToken) throws IOException {
+        return this.verify(this.readState(state), gw2ApiToken);
+    }
+
 }
