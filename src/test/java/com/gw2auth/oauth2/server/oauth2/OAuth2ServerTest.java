@@ -387,7 +387,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -488,7 +488,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
         assertEquals(Set.of(OAuth2Scope.ID.oauth2()), clientAuthorization.authorization().authorizedScopes());
         assertEquals(0, clientAuthorization.gw2AccountIds().size());
 
@@ -582,7 +582,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
         assertEquals(Set.of(OAuth2Scope.GW2ACC_NAME.oauth2()), clientAuthorization.authorization().authorizedScopes());
         assertEquals(3, clientAuthorization.gw2AccountIds().size());
 
@@ -694,7 +694,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
         assertEquals(Set.of(OAuth2Scope.GW2ACC_DISPLAY_NAME.oauth2()), clientAuthorization.authorization().authorizedScopes());
         assertEquals(3, clientAuthorization.gw2AccountIds().size());
 
@@ -809,7 +809,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
         assertEquals(scopeStrs, clientAuthorization.authorization().authorizedScopes());
         assertEquals(2, clientAuthorization.gw2AccountIds().size());
 
@@ -924,7 +924,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1054,7 +1054,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1182,7 +1182,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1312,7 +1312,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1507,7 +1507,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(scopes.stream().map(OAuth2Scope::oauth2).collect(Collectors.toUnmodifiableSet()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1610,7 +1610,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2(), OAuth2Scope.GW2_UNLOCKS.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -1961,7 +1961,7 @@ public class OAuth2ServerTest {
         List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClientAccountEntity.applicationClientId());
         assertEquals(1, authorizations.size());
 
-        ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
 
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
 
@@ -2016,7 +2016,7 @@ public class OAuth2ServerTest {
         ), Set.of(OAuth2Scope.GW2_ACCOUNT));
 
         authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClientAccountEntity.applicationClientId());
-        clientAuthorization = authorizations.get(0);
+        clientAuthorization = authorizations.getFirst();
 
         // simulate the old format attributes
         String attributesJson = """
@@ -2190,7 +2190,7 @@ public class OAuth2ServerTest {
         final List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> authorizations = this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(accountId, applicationClient.id());
         assertEquals(1, authorizations.size());
 
-        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.get(0);
+        final ApplicationClientAuthorizationWithGw2AccountIdsEntity clientAuthorization = authorizations.getFirst();
         assertEquals(Set.of(OAuth2Scope.GW2_ACCOUNT.oauth2()), clientAuthorization.authorization().authorizedScopes());
         assertEquals(Set.of(this.gw2AccountId1st), clientAuthorization.gw2AccountIds());
 

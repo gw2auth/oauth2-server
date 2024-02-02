@@ -184,7 +184,7 @@ class AccountControllerTest {
 
         final List<AccountFederationEntity> result = this.accountFederationRepository.findAllByAccountId(accountId);
         assertEquals(1, result.size());
-        assertEquals(new AccountFederationEntity("issuer", "idAtIssuer", accountId), result.get(0));
+        assertEquals(new AccountFederationEntity("issuer", "idAtIssuer", accountId), result.getFirst());
     }
 
     @Test
@@ -231,7 +231,7 @@ class AccountControllerTest {
 
         final List<AccountFederationSessionEntity> result = this.accountFederationSessionRepository.findAllByAccountId(this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow());
         assertEquals(1, result.size());
-        assertEquals("idAtIssuer", result.get(0).idAtIssuer());
+        assertEquals("idAtIssuer", result.getFirst().idAtIssuer());
     }
 
     @Test

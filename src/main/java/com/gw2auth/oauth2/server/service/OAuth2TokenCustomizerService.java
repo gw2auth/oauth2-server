@@ -117,7 +117,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 applicationClient = springRegisteredClient.getGw2AuthClient();
             } else {
                 final UUID clientId = UUID.fromString(registeredClient.getClientId());
-                applicationClient = this.applicationClientService.getApplicationClients(List.of(clientId)).get(0);
+                applicationClient = this.applicationClientService.getApplicationClients(List.of(clientId)).getFirst();
             }
 
             final Object oauth2User = ctx.getPrincipal().getPrincipal();// the user (intended double getPrincipal())
