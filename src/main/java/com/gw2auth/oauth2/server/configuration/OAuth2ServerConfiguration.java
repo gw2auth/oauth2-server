@@ -39,7 +39,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
-import java.util.UUID;
 
 @Configuration
 public class OAuth2ServerConfiguration {
