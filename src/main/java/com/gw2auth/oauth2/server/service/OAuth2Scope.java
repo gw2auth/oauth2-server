@@ -87,7 +87,15 @@ public enum OAuth2Scope {
     }
 
     public static boolean containsAnyGw2AccountRelatedScopes(Set<OAuth2Scope> scopes) {
-        return scopes.stream().anyMatch(GW2_ACCOUNT_RELATED::contains);
+        return scopes.stream().anyMatch(OAuth2Scope::isGw2AccountRelatedScope);
+    }
+
+    public static boolean isGw2AuthVerifiedScope(OAuth2Scope scope) {
+        return scope == GW2AUTH_VERIFIED || scope == GW2ACC_VERIFIED;
+    }
+
+    public static boolean isGw2AccountRelatedScope(OAuth2Scope scope) {
+        return GW2_ACCOUNT_RELATED.contains(scope);
     }
 
     public static Stream<OAuth2Scope> allForVersion(OAuth2ClientApiVersion clientApiVersion) {

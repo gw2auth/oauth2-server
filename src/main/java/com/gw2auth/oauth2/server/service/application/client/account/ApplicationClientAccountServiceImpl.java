@@ -209,8 +209,15 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
                 return null;
             }
 
-            final String copyGw2AccountIdsFromClientAuthorizationId = this.applicationClientAuthorizationRepository.findLatestByAccountIdAndApplicationClientIdAndHavingScopes(accountId, applicationClientId, this.authorizationCodeParamAccessor.getRequestedScopes())
-                    .map(ApplicationClientAuthorizationEntity::id)
+            final Set<String> requestedScopes = this.authorizationCodeParamAccessor.getRequestedScopes();
+            final boolean requiresGw2Accs = requestedScopes.stream()
+                    .map(OAuth2Scope::fromOAuth2Required)
+                    .anyMatch(OAuth2Scope::isGw2AccountRelatedScope);
+            final boolean verifiedOnly = requestedScopes.stream()
+                    .map(OAuth2Scope::fromOAuth2Required)
+                    .anyMatch(OAuth2Scope::isGw2AuthVerifiedScope);
+
+            final String copyGw2AccountIdsFromClientAuthorizationId = this.applicationClientAuthorizationRepository.findLatestForNewAuthorization(accountId, applicationClientId, requestedScopes, requiresGw2Accs, verifiedOnly)
                     .orElse(null);
 
             if (copyGw2AccountIdsFromClientAuthorizationId == null) {
