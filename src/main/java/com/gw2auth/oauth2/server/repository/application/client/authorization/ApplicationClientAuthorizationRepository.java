@@ -167,22 +167,25 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
 
     @Query("""
     SELECT auth.id
-    FROM application_client_authorizations auth
+    FROM (
+        SELECT id, account_id
+        FROM application_client_authorizations
+        WHERE account_id = :account_id
+        AND application_client_id = :application_client_id
+        AND authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
+        ORDER BY creation_time DESC
+        LIMIT 1
+    ) auth
     LEFT JOIN application_client_authorization_gw2_accounts auth_gw2_acc
     ON auth.id = auth_gw2_acc.application_client_authorization_id
     LEFT JOIN gw2_account_api_tokens gw2_acc_tk
     ON auth_gw2_acc.account_id = gw2_acc_tk.account_id AND auth_gw2_acc.gw2_account_id = gw2_acc_tk.gw2_account_id
     LEFT JOIN gw2_account_verifications gw2_acc_ver
     ON auth_gw2_acc.account_id = gw2_acc_ver.account_id AND auth_gw2_acc.gw2_account_id = gw2_acc_ver.gw2_account_id
-    WHERE auth.account_id = :account_id
-    AND auth.application_client_id = :application_client_id
-    AND auth.authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
     GROUP BY auth.id
     HAVING BOOL_AND(gw2_acc_tk.last_valid_time = gw2_acc_tk.last_valid_check_time)
-    AND (( NOT :requires_gw2_accs ) OR ( COUNT(auth_gw2_acc.*) > 0 ))
-    AND (( NOT :verified_only ) OR ( COUNT(gw2_acc_ver.*) = COUNT(auth_gw2_acc.*) ))
-    ORDER BY auth.creation_time DESC
-    LIMIT 1
+    AND (( NOT :requires_gw2_accs ) OR ( COUNT(DISTINCT auth_gw2_acc.gw2_account_id) > 0 ))
+    AND (( NOT :verified_only ) OR ( COUNT(DISTINCT gw2_acc_ver.gw2_account_id) = COUNT(DISTINCT auth_gw2_acc.gw2_account_id) ))
     """)
     Optional<String> findLatestForNewAuthorization(@Param("account_id") UUID accountId,
                                                    @Param("application_client_id") UUID applicationClientId,
