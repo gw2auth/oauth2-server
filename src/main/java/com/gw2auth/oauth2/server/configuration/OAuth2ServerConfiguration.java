@@ -111,7 +111,7 @@ public class OAuth2ServerConfiguration {
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
                 .oauth2Login(oauth2LoginCustomizer)
-                .apply(configurer);
+                .with(configurer, ignored -> {});
 
         return http.build();
     }
