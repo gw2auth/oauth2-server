@@ -19,7 +19,7 @@ public class CockroachContainerConfiguration {
 
     @Bean
     public JdbcDatabaseContainer<?> cockroachDBContainer() throws Exception {
-        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v23.1.15");
+        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v23.2.3");
         container.start();
 
         try (Connection conn = new SimpleDriverDataSource(container.getJdbcDriverInstance(), container.getJdbcUrl(), container.getUsername(), container.getPassword()).getConnection()) {
