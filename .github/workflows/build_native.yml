@@ -1,0 +1,47 @@
+name: 'Build'
+
+on:
+  push:
+    branches:
+      - graalvm
+
+jobs:
+#  test_native:
+#    name: 'Test Native'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: 'Set up GraalVM 21'
+#        uses: graalvm/setup-graalvm@v1
+#        with:
+#          distribution: 'graalvm-community'
+#          java-version: '21'
+#          native-image-musl: 'true'
+#          cache: 'maven'
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#      - name: 'Test'
+#        run: ./mvnw -PnativeTest test
+
+  build_native:
+    name: 'Build Native'
+    runs-on: ubuntu-latest
+#    needs:
+#      - test_native
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Set up GraalVM 21'
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: 'graalvm-community'
+          java-version: '21'
+          native-image-musl: 'true'
+          cache: 'maven'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 'Build'
+        run: ./mvnw -PnativeProd native:compile
+      - name: 'Upload artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'oauth2-server-native'
+          path: |
+            target/oauth2-server
