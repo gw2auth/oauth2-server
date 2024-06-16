@@ -91,16 +91,16 @@ public class SessionTest {
         this.gw2AuthLoginExtension.login(sessionHandle, "issuer", "idAtIssuer").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
         // not expired: should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         // let 31 days pass
         testingClock = Clock.offset(testingClock, Duration.ofDays(31L));
         this.accountService.setClock(testingClock);
 
         // expired: should not work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isForbidden());
     }
@@ -134,9 +134,9 @@ public class SessionTest {
     @WithGw2AuthLogin(issuer = "first", idAtIssuer = "someid")
     public void tryImpersonateOtherAccountWithModifiedJWT(SessionHandle sessionHandle) throws Exception {
         // should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         this.accountService.getOrCreateAccount("second", "someotherid");
 
@@ -154,9 +154,9 @@ public class SessionTest {
 
         // using the "real" cookie of another user should work too
         sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).setValue(otherUsersJwt.getTokenValue());
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         final String[] myJwtParts = myJwt.getTokenValue().split("\\.");
         final String[] otherUsersJwtParts = otherUsersJwt.getTokenValue().split("\\.");
@@ -164,7 +164,7 @@ public class SessionTest {
 
         // using the modified jwt should not work
         sessionHandle.getCookie(Constants.ACCESS_TOKEN_COOKIE_NAME).setValue(modifiedJwt);
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isForbidden());
     }
@@ -175,9 +175,9 @@ public class SessionTest {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // using unmodified session handle, should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         sessionHandle.setCountryCode(null);
         sessionHandle.setCity(null);
@@ -185,7 +185,7 @@ public class SessionTest {
         sessionHandle.setLongitude(null);
 
         // using modified session handle, request will be made without those headers, should not work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isForbidden());
 
@@ -206,9 +206,9 @@ public class SessionTest {
         this.gw2AuthLoginExtension.login(sessionHandle, "issuer", "id").andExpectAll(this.gw2AuthLoginExtension.expectLoginSuccess());
 
         // using unmodified session handle, should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         // set the location to Deutscher Bundestag
         sessionHandle.setLatitude(52.5162843);
@@ -219,9 +219,9 @@ public class SessionTest {
         this.gw2AuthTokenUserService.setClock(testingClock);
 
         // using modified session handle, short travel, should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -238,9 +238,9 @@ public class SessionTest {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // using unmodified session handle, should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         // set the location to Hamburg Hbf (~254.02 km)
         sessionHandle.setCity("Hamburg");
@@ -252,7 +252,7 @@ public class SessionTest {
         this.gw2AuthTokenUserService.setClock(testingClock);
 
         // using modified session handle, medium travel, short time, should not work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isForbidden());
 
@@ -275,9 +275,9 @@ public class SessionTest {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
 
         // using unmodified session handle, should work
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         // set the location to Times Square, NYC, US
         sessionHandle.setCountryCode("US");
@@ -290,7 +290,7 @@ public class SessionTest {
         this.gw2AuthTokenUserService.setClock(testingClock);
 
         // using modified session handle, long travel, long time, should not work (long travel should never work)
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
                 .andExpect(status().isForbidden());
 
@@ -326,9 +326,9 @@ public class SessionTest {
         this.jwtConverter.setClock(testingClock);
 
         // using unmodified session handle (same location), should work and refresh session
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         Jwt jwtPost = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
         SessionMetadata sessionMetadataPost = this.testHelper.jwtToSessionMetadata(jwtPost).orElseThrow();
@@ -351,9 +351,9 @@ public class SessionTest {
         sessionMetadataPre = sessionMetadataPost;
 
         // using modified session handle, short travel, should work, should refresh session, should refresh location
-        this.mockMvc.perform(get("/api/account/summary").with(sessionHandle))
+        this.mockMvc.perform(get("/api/dummy").with(sessionHandle))
                 .andDo(sessionHandle)
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
 
         jwtPost = this.testHelper.getJwtForCookie(sessionHandle).orElseThrow();
         sessionMetadataPost = this.testHelper.jwtToSessionMetadata(jwtPost).orElseThrow();

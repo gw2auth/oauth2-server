@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.repository.gw2account;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -51,28 +50,6 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
                           @Param("display_name_if_exists") String displayNameIfExists,
                           @Param("order_rank_if_exists") String orderRankIfExists);
 
-    @Modifying
-    @Query("""
-    UPDATE gw2_accounts
-    SET display_name = :display_name
-    WHERE account_id = :account_id
-    AND gw2_account_id = :gw2_account_id
-    """)
-    void updateDisplayNameByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId,
-                                                     @Param("gw2_account_id") UUID gw2AccountId,
-                                                     @Param("display_name") String displayName);
-
-    @Modifying
-    @Query("""
-    UPDATE gw2_accounts
-    SET order_rank = :order_rank
-    WHERE account_id = :account_id
-    AND gw2_account_id = :gw2_account_id
-    """)
-    void updateOrderRankByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId,
-                                                   @Param("gw2_account_id") UUID gw2AccountId,
-                                                   @Param("order_rank") String orderRank);
-
     @Query("""
     SELECT *
     FROM gw2_accounts
@@ -102,52 +79,6 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
     WHERE acc.account_id = :account_id
     """)
     List<Gw2AccountWithApiTokenEntity> findAllWithTokenByAccountId(@Param("account_id") UUID accountId);
-
-    @Query("""
-    SELECT
-        acc.account_id AS acc_account_id,
-        acc.gw2_account_id AS acc_gw2_account_id,
-        acc.gw2_account_name AS acc_gw2_account_name,
-        acc.creation_time AS acc_creation_time,
-        acc.display_name AS acc_display_name,
-        acc.order_rank AS acc_order_rank,
-        tk.account_id AS tk_account_id,
-        tk.gw2_account_id AS tk_gw2_account_id,
-        tk.creation_time AS tk_creation_time,
-        tk.gw2_api_token AS tk_gw2_api_token,
-        tk.gw2_api_permissions_bit_set AS tk_gw2_api_permissions_bit_set,
-        tk.last_valid_time AS tk_last_valid_time,
-        tk.last_valid_check_time AS tk_last_valid_check_time
-    FROM gw2_accounts acc
-    INNER JOIN gw2_account_api_tokens tk
-    ON acc.account_id = tk.account_id AND acc.gw2_account_id = tk.gw2_account_id
-    WHERE acc.account_id = :account_id
-    AND acc.gw2_account_id = :gw2_account_id
-    """)
-    Optional<Gw2AccountWithApiTokenEntity> findWithTokenByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
-
-    @Query("""
-    SELECT
-        acc.account_id AS acc_account_id,
-        acc.gw2_account_id AS acc_gw2_account_id,
-        acc.gw2_account_name AS acc_gw2_account_name,
-        acc.creation_time AS acc_creation_time,
-        acc.display_name AS acc_display_name,
-        acc.order_rank AS acc_order_rank,
-        tk.account_id AS tk_account_id,
-        tk.gw2_account_id AS tk_gw2_account_id,
-        tk.creation_time AS tk_creation_time,
-        tk.gw2_api_token AS tk_gw2_api_token,
-        tk.gw2_api_permissions_bit_set AS tk_gw2_api_permissions_bit_set,
-        tk.last_valid_time AS tk_last_valid_time,
-        tk.last_valid_check_time AS tk_last_valid_check_time
-    FROM gw2_accounts acc
-    INNER JOIN gw2_account_api_tokens tk
-    ON acc.account_id = tk.account_id AND acc.gw2_account_id = tk.gw2_account_id
-    WHERE acc.account_id = :account_id
-    AND acc.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
-    """)
-    List<Gw2AccountWithApiTokenEntity> findAllWithTokenByAccountIdAndGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
 
     @Query("""
     SELECT

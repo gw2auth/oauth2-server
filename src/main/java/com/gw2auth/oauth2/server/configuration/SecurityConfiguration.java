@@ -12,8 +12,6 @@ import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.CookieHelper;
 import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.JWKHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -58,8 +56,6 @@ import java.util.Objects;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
-
-    private static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class);
 
     @Bean
     public Gw2AuthInternalJwtConverter gw2AuthInternalJwtConverter(@Value("${com.gw2auth.session.priv.id}") String privateKeyId,

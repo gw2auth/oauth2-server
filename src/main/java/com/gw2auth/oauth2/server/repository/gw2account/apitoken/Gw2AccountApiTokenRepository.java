@@ -49,21 +49,6 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
     SELECT *
     FROM gw2_account_api_tokens
     WHERE account_id = :account_id
-    """)
-    List<Gw2AccountApiTokenEntity> findAllByAccountId(@Param("account_id") UUID accountId);
-
-    @Query("""
-    SELECT *
-    FROM gw2_account_api_tokens
-    WHERE account_id = :account_id
-    AND gw2_account_id = :gw2_account_id
-    """)
-    Optional<Gw2AccountApiTokenEntity> findAllByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
-
-    @Query("""
-    SELECT *
-    FROM gw2_account_api_tokens
-    WHERE account_id = :account_id
     AND gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
     """)
     List<Gw2AccountApiTokenEntity> findAllByAccountIdAndGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);

@@ -22,12 +22,12 @@ public class Gw2AuthClockedExtension implements BeforeEachCallback, AfterEachCal
     }
 
     @Override
-    public void afterEach(ExtensionContext context) throws Exception {
+    public void afterEach(ExtensionContext context) {
         setClock(Clock.systemUTC());
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) throws Exception {
+    public void beforeEach(ExtensionContext context) {
 
     }
 

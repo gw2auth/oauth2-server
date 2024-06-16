@@ -1,22 +1,7 @@
 package com.gw2auth.oauth2.server;
 
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountFederationEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountFederationRepository;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
-import com.gw2auth.oauth2.server.repository.application.ApplicationEntity;
-import com.gw2auth.oauth2.server.repository.application.ApplicationRepository;
-import com.gw2auth.oauth2.server.repository.application.account.ApplicationAccountRepository;
-import com.gw2auth.oauth2.server.repository.application.account.ApplicationAccountSubEntity;
-import com.gw2auth.oauth2.server.repository.application.account.ApplicationAccountSubRepository;
-import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientEntity;
-import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientRepository;
-import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountEntity;
-import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountRepository;
-import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
-import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationRepository;
-import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenEntity;
-import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationTokenRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
@@ -24,13 +9,9 @@ import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTok
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.Gw2AccountVerificationRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
-import com.gw2auth.oauth2.server.service.OAuth2Scope;
-import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.Account;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.account.AccountSession;
-import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccount;
 import com.gw2auth.oauth2.server.service.security.Gw2AuthInternalJwtConverter;
 import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.service.security.SessionMetadataService;
@@ -48,8 +29,6 @@ import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.security.oauth2.core.AuthorizationGrantType;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import javax.crypto.SecretKey;
@@ -57,9 +36,6 @@ import javax.crypto.spec.IvParameterSpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @TestComponent
 public class TestHelper {
@@ -68,34 +44,10 @@ public class TestHelper {
     private AccountRepository accountRepository;
 
     @Autowired
-    private AccountFederationRepository accountFederationRepository;
-
-    @Autowired
     private Gw2AccountRepository gw2AccountRepository;
 
     @Autowired
     private Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
-
-    @Autowired
-    private ApplicationRepository applicationRepository;
-
-    @Autowired
-    private ApplicationClientRepository applicationClientRepository;
-
-    @Autowired
-    private ApplicationAccountSubRepository applicationAccountSubRepository;
-
-    @Autowired
-    private ApplicationAccountRepository applicationAccountRepository;
-
-    @Autowired
-    private ApplicationClientAccountRepository applicationClientAccountRepository;
-
-    @Autowired
-    private ApplicationClientAuthorizationRepository applicationClientAuthorizationRepository;
-
-    @Autowired
-    private ApplicationClientAuthorizationTokenRepository applicationClientAuthorizationTokenRepository;
 
     @Autowired
     private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
@@ -167,169 +119,11 @@ public class TestHelper {
         return new Pair<>(gw2AccountEntity, gw2AccountApiTokenEntity);
     }
 
-    public ApplicationClientEntity createClientRegistration(UUID accountId, String name) {
-        return createClientRegistration(accountId, name, Set.of("http://test.gw2auth.com/dummy"));
-    }
-
-    public ApplicationClientEntity createClientRegistration(UUID accountId, String name, Set<String> redirectUris) {
-        final ApplicationEntity applicationEntity = this.applicationRepository.save(new ApplicationEntity(
-                UUID.randomUUID(),
-                accountId,
-                Instant.now(),
-                name
-        ));
-
-        return this.applicationClientRepository.save(new ApplicationClientEntity(
-                UUID.randomUUID(),
-                applicationEntity.id(),
-                Instant.now(),
-                name,
-                UUID.randomUUID().toString(),
-                Set.of(AuthorizationGrantType.AUTHORIZATION_CODE.getValue(), AuthorizationGrantType.REFRESH_TOKEN.getValue()),
-                redirectUris,
-                false,
-                OAuth2ClientApiVersion.V0.value(),
-                OAuth2ClientType.CONFIDENTIAL.name()
-        ));
-    }
-
-    public ApplicationClientAccountEntity createClientConsent(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
-        return createClientConsent2(accountId, clientRegistrationId, scopes).v2();
-    }
-
-    public Pair<UUID, ApplicationClientAccountEntity> createClientConsent2(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
-        final UUID applicationId = this.applicationClientRepository.findById(clientRegistrationId).orElseThrow().applicationId();
-
-        final ApplicationAccountSubEntity applicationAccountSubEntity = this.applicationAccountSubRepository.findOrCreate(
-                applicationId,
-                accountId,
-                UUID.randomUUID()
-        );
-        this.applicationAccountRepository.findOrCreate(
-                applicationId,
-                accountId,
-                Instant.now()
-        );
-        final ApplicationClientAccountEntity applicationClientAccountEntity =  this.applicationClientAccountRepository.save(new ApplicationClientAccountEntity(
-                clientRegistrationId,
-                accountId,
-                applicationId,
-                ApplicationClientAccount.ApprovalStatus.APPROVED.name(),
-                "UNIT-TEST",
-                scopes.stream().map(OAuth2Scope::oauth2).collect(Collectors.toUnmodifiableSet())
-        ));
-
-        return new Pair<>(applicationAccountSubEntity.accountSub(), applicationClientAccountEntity);
-    }
-
     public AccountEntity createAccount() {
         return this.accountRepository.save(new AccountEntity(
                 UUID.randomUUID(),
                 Instant.now()
         ));
-    }
-
-    public AccountFederationEntity createAccountFederation(String issuer, String idAtIssuer, UUID accountId) {
-        return this.accountFederationRepository.save(new AccountFederationEntity(
-                issuer,
-                idAtIssuer,
-                accountId
-        ));
-    }
-
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, ApplicationClientAccountEntity entity) {
-        final Set<OAuth2Scope> scopes = entity.authorizedScopes().stream().map(OAuth2Scope::fromOAuth2Required).collect(Collectors.toUnmodifiableSet());
-        assertEquals(entity.authorizedScopes().size(), scopes.size());
-
-        return createClientAuthorization(accountId, entity.applicationClientId(), scopes);
-    }
-
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Set<OAuth2Scope> scopes) {
-        return createClientAuthorization(accountId, clientRegistrationId, Instant.now(), scopes, false);
-    }
-
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, ApplicationClientAccountEntity entity, boolean fillTokens) {
-        final Set<OAuth2Scope> scopes = entity.authorizedScopes().stream().map(OAuth2Scope::fromOAuth2Required).collect(Collectors.toUnmodifiableSet());
-        assertEquals(entity.authorizedScopes().size(), scopes.size());
-
-        return createClientAuthorization(accountId, clientRegistrationId, creationTime, scopes, fillTokens);
-    }
-
-    public ApplicationClientAuthorizationEntity createClientAuthorization(UUID accountId, UUID clientRegistrationId, Instant creationTime, Set<OAuth2Scope> scopes, boolean fillTokens) {
-        String authorizationCodeValue = null;
-        Instant authorizationCodeIssuedAt = null;
-        Instant authorizationCodeExpiresAt = null;
-        String authorizationCodeMetadata = null;
-        String accessTokenValue = null;
-        Instant accessTokenIssuedAt = null;
-        Instant accessTokenExpiresAt = null;
-        String accessTokenMetadata = null;
-        String accessTokenType = null;
-        String refreshTokenValue = null;
-        Instant refreshTokenIssuedAt = null;
-        Instant refreshTokenExpiresAt = null;
-        String refreshTokenMetadata = null;
-
-        if (fillTokens) {
-            authorizationCodeValue = UUID.randomUUID().toString();
-            authorizationCodeIssuedAt = creationTime;
-            authorizationCodeExpiresAt = creationTime.plus(Duration.ofMinutes(60L));
-            authorizationCodeMetadata = "{}";
-            accessTokenValue = UUID.randomUUID().toString();
-            accessTokenIssuedAt = creationTime;
-            accessTokenExpiresAt = creationTime.plus(Duration.ofMinutes(30L));
-            accessTokenMetadata = "{}";
-            accessTokenType = OAuth2AccessToken.TokenType.BEARER.getValue();
-            refreshTokenValue = UUID.randomUUID().toString();
-            refreshTokenIssuedAt = creationTime;
-            refreshTokenExpiresAt = creationTime.plus(Duration.ofDays(180L));
-            refreshTokenMetadata = "{}";
-        }
-
-        final Set<String> rawScopes = scopes.stream()
-                .map(OAuth2Scope::oauth2)
-                .collect(Collectors.toUnmodifiableSet());
-
-        return this.applicationClientAuthorizationRepository.save(new ApplicationClientAuthorizationEntity(
-                UUID.randomUUID().toString(),
-                accountId,
-                clientRegistrationId,
-                creationTime,
-                creationTime,
-                "Name",
-                AuthorizationGrantType.JWT_BEARER.getValue(),
-                rawScopes,
-                "",
-                UUID.randomUUID().toString(),
-                authorizationCodeValue,
-                authorizationCodeIssuedAt,
-                authorizationCodeExpiresAt,
-                authorizationCodeMetadata,
-                accessTokenValue,
-                accessTokenIssuedAt,
-                accessTokenExpiresAt,
-                accessTokenMetadata,
-                accessTokenType,
-                rawScopes,
-                refreshTokenValue,
-                refreshTokenIssuedAt,
-                refreshTokenExpiresAt,
-                refreshTokenMetadata
-        ));
-    }
-
-    public ApplicationClientAuthorizationTokenEntity createClientAuthorizationToken(UUID accountId, String clientAuthorizationId, UUID gw2AccountId) {
-        return this.applicationClientAuthorizationTokenRepository.save(new ApplicationClientAuthorizationTokenEntity(clientAuthorizationId, accountId, gw2AccountId));
-    }
-
-    public List<ApplicationClientAuthorizationTokenEntity> createClientAuthorizationTokens(UUID accountId, String clientAuthorizationId, UUID... gw2AccountIds) {
-        return createClientAuthorizationTokens(accountId, clientAuthorizationId, List.of(gw2AccountIds));
-    }
-
-    public List<ApplicationClientAuthorizationTokenEntity> createClientAuthorizationTokens(UUID accountId, String clientAuthorizationId, Collection<UUID> gw2AccountIds) {
-        return gw2AccountIds.stream()
-                .map((gw2AccountId) -> createClientAuthorizationToken(accountId, clientAuthorizationId, gw2AccountId))
-                .collect(Collectors.toList());
     }
 
     public Gw2AccountEntity getOrCreateGw2Account(UUID accountId, UUID gw2AccountId) {

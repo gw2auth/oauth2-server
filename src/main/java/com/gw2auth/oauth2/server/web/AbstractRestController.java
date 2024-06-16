@@ -9,8 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.util.Optional;
-
 public abstract class AbstractRestController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractRestController.class);
@@ -38,15 +36,5 @@ public abstract class AbstractRestController {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new ApiErrorResponse(exc.getClass().getSimpleName(), "An unknown error occured while processing your request"));
-    }
-
-    public ResponseEntity<Object> fromOptional(Optional<?> optional) {
-        if (optional.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(new ApiErrorResponse("Not Found", "The requested resource could not be found"));
-        } else {
-            return ResponseEntity.ok(optional.get());
-        }
     }
 }

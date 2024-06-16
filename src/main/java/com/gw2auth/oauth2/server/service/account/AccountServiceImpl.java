@@ -5,14 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.service.Clocked;
-import com.gw2auth.oauth2.server.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -31,7 +29,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 @EnableScheduling
@@ -76,11 +73,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
     @Transactional
     public Account getOrCreateAccount(String issuer, String idAtIssuer) {
         return Account.fromEntity(getOrCreateAccountInternal(issuer, idAtIssuer));
-    }
-
-    @Override
-    public Optional<Account> getAccount(String issuer, String idAtIssuer) {
-        return this.accountRepository.findByFederation(issuer, idAtIssuer).map(Account::fromEntity);
     }
 
     @Override
@@ -175,54 +167,13 @@ public class AccountServiceImpl implements AccountService, Clocked {
     }
 
     @Override
-    public List<AccountFederationWithSessions> getAccountFederationsWithSessions(UUID accountId) {
-        final List<AccountFederationEntity> federationEntities = this.accountFederationRepository.findAllByAccountId(accountId);
-        final Map<Pair<String, String>, List<AccountFederationSessionEntity>> federationSessionEntities = this.accountFederationSessionRepository.findAllByAccountId(accountId).stream()
-                .collect(Collectors.groupingBy((v) -> new Pair<>(v.issuer(), v.idAtIssuer())));
-
-        final List<AccountFederationWithSessions> result = new ArrayList<>(federationEntities.size());
-
-        for (AccountFederationEntity federationEntity : federationEntities) {
-            result.add(new AccountFederationWithSessions(
-                    AccountFederation.fromEntity(federationEntity),
-                    federationSessionEntities.getOrDefault(new Pair<>(federationEntity.issuer(), federationEntity.idAtIssuer()), List.of()).stream()
-                            .map(AccountFederationSession::fromEntity)
-                            .collect(Collectors.toList())
-            ));
-        }
-
-        return result;
-    }
-
-    @Override
     public LoggingContext log(UUID accountId, Map<String, ?> fields) {
         return new RootLoggingContext(this.mapper, accountId, fields);
     }
 
     @Override
-    @Transactional
-    public boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer) {
-        final int federationCount = this.accountFederationRepository.countByAccountId(accountId);
-
-        // at least one federation has to be kept, otherwise the user could not login anymore
-        if (federationCount < 2) {
-            throw new AccountServiceException("Can't delete the last federation of an account", HttpStatus.NOT_ACCEPTABLE);
-        }
-
-        return this.accountFederationRepository.deleteByAccountIdAndIssuerAndIdAtIssuer(accountId, issuer, idAtIssuer);
-    }
-
-    @Override
     public boolean deleteSession(UUID accountId, String sessionId) {
         return this.accountFederationSessionRepository.deleteByAccountIdAndId(accountId, sessionId);
-    }
-
-    @Override
-    @Transactional
-    public boolean deleteAccount(UUID accountId) {
-        this.accountRepository.deleteById(accountId);
-        LOG.info("the account {} has been deleted", accountId);
-        return true;
     }
 
     @Transactional

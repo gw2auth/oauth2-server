@@ -51,9 +51,6 @@ public interface Gw2AccountVerificationChallengePendingRepository extends BaseRe
                                                       @Param("submit_time") Instant submitTime,
                                                       @Param("timeout_time") Instant timeoutTime);
 
-    @Query("SELECT * FROM gw2_account_verification_pending_challenges WHERE account_id = :account_id")
-    List<Gw2AccountVerificationChallengePendingEntity> findAllByAccountId(@Param("account_id") UUID accountId);
-
     @Query("SELECT * FROM gw2_account_verification_pending_challenges WHERE account_id = :account_id AND gw2_account_id = :gw2_account_id")
     Optional<Gw2AccountVerificationChallengePendingEntity> findByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 

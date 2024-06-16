@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
@@ -110,23 +109,9 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
     }
 
     @Override
-    public List<ApplicationClientAuthorization> getApplicationClientAuthorizations(UUID accountId, Collection<UUID> gw2AccountIds) {
-        return this.applicationClientAuthorizationRepository.findAllWithGw2AccountIdsByAccountIdAndLinkedGw2AccountIds(accountId, gw2AccountIds).stream()
-                .map(ApplicationClientAuthorization::fromEntity)
-                .toList();
-    }
-
-    @Override
     public Optional<ApplicationClientAuthorization> getApplicationClientAuthorization(UUID accountId, String id) {
         return this.applicationClientAuthorizationRepository.findWithGw2AccountIdsByIdAndAccountId(id, accountId)
                 .map(ApplicationClientAuthorization::fromEntity);
-    }
-
-    @Override
-    public void deleteApplicationClientAuthorization(UUID accountId, String id) {
-        if (!this.applicationClientAuthorizationRepository.deleteByIdAndAccountId(id, accountId)) {
-            throw new ApplicationClientAuthorizationServiceException(ApplicationClientAuthorizationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
     }
 
     // region Spring OAuth2

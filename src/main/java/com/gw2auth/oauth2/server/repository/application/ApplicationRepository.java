@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.repository.application;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -39,22 +38,7 @@ public interface ApplicationRepository extends BaseRepository<ApplicationEntity>
     SELECT *
     FROM applications
     WHERE id = :id
-    """)
-    Optional<ApplicationEntity> findById(@Param("id") UUID id);
-
-    @Query("""
-    SELECT *
-    FROM applications
-    WHERE id = :id
     AND account_id = :account_id
     """)
     Optional<ApplicationEntity> findByIdAndAccountId(@Param("id") UUID id, @Param("account_id") UUID accountId);
-
-    @Modifying
-    @Query("""
-    DELETE FROM applications
-    WHERE id = :id
-    AND account_id = :account_id
-    """)
-    boolean deleteByIdAndAccountId(@Param("id") UUID id, @Param("account_id") UUID accountId);
 }

@@ -5,14 +5,12 @@ import com.gw2auth.oauth2.server.repository.application.ApplicationRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,12 +33,6 @@ public class ApplicationServiceImpl implements ApplicationService, Clocked {
     }
 
     @Override
-    public Optional<Application> getApplication(UUID id) {
-        return this.applicationRepository.findById(id)
-                .map(Application::fromEntity);
-    }
-
-    @Override
     @Transactional
     public Application createApplication(UUID accountId, String displayName) {
         final ApplicationEntity entity = this.applicationRepository.save(new ApplicationEntity(
@@ -57,15 +49,5 @@ public class ApplicationServiceImpl implements ApplicationService, Clocked {
         );
 
         return Application.fromEntity(entity);
-    }
-
-    @Override
-    @Transactional
-    public void deleteApplication(UUID accountId, UUID id) {
-        if (!this.applicationRepository.deleteByIdAndAccountId(id, accountId)) {
-            throw new ApplicationServiceException(ApplicationServiceException.NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        this.accountService.log(accountId, "The application has been deleted", Map.of("application_id", id));
     }
 }

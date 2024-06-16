@@ -1,7 +1,5 @@
 package com.gw2auth.oauth2.server.web.verification;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.*;
 import com.gw2auth.oauth2.server.repository.account.AccountEntity;
 import com.gw2auth.oauth2.server.repository.account.AccountRepository;
@@ -38,7 +36,6 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -96,90 +93,6 @@ class VerificationControllerTest {
     @AfterEach
     public void resetClock() {
         this.verificationService.setClock(Clock.systemUTC());
-    }
-
-    @Test
-    public void getBootstrapUnauthenticated() throws Exception {
-        this.mockMvc.perform(get("/api/verification/bootstrap"))
-                .andExpect(status().isForbidden());
-    }
-
-    @ParameterizedTest
-    @WithGw2AuthLogin
-    public void getBootstrap(SessionHandle sessionHandle) throws Exception {
-        // this basically tests 3 other endpoints too
-        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
-        final ObjectMapper mapper = new ObjectMapper();
-        
-        // dummy clock
-        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        this.gw2AuthClockedExtension.setClock(testingClock);
-
-        // 1 started challenge
-        final String expectedApiTokenName = "ApiTokenName";
-        final Gw2AccountVerificationChallengeEntity startedChallenge = this.gw2AccountVerificationChallengeRepository.save(new Gw2AccountVerificationChallengeEntity(accountId, 1L, expectedApiTokenName, Instant.now()));
-
-        // 2 pending challenges
-        final UUID gw2AccountIdA = UUID.randomUUID();
-        final UUID gw2AccountIdB = UUID.randomUUID();
-
-        this.testHelper.getOrCreateGw2Account(accountId, gw2AccountIdA);
-        this.testHelper.getOrCreateGw2Account(accountId, gw2AccountIdB);
-
-        final Gw2AccountVerificationChallengePendingEntity pendingChallengeA = this.gw2AccountVerificationChallengePendingRepository.save(new Gw2AccountVerificationChallengePendingEntity(accountId, gw2AccountIdA, 1L, expectedApiTokenName + "A", UUID.randomUUID().toString(), Instant.now(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
-        final Gw2AccountVerificationChallengePendingEntity pendingChallengeB = this.gw2AccountVerificationChallengePendingRepository.save(new Gw2AccountVerificationChallengePendingEntity(accountId, gw2AccountIdB, 1L, expectedApiTokenName + "B", UUID.randomUUID().toString(), Instant.now(), Instant.now(), Instant.now().plus(Duration.ofMinutes(30L))));
-
-        final String responseJson = this.mockMvc.perform(get("/api/verification/bootstrap").with(sessionHandle))
-                .andDo(sessionHandle)
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        final JsonNode responseNode = mapper.readTree(responseJson);
-        assertTrue(responseNode.isObject());
-
-        final JsonNode availableChallengesNode = responseNode.get("availableChallenges");
-        assertTrue(availableChallengesNode.isArray());
-
-        long previousChallengeId = Long.MIN_VALUE;
-
-        for (int i = 0; i < availableChallengesNode.size(); i++) {
-            final JsonNode availableChallengeNode = availableChallengesNode.get(i);
-            assertTrue(availableChallengeNode.get("id").isIntegralNumber());
-
-            final long challengeId = availableChallengeNode.get("id").longValue();
-
-            assertTrue(challengeId > previousChallengeId);
-            assertTrue(availableChallengeNode.get("requiredGw2ApiPermissions").isArray());
-
-            previousChallengeId = challengeId;
-        }
-
-        final JsonNode startedChallengeNode = responseNode.get("startedChallenge");
-        assertEquals(startedChallenge.challengeId(), startedChallengeNode.get("challengeId").longValue());
-        assertEquals(expectedApiTokenName, startedChallengeNode.get("message").get("apiTokenName").textValue());
-        assertInstantEquals(testingClock.instant(), startedChallengeNode.get("nextAllowedStartTime").textValue());
-
-        final JsonNode pendingChallengesNode = responseNode.get("pendingChallenges");
-        assertTrue(pendingChallengesNode.isArray());
-
-        final Map<UUID, Gw2AccountVerificationChallengePendingEntity> expectedPendingChallenges = new HashMap<>(Map.of(
-                pendingChallengeA.gw2AccountId(), pendingChallengeA,
-                pendingChallengeB.gw2AccountId(), pendingChallengeB
-        ));
-
-        for (int i = 0; i < pendingChallengesNode.size(); i++) {
-            final JsonNode pendingChallengeNode = pendingChallengesNode.get(i);
-            final UUID gw2AccountId = UUID.fromString(pendingChallengeNode.get("gw2AccountId").textValue());
-            final Gw2AccountVerificationChallengePendingEntity challenge = expectedPendingChallenges.remove(gw2AccountId);
-            assertNotNull(challenge);
-
-            assertEquals(challenge.challengeId(), pendingChallengeNode.get("challengeId").longValue());
-            assertInstantEquals(challenge.submitTime(), pendingChallengeNode.get("startedAt").textValue());
-        }
-
-        assertTrue(expectedPendingChallenges.isEmpty());
     }
 
     @Test

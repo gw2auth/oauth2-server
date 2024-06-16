@@ -6,7 +6,6 @@ import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -47,13 +46,6 @@ public interface ApplicationClientAccountRepository extends BaseRepository<Appli
     @Query("""
     SELECT *
     FROM application_client_accounts
-    WHERE account_id = :account_id
-    """)
-    List<ApplicationClientAccountEntity> findAllByAccountId(@Param("account_id") UUID accountId);
-
-    @Query("""
-    SELECT *
-    FROM application_client_accounts
     WHERE application_client_id = :application_client_id
     AND account_id = :account_id
     """)
@@ -70,13 +62,4 @@ public interface ApplicationClientAccountRepository extends BaseRepository<Appli
     void updateAuthorizedScopesByApplicationClientIdAndAccountId(@Param("application_client_id") UUID applicationClientId,
                                                                  @Param("account_id") UUID accountId,
                                                                  @Param("authorized_scopes") Set<String> authorizedScopes);
-
-    @Modifying
-    @Query("""
-    DELETE FROM application_client_accounts
-    WHERE application_client_id = :application_client_id
-    AND account_id = :account_id
-    """)
-    void deleteByApplicationClientIdAndAccountId(@Param("application_client_id") UUID applicationClientId,
-                                                 @Param("account_id") UUID accountId);
 }

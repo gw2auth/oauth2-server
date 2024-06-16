@@ -68,23 +68,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     }
 
     @Override
-    public List<ApplicationClient> getApplicationClients(UUID accountId) {
-        return this.applicationClientRepository.findAllByAccountId(accountId).stream()
-                .map(ApplicationClient::fromEntity)
-                .toList();
-    }
-
-    @Override
-    public Optional<ApplicationClient> getApplicationClient(UUID accountId, UUID id) {
-        return this.applicationClientRepository.findByIdAndAccountId(id, accountId)
-                .map(ApplicationClient::fromEntity);
-    }
-
-    @Override
-    public List<ApplicationClient> getApplicationClients(Collection<UUID> ids) {
-        return this.applicationClientRepository.findAllByIds(ids).stream()
-                .map(ApplicationClient::fromEntity)
-                .toList();
+    public Optional<ApplicationClient> getApplicationClient(UUID ids) {
+        return this.applicationClientRepository.findById(ids).map(ApplicationClient::fromEntity);
     }
 
     @Override
@@ -129,96 +114,6 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         );
 
         return new ApplicationClientCreation(ApplicationClient.fromEntity(entity), clientSecret);
-    }
-
-    @Override
-    @Transactional
-    public ApplicationClient addRedirectUri(UUID accountId, UUID id, String redirectUri) {
-        if (!this.redirectUriValidator.validate(redirectUri)) {
-            throw new ApplicationClientServiceException(ApplicationClientServiceException.INVALID_REDIRECT_URI, HttpStatus.BAD_REQUEST);
-        }
-
-        ApplicationClientEntity entity = this.applicationClientRepository.findByIdAndAccountId(id, accountId)
-                .orElseThrow(() -> new ApplicationClientServiceException(ApplicationClientServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
-
-        entity.redirectUris().add(redirectUri);
-        entity = this.applicationClientRepository.save(entity);
-
-        this.accountService.log(
-                accountId,
-                String.format("Redirect-URI '%s' added", redirectUri),
-                Map.of("application_id", entity.applicationId(), "client_id", entity.id())
-        );
-
-        return ApplicationClient.fromEntity(entity);
-    }
-
-    @Override
-    @Transactional
-    public ApplicationClient removeRedirectUri(UUID accountId, UUID id, String redirectUri) {
-        ApplicationClientEntity entity = this.applicationClientRepository.findByIdAndAccountId(id, accountId)
-                .orElseThrow(() -> new ApplicationClientServiceException(ApplicationClientServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
-
-        entity.redirectUris().remove(redirectUri);
-
-        if (entity.redirectUris().isEmpty()) {
-            throw new ApplicationClientServiceException(ApplicationClientServiceException.NOT_ENOUGH_REDIRECT_URIS, HttpStatus.BAD_REQUEST);
-        }
-
-        entity = this.applicationClientRepository.save(entity);
-
-        this.accountService.log(
-                accountId,
-                String.format("Redirect-URI '%s' removed", redirectUri),
-                Map.of("application_id", entity.applicationId(), "client_id", entity.id())
-        );
-
-        return ApplicationClient.fromEntity(entity);
-    }
-
-    @Override
-    @Transactional
-    public ApplicationClientCreation regenerateClientSecret(UUID accountId, UUID id) {
-        ApplicationClientEntity entity = this.applicationClientRepository.findByIdAndAccountId(id, accountId)
-                .orElseThrow(() -> new ApplicationClientServiceException(ApplicationClientServiceException.NOT_FOUND, HttpStatus.NOT_FOUND));
-
-        final String clientSecret = generateClientSecret();
-        final String encodedClientSecret = this.passwordEncoder.encode(clientSecret);
-
-        entity = this.applicationClientRepository.save(new ApplicationClientEntity(
-                entity.id(),
-                entity.applicationId(),
-                entity.creationTime(),
-                entity.displayName(),
-                encodedClientSecret,
-                entity.authorizationGrantTypes(),
-                entity.redirectUris(),
-                entity.requiresApproval(),
-                entity.apiVersion(),
-                entity.type()
-        ));
-
-        this.accountService.log(
-                accountId,
-                "Client-Secret regenerated",
-                Map.of("application_id", entity.applicationId(), "client_id", entity.id())
-        );
-
-        return new ApplicationClientCreation(ApplicationClient.fromEntity(entity), clientSecret);
-    }
-
-    @Override
-    @Transactional
-    public void deleteClientRegistration(UUID accountId, UUID id) {
-        if (!this.applicationClientRepository.deleteByIdAndAccountId(id, accountId)) {
-            throw new ApplicationClientServiceException(ApplicationClientServiceException.NOT_FOUND, HttpStatus.NOT_FOUND);
-        }
-
-        this.accountService.log(
-                accountId,
-                "The client has been deleted",
-                Map.of("application_id", "*", "client_id", id)
-        );
     }
 
     private String generateClientSecret() {

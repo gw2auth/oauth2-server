@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.repository.account;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -51,8 +50,4 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
     WHERE fed_sess.id = :id AND :now BETWEEN fed_sess.creation_time AND fed_sess.expiration_time
     """)
     Optional<AccountWithSessionEntity> findByFederationSession(@Param("id") String id, @Param("now") Instant now);
-
-    @Modifying
-    @Query("DELETE FROM accounts WHERE id = :id")
-    void deleteById(@Param("id") UUID id);
 }

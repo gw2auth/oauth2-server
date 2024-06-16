@@ -90,46 +90,6 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
     }
 
     @Override
-    public Optional<UUID> getVerifiedAccountId(UUID gw2AccountId) {
-        return this.gw2AccountVerificationRepository.findByGw2AccountId(gw2AccountId)
-                .map(Gw2AccountVerificationEntity::accountId);
-    }
-
-    @Override
-    public List<VerificationChallenge<?>> getAvailableChallenges() {
-        return List.copyOf(this.challengesById.values());
-    }
-
-    @Override
-    public Optional<VerificationChallengeStart> getStartedChallenge(UUID accountId) {
-        return this.gw2AccountVerificationChallengeRepository.findByAccountId(accountId)
-                .flatMap((entity) -> {
-                    final VerificationChallenge<?> verificationChallenge = this.challengesById.get(entity.challengeId());
-                    if (verificationChallenge == null) {
-                        this.gw2AccountVerificationChallengeRepository.deleteByAccountId(accountId);
-                        return Optional.empty();
-                    }
-
-                    final Map<String, Object> message;
-                    try {
-                        message = buildMessage(verificationChallenge, entity.state());
-                    } catch (IOException e) {
-                        return Optional.empty();
-                    }
-
-                    return Optional.of(new VerificationChallengeStart(verificationChallenge.getId(), message, this.clock.instant()));
-                });
-    }
-
-    @Override
-    public List<VerificationChallengePending> getPendingChallenges(UUID accountId) {
-        return this.gw2AccountVerificationChallengePendingRepository.findAllByAccountId(accountId).stream()
-                .map((e) -> new VerificationChallengePending(e.challengeId(), e.gw2AccountId(), e.submitTime()))
-                .collect(Collectors.toList());
-
-    }
-
-    @Override
     @Transactional
     public VerificationChallengeStart startChallenge(UUID accountId, long challengeId) {
         final VerificationChallenge<?> verificationChallenge = this.challengesById.get(challengeId);
@@ -326,10 +286,6 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
 
         this.meterRegistry.timer("gw2auth_challenge_submit_to_completion_time", tags)
                 .record(Duration.between(entity.submitTime(), completionTime));
-    }
-
-    private <S> Map<String, Object> buildMessage(VerificationChallenge<S> challenge, String rawState) throws IOException {
-        return challenge.buildMessage(challenge.readState(rawState));
     }
 
     private static class HandledGw2AccountVerificationServiceException extends Gw2AccountVerificationServiceException {

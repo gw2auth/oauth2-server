@@ -20,7 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 @Configuration
@@ -57,7 +56,7 @@ public class Gw2AuthClientConfiguration {
         for (Gw2AuthClientProperties.Registration registrationConfig : this.properties.registration()) {
             final UUID clientId = UUID.fromString(registrationConfig.clientId());
 
-            if (this.applicationClientService.getApplicationClients(Set.of(clientId)).isEmpty()) {
+            if (this.applicationClientService.getApplicationClient(clientId).isEmpty()) {
                 final List<Gw2AuthClientProperties.Account> accountsConfig = this.properties.account().get(registrationConfig.account());
                 Account account = null;
 

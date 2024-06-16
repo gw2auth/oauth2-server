@@ -63,11 +63,6 @@ public class Gw2AccountServiceImpl implements Gw2AccountService, Clocked {
     }
 
     @Override
-    public Optional<Gw2Account> getGw2Account(UUID accountId, UUID gw2AccountId) {
-        return this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).map(Gw2Account::fromEntity);
-    }
-
-    @Override
     public List<Gw2AccountWithOptionalApiToken> getWithOptionalApiTokens(UUID accountId, Collection<UUID> gw2AccountIds) {
         return this.gw2AccountRepository.findAllWithOptionalTokenByAccountIdAndGw2AccountIds(accountId, gw2AccountIds).stream()
                 .map(Gw2AccountServiceImpl::mapWithOptionalToken)
@@ -75,33 +70,10 @@ public class Gw2AccountServiceImpl implements Gw2AccountService, Clocked {
     }
 
     @Override
-    public Optional<Gw2AccountWithApiToken> getWithApiToken(UUID accountId, UUID gw2AccountId) {
-        return this.gw2AccountRepository.findWithTokenByAccountIdAndGw2AccountId(accountId, gw2AccountId)
-                .map(Gw2AccountServiceImpl::mapWithToken);
-    }
-
-    @Override
     public List<Gw2AccountWithApiToken> getWithApiTokens(UUID accountId) {
         return this.gw2AccountRepository.findAllWithTokenByAccountId(accountId).stream()
                 .map(Gw2AccountServiceImpl::mapWithToken)
                 .toList();
-    }
-
-    @Override
-    public List<Gw2AccountWithApiToken> getWithApiTokens(UUID accountId, Collection<UUID> gw2AccountIds) {
-        return this.gw2AccountRepository.findAllWithTokenByAccountIdAndGw2AccountIds(accountId, gw2AccountIds).stream()
-                .map(Gw2AccountServiceImpl::mapWithToken)
-                .toList();
-    }
-
-    @Override
-    public void updateDisplayName(UUID accountId, UUID gw2AccountId, String displayName) {
-        this.gw2AccountRepository.updateDisplayNameByAccountIdAndGw2AccountId(accountId, gw2AccountId, displayName);
-    }
-
-    @Override
-    public void updateOrderBetween(UUID accountId, UUID gw2AccountId, String first, String second) {
-        throw new UnsupportedOperationException();
     }
 
     private static Gw2AccountWithApiToken mapWithToken(Gw2AccountWithApiTokenEntity entity) {

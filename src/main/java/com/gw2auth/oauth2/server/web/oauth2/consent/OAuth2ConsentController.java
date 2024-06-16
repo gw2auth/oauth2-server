@@ -14,7 +14,6 @@ import com.gw2auth.oauth2.server.service.gw2account.verification.Gw2AccountVerif
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.gw2auth.oauth2.server.web.AbstractRestController;
-import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -66,7 +65,7 @@ public class OAuth2ConsentController extends AbstractRestController {
                                                               @RequestParam(OAuth2ParameterNames.STATE) String state,
                                                               @RequestParam(OAuth2ParameterNames.SCOPE) String scopes) {
 
-        final ApplicationClient applicationClient = this.applicationClientService.getApplicationClients(Set.of(clientId)).stream().findAny().orElseThrow();
+        final ApplicationClient applicationClient = this.applicationClientService.getApplicationClient(clientId).orElseThrow();
         final Set<OAuth2Scope> requestedScopes = Utils.split(scopes, " ")
                 .map(OAuth2Scope::fromOAuth2Required)
                 .collect(Collectors.toUnmodifiableSet());

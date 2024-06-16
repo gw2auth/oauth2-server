@@ -6,7 +6,6 @@ import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,9 +30,6 @@ public interface ApplicationClientAuthorizationTokenRepository extends BaseRepos
                                                    @Param("account_id") UUID accountId,
                                                    @Param("gw2_account_id") UUID gw2AccountId);
 
-    @Query("SELECT * FROM application_client_authorization_gw2_accounts WHERE account_id = :account_id")
-    List<ApplicationClientAuthorizationTokenEntity> findAllByAccountId(@Param("account_id") UUID accountId);
-
     @Query("""
     SELECT *
     FROM application_client_authorization_gw2_accounts
@@ -41,13 +37,6 @@ public interface ApplicationClientAuthorizationTokenRepository extends BaseRepos
     AND account_id = :account_id
     """)
     List<ApplicationClientAuthorizationTokenEntity> findAllByApplicationClientAuthorizationIdAndAccountId(@Param("application_client_authorization_id") String applicationClientAuthorizationId, @Param("account_id") UUID accountId);
-
-    @Query("""
-    SELECT *
-    FROM application_client_authorization_gw2_accounts
-    WHERE account_id = :account_id AND application_client_authorization_id = ANY(ARRAY[ :application_client_authorization_ids ]::TEXT[])
-    """)
-    List<ApplicationClientAuthorizationTokenEntity> findAllByAccountIdAndApplicationClientAuthorizationIds(@Param("account_id") UUID accountId, @Param("application_client_authorization_ids") Collection<String> applicationClientAuthorizationIs);
 
     @Modifying
     @Query("DELETE FROM application_client_authorization_gw2_accounts WHERE account_id = :account_id AND application_client_authorization_id = :application_client_authorization_id")

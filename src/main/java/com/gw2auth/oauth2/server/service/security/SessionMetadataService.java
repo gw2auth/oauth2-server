@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.service.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gw2auth.oauth2.server.util.Pair;
 import com.gw2auth.oauth2.server.util.SymEncryption;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,11 +20,6 @@ public class SessionMetadataService {
         this.mapper = mapper;
     }
 
-    public byte[] encryptMetadata(byte[] encryptionKey, SessionMetadata sessionMetadata) {
-        final Pair<SecretKey, IvParameterSpec> pair = SymEncryption.fromBytes(encryptionKey);
-        return encryptMetadata(pair.v1(), pair.v2(), sessionMetadata);
-    }
-
     public byte[] encryptMetadata(SecretKey key, IvParameterSpec iv, SessionMetadata sessionMetadata) {
         final byte[] metadataBytes;
 
@@ -40,18 +34,6 @@ public class SessionMetadataService {
         }
 
         return metadataBytes;
-    }
-
-    public SessionMetadata decryptMetadata(byte[] encryptionKey, byte[] metadata) {
-        final Pair<SecretKey, IvParameterSpec> pair = SymEncryption.fromBytes(encryptionKey);
-
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(metadata)) {
-            try (InputStream in = SymEncryption.decrypt(bis, pair.v1(), pair.v2())) {
-                return this.mapper.readValue(in, SessionMetadata.class);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public SessionMetadata decryptMetadata(SecretKey key, IvParameterSpec iv, byte[] metadata) {

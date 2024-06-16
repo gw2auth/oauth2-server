@@ -1,7 +1,6 @@
 package com.gw2auth.oauth2.server.service.account;
 
 import java.io.Closeable;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,8 +8,6 @@ import java.util.UUID;
 public interface AccountService {
 
     Account getOrCreateAccount(String issuer, String idAtIssuer);
-
-    Optional<Account> getAccount(String issuer, String idAtIssuer);
 
     AccountFederationSession createNewSession(String issuer, String idAtIssuer, byte[] metadata);
 
@@ -22,8 +19,6 @@ public interface AccountService {
     boolean checkAndDeletePrepareAddFederation(UUID accountId, String issuer);
 
     Account addAccountFederationOrReturnExisting(UUID accountId, String issuer, String idAtIssuer);
-
-    List<AccountFederationWithSessions> getAccountFederationsWithSessions(UUID accountId);
 
     default LoggingContext log(UUID accountId) {
         return log(accountId, Map.of());
@@ -37,11 +32,7 @@ public interface AccountService {
         }
     }
 
-    boolean deleteAccountFederation(UUID accountId, String issuer, String idAtIssuer);
-
     boolean deleteSession(UUID accountId, String sessionId);
-
-    boolean deleteAccount(UUID accountId);
 
     interface LoggingContext extends Closeable {
 

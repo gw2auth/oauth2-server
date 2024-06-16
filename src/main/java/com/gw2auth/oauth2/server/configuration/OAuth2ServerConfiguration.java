@@ -7,7 +7,6 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,7 +60,7 @@ public class OAuth2ServerConfiguration {
                 .securityMatcher(requestMatcher)
                 .addFilterBefore(new OncePerRequestFilter() {
                     @Override
-                    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+                    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) {
                         response.setStatus(HttpStatus.NOT_FOUND.value());
                     }
                 }, SecurityContextHolderFilter.class);

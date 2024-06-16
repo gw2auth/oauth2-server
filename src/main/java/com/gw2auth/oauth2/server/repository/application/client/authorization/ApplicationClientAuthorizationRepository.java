@@ -145,14 +145,6 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     Optional<ApplicationClientAuthorizationEntity> findByAnyToken(@Param("token") String token);
 
     @Query("""
-    SELECT *
-    FROM application_client_authorizations
-    WHERE id = :id
-    AND account_id = :account_id
-    """)
-    Optional<ApplicationClientAuthorizationEntity> findByIdAndAccountId(@Param("id") String id, @Param("account_id") UUID accountId);
-
-    @Query("""
     SELECT
         auth.*,
         COALESCE(ARRAY_AGG(auth_acc.gw2_account_id) FILTER ( WHERE auth_acc.gw2_account_id IS NOT NULL ), ARRAY[]::UUID[]) AS gw2_account_ids
@@ -192,19 +184,6 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
                                                    @Param("authorized_scopes") Set<String> scopes,
                                                    @Param("requires_gw2_accs") boolean requiresGw2Accs,
                                                    @Param("verified_only") boolean verifiedOnly);
-
-    @Query("""
-    SELECT
-        auth.*,
-        COALESCE(ARRAY_AGG(auth_acc.gw2_account_id) FILTER ( WHERE auth_acc.gw2_account_id IS NOT NULL ), ARRAY[]::UUID[]) AS gw2_account_ids
-    FROM application_client_authorizations auth
-    LEFT JOIN application_client_authorization_gw2_accounts auth_acc
-    ON auth.id = auth_acc.application_client_authorization_id
-    WHERE auth.account_id = :account_id
-    AND auth_acc.gw2_account_id = ANY(ARRAY[ :gw2_account_ids ]::UUID[])
-    GROUP BY auth.id
-    """)
-    List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> findAllWithGw2AccountIdsByAccountIdAndLinkedGw2AccountIds(@Param("account_id") UUID accountId, @Param("gw2_account_ids") Collection<UUID> gw2AccountIds);
 
     @Query("""
     SELECT

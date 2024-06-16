@@ -3,8 +3,6 @@ package com.gw2auth.oauth2.server.service;
 import com.gw2auth.oauth2.server.repository.gw2account.subtoken.Gw2AccountApiSubtokenEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.subtoken.Gw2AccountApiSubtokenRepository;
 import com.gw2auth.oauth2.server.service.account.AccountService;
-import com.gw2auth.oauth2.server.service.application.Application;
-import com.gw2auth.oauth2.server.service.application.ApplicationService;
 import com.gw2auth.oauth2.server.service.application.account.ApplicationAccount;
 import com.gw2auth.oauth2.server.service.application.account.ApplicationAccountService;
 import com.gw2auth.oauth2.server.service.application.client.ApplicationClient;
@@ -56,7 +54,6 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     private final AccountService accountService;
     private final Gw2AccountService gw2AccountService;
     private final Gw2AccountApiTokenService gw2AccountApiTokenService;
-    private final ApplicationService applicationService;
     private final ApplicationAccountService applicationAccountService;
     private final ApplicationClientService applicationClientService;
     private final ApplicationClientAccountService applicationClientAccountService;
@@ -72,7 +69,6 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     public OAuth2TokenCustomizerService(AccountService accountService,
                                         Gw2AccountService gw2AccountService,
                                         Gw2AccountApiTokenService gw2AccountApiTokenService,
-                                        ApplicationService applicationService,
                                         ApplicationClientService applicationClientService,
                                         ApplicationAccountService applicationAccountService,
                                         ApplicationClientAccountService applicationClientAccountService,
@@ -86,7 +82,6 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         this.accountService = accountService;
         this.gw2AccountService = gw2AccountService;
         this.gw2AccountApiTokenService = gw2AccountApiTokenService;
-        this.applicationService = applicationService;
         this.applicationClientService = applicationClientService;
         this.applicationAccountService = applicationAccountService;
         this.applicationClientAccountService = applicationClientAccountService;
@@ -117,7 +112,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
                 applicationClient = springRegisteredClient.getGw2AuthClient();
             } else {
                 final UUID clientId = UUID.fromString(registeredClient.getClientId());
-                applicationClient = this.applicationClientService.getApplicationClients(List.of(clientId)).getFirst();
+                applicationClient = this.applicationClientService.getApplicationClient(clientId).orElseThrow();
             }
 
             final Object oauth2User = ctx.getPrincipal().getPrincipal();// the user (intended double getPrincipal())
@@ -152,7 +147,6 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.ACCESS_DENIED));
         }
 
-        final Application application = this.applicationService.getApplication(applicationId).orElseThrow();
         final ApplicationAccount applicationAccount = this.applicationAccountService.getApplicationAccount(userAccountId, applicationId).orElseThrow();
         final ApplicationClientAccount applicationClientAccount = this.applicationClientAccountService.getApplicationClientAccount(userAccountId, applicationClientId).orElseThrow();
 

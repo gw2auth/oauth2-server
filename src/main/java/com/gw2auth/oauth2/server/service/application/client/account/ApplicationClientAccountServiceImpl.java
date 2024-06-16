@@ -6,7 +6,6 @@ import com.gw2auth.oauth2.server.repository.application.client.ApplicationClient
 import com.gw2auth.oauth2.server.repository.application.client.ApplicationClientRepository;
 import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountEntity;
 import com.gw2auth.oauth2.server.repository.application.client.account.ApplicationClientAccountRepository;
-import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationEntity;
 import com.gw2auth.oauth2.server.repository.application.client.authorization.ApplicationClientAuthorizationRepository;
 import com.gw2auth.oauth2.server.service.Clocked;
 import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
@@ -72,36 +71,6 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
         return this.applicationClientAccountRepository.findByApplicationClientIdAndAccountId(applicationClientId, accountId)
                 .filter(ApplicationClientAccountServiceImpl::isAuthorized)
                 .map(ApplicationClientAccount::fromEntity);
-    }
-
-    @Override
-    public List<ApplicationClientAccount> getApplicationClientAccounts(UUID accountId) {
-        return this.applicationClientAccountRepository.findAllByAccountId(accountId).stream()
-                .filter(ApplicationClientAccountServiceImpl::isAuthorized)
-                .map(ApplicationClientAccount::fromEntity)
-                .toList();
-    }
-
-    @Override
-    @Transactional
-    public void deleteApplicationClientConsent(UUID accountId, UUID applicationClientId) {
-        final ApplicationClientAccountEntity entity = this.applicationClientAccountRepository.findByApplicationClientIdAndAccountId(
-                applicationClientId,
-                accountId
-        ).orElse(null);
-
-        if (entity != null) {
-            // delete this so authorizations are deleted
-            this.applicationClientAccountRepository.deleteByApplicationClientIdAndAccountId(applicationClientId, accountId);
-            this.applicationClientAccountRepository.save(new ApplicationClientAccountEntity(
-                    entity.applicationClientId(),
-                    entity.accountId(),
-                    entity.applicationId(),
-                    entity.approvalStatus(),
-                    entity.approvalRequestMessage(),
-                    Set.of()
-            ));
-        }
     }
 
     // region Spring OAuth2

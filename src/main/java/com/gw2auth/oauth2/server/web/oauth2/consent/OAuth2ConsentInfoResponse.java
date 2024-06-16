@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.gw2account.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
-import com.gw2auth.oauth2.server.web.client.consent.ClientRegistrationPublicResponse;
 import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
