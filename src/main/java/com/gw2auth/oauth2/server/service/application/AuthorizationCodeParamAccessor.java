@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.service.application;
 import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,11 @@ public interface AuthorizationCodeParamAccessor {
         @Override
         public boolean isInConsentContext() {
             return CustomOAuth2ServerAuthenticationProviders.isInConsentContext();
+        }
+
+        @Override
+        public Optional<OAuth2AuthorizationCodeRequestAuthenticationToken> getCodeRequest() {
+            return CustomOAuth2ServerAuthenticationProviders.getCodeRequest();
         }
 
         @Override
@@ -51,6 +57,7 @@ public interface AuthorizationCodeParamAccessor {
     Stream<Map.Entry<String, Object>> getAdditionalParameters();
     boolean isInCodeRequest();
     boolean isInConsentContext();
+    Optional<OAuth2AuthorizationCodeRequestAuthenticationToken> getCodeRequest();
     Set<String> getRequestedScopes();
     void putValue(String key, Object value);
     <T> Optional<T> getValue(String key);

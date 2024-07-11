@@ -64,6 +64,13 @@ public class CustomOAuth2ServerAuthenticationProviders {
                 .isPresent();
     }
 
+    public static Optional<OAuth2AuthorizationCodeRequestAuthenticationToken> getCodeRequest() {
+        return getContext()
+                .map((v) -> v.token)
+                .filter(OAuth2AuthorizationCodeRequestAuthenticationToken.class::isInstance)
+                .map(OAuth2AuthorizationCodeRequestAuthenticationToken.class::cast);
+    }
+
     public static Set<String> getRequestedScopes() {
         final Context context = getContext().orElseThrow(IllegalStateException::new);
 

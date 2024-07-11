@@ -8,6 +8,8 @@ import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.AccountService;
+import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
+import com.gw2auth.oauth2.server.util.UriPatternMatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
@@ -27,6 +30,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ApplicationClientServiceImpl implements ApplicationClientService, RegisteredClientRepository, Clocked {
@@ -45,6 +49,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     private final ApplicationClientRepository applicationClientRepository;
     private final RedirectUriValidator redirectUriValidator;
     private final PasswordEncoder passwordEncoder;
+    private final AuthorizationCodeParamAccessor authorizationCodeParamAccessor;
     private Clock clock;
 
     @Autowired
@@ -52,13 +57,15 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                                         ApplicationRepository applicationRepository,
                                         ApplicationClientRepository applicationClientRepository,
                                         RedirectUriValidator redirectUriValidator,
-                                        PasswordEncoder passwordEncoder) {
+                                        PasswordEncoder passwordEncoder,
+                                        AuthorizationCodeParamAccessor authorizationCodeParamAccessor) {
 
         this.accountService = accountService;
         this.applicationRepository = applicationRepository;
         this.applicationClientRepository = applicationClientRepository;
         this.redirectUriValidator = redirectUriValidator;
         this.passwordEncoder = passwordEncoder;
+        this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
         this.clock = Clock.systemUTC();
     }
 
@@ -152,7 +159,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     @Override
     public RegisteredClient findById(String id) {
         final UUID registeredClientId = UUID.fromString(id);
-        return this.applicationClientRepository.findById(registeredClientId).map(ApplicationClientServiceImpl::registeredClientFromEntity).orElse(null);
+        return this.applicationClientRepository.findById(registeredClientId).map(this::registeredClientFromEntity).orElse(null);
     }
 
     @Override
@@ -160,12 +167,31 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         return findById(clientId);
     }
 
-    private static RegisteredClient registeredClientFromEntity(ApplicationClientEntity entity) {
+    private RegisteredClient registeredClientFromEntity(ApplicationClientEntity entity) {
+        final Set<String> redirectUris;
+        final String requestedRedirectUri = this.authorizationCodeParamAccessor.getCodeRequest()
+                .map(OAuth2AuthorizationCodeRequestAuthenticationToken::getRedirectUri)
+                .orElse(null);
+
+        if (requestedRedirectUri != null && !entity.redirectUris().contains(requestedRedirectUri)) {
+            redirectUris = entity.redirectUris().stream()
+                    .map((redirectUri) -> {
+                        if (UriPatternMatch.matches(redirectUri, redirectUri)) {
+                            return requestedRedirectUri;
+                        }
+
+                        return redirectUri;
+                    })
+                    .collect(Collectors.toUnmodifiableSet());
+        } else {
+            redirectUris = entity.redirectUris();
+        }
+
         final RegisteredClient.Builder builder = RegisteredClient.withId(entity.id().toString())
                 .clientName(entity.displayName())
                 .clientId(entity.id().toString())
                 .clientIdIssuedAt(entity.creationTime())
-                .redirectUris((v) -> v.addAll(entity.redirectUris()))
+                .redirectUris((v) -> v.addAll(redirectUris))
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
                 .tokenSettings(
                         TokenSettings.builder()
