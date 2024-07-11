@@ -176,7 +176,7 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         if (requestedRedirectUri != null && !entity.redirectUris().contains(requestedRedirectUri)) {
             redirectUris = entity.redirectUris().stream()
                     .map((redirectUri) -> {
-                        if (UriPatternMatch.matches(redirectUri, redirectUri)) {
+                        if (UriPatternMatch.matches(redirectUri, requestedRedirectUri)) {
                             return requestedRedirectUri;
                         }
 
