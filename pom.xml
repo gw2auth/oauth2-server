@@ -165,6 +165,20 @@
             <scope>test</scope>
         </dependency>
         <!-- endregion -->
+
+        <!-- region Local -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sso</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ssooidc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- endregion -->
     </dependencies>
 
     <build>
