@@ -19,6 +19,12 @@ com.gw2auth:
       interval: ${GW2AUTH_TOKEN_VALID_CHECK_INTERVAL}
       ignore-after: ${GW2AUTH_TOKEN_VALID_CHECK_IGNORE_AFTER}
 
+server:
+  error:
+    path: '/error'
+    whitelabel:
+      enabled: false
+
 spring:
   datasource:
     url: "jdbc:postgresql://${SERVER_POSTGRES_HOST}:${SERVER_POSTGRES_PORT}/${SERVER_POSTGRES_DB}${SERVER_POSTGRES_OPTIONS}"
