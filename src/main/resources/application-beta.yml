@@ -28,22 +28,22 @@ spring:
           cognito:
             provider: gw2auth
             client-name: "Amazon Cognito"
-            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
-            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            client-id: ${AMZ_COGNITO_CLIENT_ID}
+            client-secret: ${AMZ_COGNITO_CLIENT_SECRET}
             scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/cognito"
           github:
             provider: gw2auth
             client-name: "GitHub"
-            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
-            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
             scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/github"
           google:
             provider: gw2auth
             client-name: "Google"
-            client-id: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_ID}
-            client-secret: ${GW2AUTH_LOGIN_PROVIDER_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/google"
         provider:
