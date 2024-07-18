@@ -34,7 +34,13 @@ buildNumber.properties
 chrome-profiler-events*.json
 
 # IDEs and editors
-/.idea
+!/.idea
+/.idea/*
+!/.idea/copyright
+!/.idea/runConfigurations
+!/.idea/scopes
+!/.idea/icon.png
+
 .project
 .classpath
 .c9/
