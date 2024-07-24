@@ -16,9 +16,11 @@ public enum Gw2ApiPermission {
     INVENTORIES("inventories", 4, OAuth2Scope.GW2_INVENTORIES),
     PROGRESSION("progression", 5, OAuth2Scope.GW2_PROGRESSION),
     PVP("pvp", 6, OAuth2Scope.GW2_PVP),
+    WVW("wvw", 10, OAuth2Scope.GW2_WVW),
     TRADINGPOST("tradingpost", 7, OAuth2Scope.GW2_TRADINGPOST),
     UNLOCKS("unlocks", 8, OAuth2Scope.GW2_UNLOCKS),
-    WALLET("wallet", 9, OAuth2Scope.GW2_WALLET);
+    WALLET("wallet", 9, OAuth2Scope.GW2_WALLET),
+    ;
 
     private static final Set<Gw2ApiPermission> ALL = Collections.unmodifiableSet(EnumSet.allOf(Gw2ApiPermission.class));
     private static final Map<String, Gw2ApiPermission> BY_GW2;

@@ -17,6 +17,7 @@ public enum OAuth2Scope {
     GW2_INVENTORIES("gw2:inventories", EnumSet.allOf(OAuth2ClientApiVersion.class)),
     GW2_PROGRESSION("gw2:progression", EnumSet.allOf(OAuth2ClientApiVersion.class)),
     GW2_PVP("gw2:pvp", EnumSet.allOf(OAuth2ClientApiVersion.class)),
+    GW2_WVW("gw2:wvw", EnumSet.allOf(OAuth2ClientApiVersion.class)),
     GW2_TRADINGPOST("gw2:tradingpost", EnumSet.allOf(OAuth2ClientApiVersion.class)),
     GW2_UNLOCKS("gw2:unlocks", EnumSet.allOf(OAuth2ClientApiVersion.class)),
     GW2_WALLET("gw2:wallet", EnumSet.allOf(OAuth2ClientApiVersion.class)),
@@ -45,7 +46,7 @@ public enum OAuth2Scope {
         ALL_V1 = ALL.stream().filter((v) -> v.isSupported(OAuth2ClientApiVersion.V1)).collect(Collectors.toUnmodifiableSet());
 
         GW2_ACCOUNT_RELATED = EnumSet.of(
-                GW2_ACCOUNT, GW2_BUILDS, GW2_CHARACTERS, GW2_GUILDS, GW2_INVENTORIES, GW2_PROGRESSION, GW2_PVP, GW2_TRADINGPOST, GW2_UNLOCKS, GW2_WALLET,
+                GW2_ACCOUNT, GW2_BUILDS, GW2_CHARACTERS, GW2_GUILDS, GW2_INVENTORIES, GW2_PROGRESSION, GW2_PVP, GW2_WVW, GW2_TRADINGPOST, GW2_UNLOCKS, GW2_WALLET,
                 GW2AUTH_VERIFIED,
                 GW2ACC_NAME, GW2ACC_DISPLAY_NAME, GW2ACC_VERIFIED
         );
