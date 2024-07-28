@@ -21,7 +21,7 @@ public class CustomErrorController extends AbstractErrorController {
         super(errorAttributes);
     }
 
-    @GetMapping("/error")
+    @GetMapping("/error-internal")
     public ResponseEntity<?> error(HttpServletRequest request) {
         final Map<String, Object> attributes = getErrorAttributes(request, getErrorAttributeOptions());
 

@@ -21,7 +21,7 @@ com.gw2auth:
 
 server:
   error:
-    path: '/error'
+    path: '/error-internal'
     whitelabel:
       enabled: false
 
