@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.repository.account.*;
 import com.gw2auth.oauth2.server.service.Clocked;
+import com.gw2auth.oauth2.server.util.ComposedMDCCloseable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -243,25 +244,8 @@ public class AccountServiceImpl implements AccountService, Clocked {
             combinedFields.putAll(this.fields);
             combinedFields.putAll(fields);
 
-            final List<MDC.MDCCloseable> mdcCloseables = new ArrayList<>();
-            for (Map.Entry<String, ?> entry : combinedFields.entrySet()) {
-                final JsonNode node = this.mapper.valueToTree(entry.getValue());
-                final String value;
-                if (node.isTextual()) {
-                    value = node.textValue();
-                } else {
-                    try {
-                        value = this.mapper.writeValueAsString(node);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                mdcCloseables.add(MDC.putCloseable(entry.getKey(), value));
-            }
-
             try (MDC.MDCCloseable mdc = MDC.putCloseable("account_id", this.accountId.toString())) {
-                try (ComposedMDCCloseable unused = new ComposedMDCCloseable(mdcCloseables)) {
+                try (ComposedMDCCloseable unused = ComposedMDCCloseable.create(combinedFields, this::fieldValueToString)) {
                     LOG.info("account log; {}", message);
                 }
             }
@@ -270,6 +254,22 @@ public class AccountServiceImpl implements AccountService, Clocked {
         @Override
         public void close() {
 
+        }
+
+        private String fieldValueToString(Object v) {
+            final JsonNode node = this.mapper.valueToTree(v);
+            final String value;
+            if (node.isTextual()) {
+                value = node.textValue();
+            } else {
+                try {
+                    value = this.mapper.writeValueAsString(node);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            return value;
         }
     }
 
@@ -307,41 +307,6 @@ public class AccountServiceImpl implements AccountService, Clocked {
         @Override
         public void close() {
             // no-op
-        }
-    }
-
-    private static final class ComposedMDCCloseable implements AutoCloseable {
-
-        private final Iterable<MDC.MDCCloseable> mdcCloseables;
-
-        private ComposedMDCCloseable(Iterable<MDC.MDCCloseable> mdcCloseables) {
-            this.mdcCloseables = mdcCloseables;
-        }
-
-        @Override
-        public void close() {
-            RuntimeException first = null;
-
-            for (MDC.MDCCloseable mdcCloseable : this.mdcCloseables) {
-                try {
-                    mdcCloseable.close();
-                } catch (Exception e) {
-                    first = wrap(first, e);
-                }
-            }
-
-            if (first != null) {
-                throw first;
-            }
-        }
-
-        private static RuntimeException wrap(RuntimeException first, Exception curr) {
-            if (first == null) {
-                return new RuntimeException(curr);
-            }
-
-            first.addSuppressed(curr);
-            return first;
         }
     }
 }
