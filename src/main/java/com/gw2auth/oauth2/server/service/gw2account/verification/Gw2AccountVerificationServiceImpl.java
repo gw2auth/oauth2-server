@@ -7,6 +7,7 @@ import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2Account;
 import com.gw2auth.oauth2.server.service.gw2.Gw2ApiService;
 import com.gw2auth.oauth2.server.service.gw2.Gw2SubToken;
+import com.gw2auth.oauth2.server.service.gw2.InvalidApiTokenException;
 import com.gw2auth.oauth2.server.service.gw2account.Gw2AccountService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -221,6 +222,9 @@ public class Gw2AccountVerificationServiceImpl implements Gw2AccountVerification
         } catch (IOException e) {
             this.gw2AccountVerificationChallengePendingRepository.deleteByAccountIdAndGw2AccountId(accountId, gw2AccountId);
             throw e;
+        } catch (InvalidApiTokenException e) {
+            logging.log("API-Token appears to be invalid");
+            return false;
         }
 
         if (isVerified) {
