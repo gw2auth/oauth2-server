@@ -62,7 +62,7 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
     Optional<Gw2AccountApiTokenEntity> findByAccountIdAndGw2AccountId(@Param("account_id") UUID accountId, @Param("gw2_account_id") UUID gw2AccountId);
 
     @Query("""
-    SELECT tk.account_id, tk.gw2_account_id, acc.gw2_account_name, tk.gw2_api_token
+    SELECT tk.account_id, tk.gw2_account_id, acc.gw2_account_name, tk.gw2_api_permissions_bit_set, tk.gw2_api_token
     FROM gw2_account_api_tokens tk
     INNER JOIN gw2_accounts acc
     ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id

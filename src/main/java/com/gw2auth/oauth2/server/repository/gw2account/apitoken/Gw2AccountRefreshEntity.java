@@ -7,5 +7,6 @@ import java.util.UUID;
 public record Gw2AccountRefreshEntity(@Column("account_id") UUID accountId,
                                       @Column("gw2_account_id") UUID gw2AccountId,
                                       @Column("gw2_account_name") String gw2AccountName,
+                                      @Column("gw2_api_permissions_bit_set") int gw2ApiPermissionsBitSet,
                                       @Column("gw2_api_token") String gw2ApiToken) {
 }

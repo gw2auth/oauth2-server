@@ -6,6 +6,7 @@ import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTok
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountRefreshEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenValidUpdateEntity;
 import com.gw2auth.oauth2.server.service.Clocked;
+import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
 import com.gw2auth.oauth2.server.service.gw2.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +60,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
     @Override
     public void updateApiTokensValid(Instant lastValidCheckTime, Collection<Gw2AccountApiTokenValidUpdate> _updates) {
         final List<Gw2AccountApiTokenValidUpdateEntity> updates = _updates.stream()
-                .map((v) -> new Gw2AccountApiTokenValidUpdateEntity(v.accountId(), v.gw2AccountId(), v.isValid()))
+                .map((v) -> new Gw2AccountApiTokenValidUpdateEntity(v.accountId(), v.gw2AccountId(), null, v.isValid()))
                 .toList();
 
         this.gw2AccountApiTokenRepository.updateApiTokensValid(lastValidCheckTime, updates);
@@ -83,13 +84,27 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
 
         for (Gw2AccountRefreshEntity apiTokenValidCheckEntity : tokensToCheck) {
             Boolean isValidState;
+            Set<Gw2ApiPermission> gw2ApiPermissions;
             try {
+                final Gw2TokenInfo gw2TokenInfo = this.gw2ApiService.getTokenInfo(apiTokenValidCheckEntity.gw2ApiToken());
                 final Gw2Account gw2Account = this.gw2ApiService.getAccount(apiTokenValidCheckEntity.gw2ApiToken());
                 isValidState = true;
+                gw2ApiPermissions = gw2TokenInfo.permissions();
                 validCount++;
 
                 final boolean hasAccountNameChanged = !gw2Account.name().equals(apiTokenValidCheckEntity.gw2AccountName());
                 nameUpdateEntities.add(new Gw2AccountNameUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), gw2Account.name(), hasAccountNameChanged));
+
+                final Set<Gw2ApiPermission> prevGw2ApiPermissions = Gw2ApiPermission.fromBitSet(apiTokenValidCheckEntity.gw2ApiPermissionsBitSet());
+                if (!gw2ApiPermissions.equals(prevGw2ApiPermissions)) {
+                    LOG.info(
+                            "gw2 api permissions changed for gw2_account_id={} on account_id={}; old={} new={}",
+                            apiTokenValidCheckEntity.gw2AccountId(),
+                            apiTokenValidCheckEntity.accountId(),
+                            prevGw2ApiPermissions,
+                            gw2ApiPermissions
+                    );
+                }
 
                 if (hasAccountNameChanged) {
                     LOG.info(
@@ -103,14 +118,21 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
                 }
             } catch (InvalidApiTokenException e) {
                 isValidState = false;
+                gw2ApiPermissions = null;
                 invalidCount++;
             } catch (Gw2ApiServiceException e) {
                 isValidState = null;
+                gw2ApiPermissions = null;
                 unknownCount++;
             }
 
             if (isValidState != null) {
-                validUpdateEntities.add(new Gw2AccountApiTokenValidUpdateEntity(apiTokenValidCheckEntity.accountId(), apiTokenValidCheckEntity.gw2AccountId(), isValidState));
+                validUpdateEntities.add(new Gw2AccountApiTokenValidUpdateEntity(
+                        apiTokenValidCheckEntity.accountId(),
+                        apiTokenValidCheckEntity.gw2AccountId(),
+                        gw2ApiPermissions,
+                        isValidState
+                ));
             }
         }
 

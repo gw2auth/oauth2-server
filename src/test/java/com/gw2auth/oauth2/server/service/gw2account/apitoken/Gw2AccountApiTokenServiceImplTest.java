@@ -27,9 +27,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -92,6 +90,25 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
+        // prepare the mock server for the upcoming tokeninfo request
+        this.gw2RestServer.reset();
+        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/tokeninfo")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andRespond((request) -> {
+                    final JSONObject responseJson = new JSONObject(Map.of(
+                            "name", "TokenName",
+                            "permissions", List.of("account")
+                    ));
+                    final MockClientHttpResponse response = new MockClientHttpResponse(
+                            responseJson.toString().getBytes(StandardCharsets.UTF_8),
+                            HttpStatus.OK
+                    );
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                    return response;
+                });
+
         // prepare the mock server for the upcoming account request
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
@@ -122,8 +139,92 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
-        // verify the token was marked as valid
+
+        // verify the permissions were not changed
         final Gw2AccountApiTokenEntity gw2AccountApiTokenEntity = this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals(Gw2ApiPermission.toBitSet(Set.of(Gw2ApiPermission.ACCOUNT)), gw2AccountApiTokenEntity.gw2ApiPermissionsBitSet());
+
+        // verify the token was marked as valid
+        assertInstantEquals(now, gw2AccountApiTokenEntity.lastValidCheckTime());
+        assertInstantEquals(now, gw2AccountApiTokenEntity.lastValidTime());
+    }
+
+    @ParameterizedTest
+    @WithGw2AuthLogin
+    public void checkTokenValidityWithUpdatedGw2ApiPermissions(SessionHandle sessionHandle) {
+        final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
+        final UUID gw2AccountId = UUID.randomUUID();
+        final String gw2ApiToken = TestHelper.randomRootToken();
+
+        // create new token (also creates the account entity)
+        this.testHelper.createApiToken(
+                accountId,
+                gw2AccountId,
+                gw2ApiToken,
+                EnumSet.of(Gw2ApiPermission.ACCOUNT),
+                "Felix.9127",
+                "Felix.9127 (Main)"
+        );
+
+        // verify the expected values are present in the DB
+        Gw2AccountEntity gw2AccountEntity = this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals("Felix.9127", gw2AccountEntity.gw2AccountName());
+        assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
+
+        // prepare the mock server for the upcoming tokeninfo request
+        this.gw2RestServer.reset();
+        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/tokeninfo")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andRespond((request) -> {
+                    final JSONObject responseJson = new JSONObject(Map.of(
+                            "name", "TokenName",
+                            "permissions", List.of("account", "wvw")
+                    ));
+                    final MockClientHttpResponse response = new MockClientHttpResponse(
+                            responseJson.toString().getBytes(StandardCharsets.UTF_8),
+                            HttpStatus.OK
+                    );
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                    return response;
+                });
+
+        // prepare the mock server for the upcoming account request
+        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andRespond((request) -> {
+                    final JSONObject responseJson = new JSONObject(Map.of(
+                            "id", gw2AccountId.toString(),
+                            "name", "Felix.9127"
+                    ));
+                    final MockClientHttpResponse response = new MockClientHttpResponse(
+                            responseJson.toString().getBytes(StandardCharsets.UTF_8),
+                            HttpStatus.OK
+                    );
+                    response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                    return response;
+                });
+
+        // simulate 4hrs passed (token verification happens every 3h - see application.yml for test)
+        final Instant now = Instant.now().plus(Duration.ofHours(4L));
+        this.gw2AuthClockedExtension.setClock(Clock.fixed(now, ZoneId.systemDefault()));
+
+        // trigger validity check
+        this.gw2AccountApiTokenService.refreshTokenValidityAndAccountName();
+
+        // verify the account name was not updated
+        gw2AccountEntity = this.gw2AccountRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals("Felix.9127", gw2AccountEntity.gw2AccountName());
+        assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
+
+        // verify the permissions were updated
+        final Gw2AccountApiTokenEntity gw2AccountApiTokenEntity = this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals(Gw2ApiPermission.toBitSet(Set.of(Gw2ApiPermission.ACCOUNT, Gw2ApiPermission.WVW)), gw2AccountApiTokenEntity.gw2ApiPermissionsBitSet());
+
+        // verify the token was marked as valid
         assertInstantEquals(now, gw2AccountApiTokenEntity.lastValidCheckTime());
         assertInstantEquals(now, gw2AccountApiTokenEntity.lastValidTime());
     }
@@ -150,8 +251,9 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
-        // prepare the mock server for the upcoming account request
-        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
+        // prepare the mock server for the upcoming tokeninfo request
+        this.gw2RestServer.reset();
+        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/tokeninfo")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
                 .andRespond((request) -> {
@@ -176,8 +278,11 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
-        // verify neither times were updated
+        // verify the permissions were not changed
         final Gw2AccountApiTokenEntity gw2AccountApiTokenEntityNew = this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals(gw2AccountApiTokenEntityOld.gw2ApiPermissionsBitSet(), gw2AccountApiTokenEntityNew.gw2ApiPermissionsBitSet());
+
+        // verify neither times were updated
         assertInstantEquals(gw2AccountApiTokenEntityOld.lastValidCheckTime(), gw2AccountApiTokenEntityNew.lastValidCheckTime());
         assertInstantEquals(gw2AccountApiTokenEntityOld.lastValidTime(), gw2AccountApiTokenEntityNew.lastValidTime());
     }
@@ -204,8 +309,9 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
-        // prepare the mock server for the upcoming account request
-        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
+        // prepare the mock server for the upcoming tokeninfo request
+        this.gw2RestServer.reset();
+        this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/tokeninfo")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
                 .andRespond((request) -> {
@@ -230,8 +336,11 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.gw2AccountName());
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
-        // verify only the check time was updated
+        // verify the permissions were not changed
         final Gw2AccountApiTokenEntity gw2AccountApiTokenEntityNew = this.gw2AccountApiTokenRepository.findByAccountIdAndGw2AccountId(accountId, gw2AccountId).orElseThrow();
+        assertEquals(gw2AccountApiTokenEntityOld.gw2ApiPermissionsBitSet(), gw2AccountApiTokenEntityNew.gw2ApiPermissionsBitSet());
+
+        // verify only the check time was updated
         assertInstantEquals(now, gw2AccountApiTokenEntityNew.lastValidCheckTime());
         assertInstantEquals(gw2AccountApiTokenEntityOld.lastValidTime(), gw2AccountApiTokenEntityNew.lastValidTime());
     }
