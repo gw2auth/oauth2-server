@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService, Clocked {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2AccountApiTokenServiceImpl.class);
-    private static final int VALIDITY_CHECK_BATCH_SIZE = 50;
+    private static final int VALIDITY_CHECK_BATCH_SIZE = 20;
 
     private final Duration nameCheckInterval;
     private final Duration validCheckInterval;
@@ -65,7 +65,7 @@ public class Gw2AccountApiTokenServiceImpl implements Gw2AccountApiTokenService,
         this.gw2AccountApiTokenRepository.updateApiTokensValid(lastValidCheckTime, updates);
     }
 
-    @Scheduled(fixedRate = 10L, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedRate = 1L, timeUnit = TimeUnit.MINUTES)
     public void refreshTokenValidityAndAccountName() {
         final Instant now = this.clock.instant();
         final List<Gw2AccountRefreshEntity> tokensToCheck = this.gw2AccountApiTokenRepository.findAllApplicableForRefresh(
