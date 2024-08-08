@@ -66,7 +66,7 @@ public interface Gw2AccountApiTokenRepository extends BaseRepository<Gw2AccountA
     FROM gw2_account_api_tokens tk
     INNER JOIN gw2_accounts acc
     ON tk.account_id = acc.account_id AND tk.gw2_account_id = acc.gw2_account_id
-    WHERE ( tk.last_valid_time >= :last_valid_time OR tk.last_valid_check_time = tk.last_valid_time )
+    WHERE tk.last_valid_time >= :last_valid_time
     AND (tk.last_valid_check_time <= :last_valid_check_time OR acc.last_name_check_time <= :last_name_check_time)
     ORDER BY tk.last_valid_check_time
     LIMIT :limit
