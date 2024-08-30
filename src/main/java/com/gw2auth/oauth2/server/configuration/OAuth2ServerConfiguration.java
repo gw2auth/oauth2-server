@@ -31,6 +31,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
@@ -222,9 +223,13 @@ public class OAuth2ServerConfiguration {
         public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
             if (exception instanceof OAuth2AuthenticationException oauth2AuthenticationException) {
                 try (MDC.MDCCloseable _unused = MDC.putCloseable("client_id", getClientId(request))) {
+                    final OAuth2Error error = oauth2AuthenticationException.getError();
+                    final String errorCode = error.getErrorCode();
+                    final String errorDescription = Optional.ofNullable(error.getDescription()).orElse("UNKNOWN");
+
                     try (MDC.MDCCloseable __unused = MDC.putCloseable("error_code", oauth2AuthenticationException.getError().getErrorCode())) {
                         try (MDC.MDCCloseable ___unused = MDC.putCloseable("error_description", oauth2AuthenticationException.getError().getDescription())) {
-                            LOG.info("oauth2 token request failed");
+                            LOG.info("oauth2 token request failed", oauth2AuthenticationException);
                         }
                     }
                 }
