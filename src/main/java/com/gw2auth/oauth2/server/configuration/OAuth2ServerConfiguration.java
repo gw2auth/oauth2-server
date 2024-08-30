@@ -2,7 +2,6 @@ package com.gw2auth.oauth2.server.configuration;
 
 import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
-import com.gw2auth.oauth2.server.util.ComposedMDCCloseable;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -13,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -28,25 +28,33 @@ import org.springframework.security.config.annotation.web.configurers.RequestCac
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.oauth2.server.authorization.web.authentication.DelegatingAuthenticationConverter;
+import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AccessTokenResponseAuthenticationSuccessHandler;
+import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ErrorAuthenticationFailureHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.util.*;
-import java.util.function.Function;
 
 @Configuration
 public class OAuth2ServerConfiguration {
@@ -92,6 +100,19 @@ public class OAuth2ServerConfiguration {
                     .consentPage(OAUTH2_CONSENT_PAGE);
         });
 
+        authorizationServerConfigurer.tokenEndpoint((tokenEndpoint) -> {
+            final OAuth2TokenResponseHandler handler = new OAuth2TokenResponseHandler();
+
+            tokenEndpoint.accessTokenRequestConverters((accessTokenRequestConverters) -> {
+                handler.setAuthenticationConverters(accessTokenRequestConverters);
+                accessTokenRequestConverters.clear();
+                accessTokenRequestConverters.add(handler);
+            });
+
+            tokenEndpoint.accessTokenResponseHandler(handler);
+            tokenEndpoint.errorResponseHandler(handler);
+        });
+
         return authorizationServerConfigurer;
     }
 
@@ -119,8 +140,7 @@ public class OAuth2ServerConfiguration {
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
                 .oauth2Login(oauth2LoginCustomizer)
-                .with(configurer, ignored -> {})
-                .addFilterBefore(new OAuth2ServerLoggingFilter(), SecurityContextHolderFilter.class);
+                .with(configurer, ignored -> {});
 
         return http.build();
     }
@@ -154,140 +174,69 @@ public class OAuth2ServerConfiguration {
         return AuthorizationCodeParamAccessor.DEFAULT;
     }
 
-    private static class OAuth2ServerLoggingFilter extends OncePerRequestFilter {
+    private static class OAuth2TokenResponseHandler implements AuthenticationConverter, AuthenticationSuccessHandler, AuthenticationFailureHandler {
 
-        private static final Logger LOG = LoggerFactory.getLogger(OAuth2ServerLoggingFilter.class);
+        private static final Logger LOG = LoggerFactory.getLogger(OAuth2TokenResponseHandler.class);
+        private static final String CLIENT_ID_ATTRIBUTE_NAME = OAuth2TokenResponseHandler.class.getName() + "::CLIENT_ID";
+        private static final AuthenticationSuccessHandler SUCCESS_DELEGATE = new OAuth2AccessTokenResponseAuthenticationSuccessHandler();
+        private static final AuthenticationFailureHandler FAILURE_DELEGATE = new OAuth2ErrorAuthenticationFailureHandler();
+
+        private AuthenticationConverter authenticationConverterDelegate;
+
+        private OAuth2TokenResponseHandler() {
+            this.authenticationConverterDelegate = null;
+        }
+
+        private void setAuthenticationConverters(List<AuthenticationConverter> authenticationConverters) {
+            this.authenticationConverterDelegate = new DelegatingAuthenticationConverter(authenticationConverters);
+        }
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-            Map<String, String> requestAttributes;
-            try {
-                requestAttributes = buildRequestAttributes(request);
-            } catch (Exception e) {
-                // better be safe than sorry
-                LOG.warn("failed to build request attributes", e);
-                requestAttributes = Map.of();
-            }
-
-            Exception exc = null;
-            try {
-                filterChain.doFilter(request, response);
-            } catch (Exception e) {
-                exc = e;
-            }
-
-            Map<String, String> responseAttributes;
-            try {
-                responseAttributes = buildResponseAttributes(response);
-            } catch (Exception e) {
-                LOG.warn("failed to build response attributes", e);
-                responseAttributes = Map.of();
-            }
-
-            try (ComposedMDCCloseable _unused = ComposedMDCCloseable.create(requestAttributes, Object::toString)) {
-                try (ComposedMDCCloseable __unused = ComposedMDCCloseable.create(responseAttributes, Object::toString)) {
-                    if (exc == null) {
-                        LOG.info("oauth2 request handled successfully");
-                    } else {
-                        LOG.info("oauth2 request failed", exc);
+        public Authentication convert(HttpServletRequest request) {
+            final Authentication authentication = this.authenticationConverterDelegate.convert(request);
+            if (authentication != null) {
+                final Object principal = authentication.getPrincipal();
+                if (principal instanceof OAuth2ClientAuthenticationToken token) {
+                    final RegisteredClient client = token.getRegisteredClient();
+                    if (client != null) {
+                        request.setAttribute(CLIENT_ID_ATTRIBUTE_NAME, client.getClientId());
                     }
                 }
             }
 
-            if (exc != null) {
-                switch (exc) {
-                    case ServletException e:
-                        throw e;
+            return authentication;
+        }
 
-                    case IOException e:
-                        throw e;
-
-                    case RuntimeException e:
-                        throw e;
-
-                    default:
-                        throw new RuntimeException("Unexpected error occurred while logging request", exc);
+        @Override
+        public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+            if (authentication instanceof OAuth2AccessTokenAuthenticationToken token) {
+                try (MDC.MDCCloseable _unused = MDC.putCloseable("client_id", token.getRegisteredClient().getClientId())) {
+                    LOG.info("oauth2 token request succeeded");
                 }
             }
+
+            SUCCESS_DELEGATE.onAuthenticationSuccess(request, response, authentication);
         }
 
-        private static Map<String, String> buildRequestAttributes(HttpServletRequest request) {
-            final UriComponents uriComponents = UriComponentsBuilder.fromUriString(request.getRequestURI())
-                    .query(request.getQueryString())
-                    .build();
-
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("request.method", request.getMethod());
-            attributes.put("request.url", uriComponents.getPath());
-            uriComponents.getQueryParams().forEach((key, value) -> {
-                if (!key.equalsIgnoreCase(OAuth2ParameterNames.CLIENT_SECRET)
-                        && !key.equalsIgnoreCase(OAuth2ParameterNames.STATE)
-                        && !key.equalsIgnoreCase("code_challenge")
-                        && !key.equalsIgnoreCase("code_verifier")) {
-
-                    addMultiValue(attributes, "request.query." + key, value);
-                }
-            });
-
-            addHeaders(
-                    attributes,
-                    "request",
-                    () -> request.getHeaderNames().asIterator(),
-                    (v) -> () -> request.getHeaders(v).asIterator(),
-                    Set.of(
-                            "cookie",
-                            "authorization"
-                    )
-            );
-
-            return attributes;
-        }
-
-        private static Map<String, String> buildResponseAttributes(HttpServletResponse response) {
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("response.status_code", Integer.toString(response.getStatus()));
-            addHeaders(
-                    attributes,
-                    "response",
-                    response.getHeaderNames(),
-                    response::getHeaders,
-                    Set.of(
-                            "set-cookie",
-                            "pragma",
-                            "x-xss-protection",
-                            "x-content-type-options",
-                            "expires",
-                            "cache-control",
-                            "x-frame-options"
-                    )
-            );
-
-            return attributes;
-        }
-
-        private static void addHeaders(Map<String, String> map, String prefix, Iterable<String> names, Function<String, Iterable<String>> getHeaders, Set<String> ignore) {
-            for (String header : names) {
-                if (!ignore.contains(header.toLowerCase())) {
-                    final List<String> values = new ArrayList<>();
-                    for (String value : getHeaders.apply(header)) {
-                        values.add(value);
+        @Override
+        public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+            if (exception instanceof OAuth2AuthenticationException oauth2AuthenticationException) {
+                try (MDC.MDCCloseable _unused = MDC.putCloseable("client_id", getClientId(request))) {
+                    try (MDC.MDCCloseable __unused = MDC.putCloseable("error_code", oauth2AuthenticationException.getError().getErrorCode())) {
+                        try (MDC.MDCCloseable ___unused = MDC.putCloseable("error_description", oauth2AuthenticationException.getError().getDescription())) {
+                            LOG.info("oauth2 token request failed");
+                        }
                     }
-
-                    addMultiValue(map, prefix + ".header." + header, values);
                 }
             }
+
+            FAILURE_DELEGATE.onAuthenticationFailure(request, response, exception);
         }
 
-        private static void addMultiValue(Map<String, String> map, String key, List<String> values) {
-            if (values.isEmpty()) {
-                map.put(key, "");
-            } else if (values.size() == 1) {
-                map.put(key, values.getFirst());
-            } else {
-                for (int i = 0; i < values.size(); i++) {
-                    map.put(key + "." + i, values.get(i));
-                }
-            }
+        private static String getClientId(HttpServletRequest request) {
+            return Optional.ofNullable(request.getAttribute(CLIENT_ID_ATTRIBUTE_NAME))
+                    .map(Object::toString)
+                    .orElse("UNKNOWN");
         }
     }
 }

@@ -5,6 +5,7 @@ import org.slf4j.MDC;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 public final class ComposedMDCCloseable implements AutoCloseable {
@@ -30,6 +31,10 @@ public final class ComposedMDCCloseable implements AutoCloseable {
         if (first != null) {
             throw first;
         }
+    }
+
+    public static ComposedMDCCloseable create(Map<String, String> fields) {
+        return create(fields, Objects::toString);
     }
 
     public static <T> ComposedMDCCloseable create(Map<String, T> fields, Function<? super T, String> toStringFunction) {

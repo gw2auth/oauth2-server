@@ -53,6 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.mock.web.MockPart;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -1797,6 +1798,58 @@ public class OAuth2ServerTest {
     @WithGw2AuthLogin
     @WithOAuth2ClientApiVersion
     @WithOAuth2ClientType
+    public void retrieveAccessTokenWithInvalidClientSecret(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
+        final ApplicationClient applicationClient = applicationClientCreation.client();
+        // perform authorization request (which should redirect to the consent page)
+        MvcResult result = performAuthorizeWithClient(sessionHandle, applicationClient, Set.of(OAuth2Scope.GW2_ACCOUNT)).andReturn();
+
+        // submit the consent
+        final String tokenA = TestHelper.randomRootToken();
+        final String tokenB = TestHelper.randomRootToken();
+        final String tokenC = TestHelper.randomRootToken();
+        result = performSubmitConsent(sessionHandle, applicationClient, URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())), tokenA, tokenB, tokenC).andReturn();
+
+        // set testing clock to token customizer
+        final Clock testingClock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        this.gw2AuthClockedExtension.setClock(testingClock);
+
+        // retrieve the initial access and refresh token
+        final String dummySubtokenA = TestHelper.createSubtokenJWT(this.gw2AccountId1st, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+        final String dummySubtokenB = TestHelper.createSubtokenJWT(this.gw2AccountId2nd, Set.of(Gw2ApiPermission.ACCOUNT), testingClock.instant(), Duration.ofMinutes(30L));
+
+        performRetrieveTokenByCode(
+                applicationClient,
+                "invalid_client_secret",
+                URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())),
+                Map.of(tokenA, dummySubtokenA, tokenB, dummySubtokenB),
+                Set.of(Gw2ApiPermission.ACCOUNT)
+        )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value(OAuth2ErrorCodes.INVALID_CLIENT));
+    }
+
+    @ParameterizedTest
+    @WithOAuth2ClientApiVersion
+    @WithOAuth2ClientType
+    public void retrieveAccessTokenWithInvalidCode(OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
+        final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
+        final ApplicationClient applicationClient = applicationClientCreation.client();
+
+        performRetrieveTokenByCode(
+                applicationClient,
+                applicationClientCreation.clientSecret(),
+                TestHelper.first(applicationClient.redirectUris()).orElseThrow(),
+                "invalid_code"
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(OAuth2ErrorCodes.INVALID_GRANT));
+    }
+
+    @ParameterizedTest
+    @WithGw2AuthLogin
+    @WithOAuth2ClientApiVersion
+    @WithOAuth2ClientType
     public void revokeAccessToken(SessionHandle sessionHandle, OAuth2ClientApiVersion clientApiVersion, OAuth2ClientType clientType) throws Exception {
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
         final ApplicationClientCreation applicationClientCreation = createApplicationClient(clientApiVersion, clientType);
@@ -2372,6 +2425,24 @@ public class OAuth2ServerTest {
         MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.POST, "/oauth2/token")
                 .part(part(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue()))
                 .part(part(OAuth2ParameterNames.CODE, codeParam))
+                .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
+                .part(part(OAuth2ParameterNames.REDIRECT_URI, redirectUri));
+
+        if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
+            builder = builder.part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret));
+        } else {
+            builder = builder.part(part("code_verifier", generateCodeChallenge(applicationClient)));
+        }
+
+        // retrieve an access token
+        // dont use the user session here!
+        return this.mockMvc.perform(builder);
+    }
+
+    private ResultActions performRetrieveTokenByCode(ApplicationClient applicationClient, String clientSecret, String redirectUri, String code) throws Exception {
+        MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.POST, "/oauth2/token")
+                .part(part(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue()))
+                .part(part(OAuth2ParameterNames.CODE, code))
                 .part(part(OAuth2ParameterNames.CLIENT_ID, applicationClient.id().toString()))
                 .part(part(OAuth2ParameterNames.REDIRECT_URI, redirectUri));
 
