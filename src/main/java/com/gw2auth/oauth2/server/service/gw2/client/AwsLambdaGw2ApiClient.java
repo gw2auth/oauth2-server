@@ -51,7 +51,12 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
         final InvokeResponse lambdaResponse = this.lambda.invoke(invokeRequest);
 
         if (lambdaResponse.functionError() != null) {
-            throw new RuntimeException(lambdaResponse.functionError());
+            final String payload;
+            try (InputStream in = lambdaResponse.payload().asInputStream()) {
+                payload = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+
+            throw new RuntimeException(lambdaResponse.functionError() + ": " + payload);
         }
 
         final int statusCode;
