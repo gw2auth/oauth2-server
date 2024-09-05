@@ -10,7 +10,6 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthLoginUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.util.Constants;
 import com.gw2auth.oauth2.server.util.CookieHelper;
-import com.gw2auth.oauth2.server.util.DynamicProxy;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -141,7 +140,7 @@ public class SecurityConfiguration {
                                                                                  RequestCache requestCache) {
 
         final AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository = new S3AuthorizationRequestRepository(
-                DynamicProxy.create(s3, S3Client.class, S3AuthorizationRequestRepository.MinimalS3Client.class),
+                s3,
                 bucket,
                 prefix
         );

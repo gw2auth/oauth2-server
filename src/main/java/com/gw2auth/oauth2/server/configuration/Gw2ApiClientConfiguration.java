@@ -2,7 +2,6 @@ package com.gw2auth.oauth2.server.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.gw2.client.*;
-import com.gw2auth.oauth2.server.util.DynamicProxy;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -49,7 +48,7 @@ public class Gw2ApiClientConfiguration {
 
             chain.add(new InstrumentedGw2ApiClient(
                     new AwsLambdaGw2ApiClient(
-                            DynamicProxy.create(lambdaClient, LambdaClient.class, AwsLambdaGw2ApiClient.MinimalLambdaClient.class),
+                            lambdaClient,
                             awsLambdaProxyARN,
                             objectMapper
                     ),

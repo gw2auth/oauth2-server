@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
@@ -26,7 +27,7 @@ public class AwsLambdaGw2ApiClientTest {
     public void getHappycaseBase64() throws Exception{
         final ObjectMapper mapper = new ObjectMapper();
         final ArgumentCaptor<InvokeRequest> lambdaRequestCaptor = ArgumentCaptor.forClass(InvokeRequest.class);
-        final AwsLambdaGw2ApiClient.MinimalLambdaClient lambdaClient = mock(AwsLambdaGw2ApiClient.MinimalLambdaClient.class);
+        final LambdaClient lambdaClient = mock(LambdaClient.class);
         when(lambdaClient.invoke(lambdaRequestCaptor.capture())).thenReturn(
                 InvokeResponse.builder()
                         .payload(SdkBytes.fromString(
@@ -88,7 +89,7 @@ public class AwsLambdaGw2ApiClientTest {
     public void getHappycase() throws Exception{
         final ObjectMapper mapper = new ObjectMapper();
         final ArgumentCaptor<InvokeRequest> lambdaRequestCaptor = ArgumentCaptor.forClass(InvokeRequest.class);
-        final AwsLambdaGw2ApiClient.MinimalLambdaClient lambdaClient = mock(AwsLambdaGw2ApiClient.MinimalLambdaClient.class);
+        final LambdaClient lambdaClient = mock(LambdaClient.class);
         when(lambdaClient.invoke(lambdaRequestCaptor.capture())).thenReturn(
                 InvokeResponse.builder()
                         .payload(SdkBytes.fromString(

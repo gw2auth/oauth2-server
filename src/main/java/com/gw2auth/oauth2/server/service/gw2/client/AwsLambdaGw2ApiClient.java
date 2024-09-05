@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvocationType;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
@@ -22,11 +23,11 @@ import java.util.Map;
 
 public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
 
-    private final MinimalLambdaClient lambda;
+    private final LambdaClient lambda;
     private final String functionName;
     private final ObjectMapper mapper;
 
-    public AwsLambdaGw2ApiClient(MinimalLambdaClient lambda, String functionName, ObjectMapper mapper) {
+    public AwsLambdaGw2ApiClient(LambdaClient lambda, String functionName, ObjectMapper mapper) {
         this.lambda = lambda;
         this.functionName = functionName;
         this.mapper = mapper;
@@ -104,9 +105,4 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
 
     record LambdaRequestPayload(@JsonProperty("path") String path, @JsonProperty("query") Map<String, String> query, @JsonProperty("headers") Map<String, String> headers) {}
     record LambdaResponsePayload(@JsonProperty("isBase64Encoded") boolean isBase64Encoded, @JsonProperty("statusCode") int statusCode, @JsonProperty("headers") Map<String, String> headers, @JsonProperty("body") String body) {}
-
-    public interface MinimalLambdaClient {
-
-        InvokeResponse invoke(InvokeRequest request);
-    }
 }

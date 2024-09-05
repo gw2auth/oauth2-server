@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
@@ -23,12 +24,12 @@ import java.util.Optional;
 public class S3AuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     private static final Logger LOG = LoggerFactory.getLogger(S3AuthorizationRequestRepository.class);
-    private final MinimalS3Client s3;
+    private final S3Client s3;
     private final String bucket;
     private final String prefix;
     private final ObjectMapper mapper;
 
-    public S3AuthorizationRequestRepository(MinimalS3Client s3, String bucket, String prefix) {
+    public S3AuthorizationRequestRepository(S3Client s3, String bucket, String prefix) {
         this.s3 = s3;
         this.bucket = bucket;
         this.prefix = prefix;
@@ -137,12 +138,5 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
 
     private String buildS3ObjectKey(String state) {
         return this.prefix + state;
-    }
-
-    public interface MinimalS3Client {
-
-        ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest request);
-        DeleteObjectResponse deleteObject(DeleteObjectRequest request);
-        PutObjectResponse putObject(PutObjectRequest request, RequestBody body);
     }
 }
