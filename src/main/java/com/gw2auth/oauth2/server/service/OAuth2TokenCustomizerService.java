@@ -24,6 +24,8 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -49,6 +51,8 @@ import java.util.stream.Collectors;
 @Service
 public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEncodingContext>, Clocked {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OAuth2TokenCustomizerService.class);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20L);
     private static final Duration AUTHORIZED_TOKEN_MIN_EXCESS_TIME = Duration.ofMinutes(20L);
 
     private final AccountService accountService;
@@ -102,6 +106,8 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
     @Override
     @Transactional
     public void customize(JwtEncodingContext ctx) {
+        final long start = System.nanoTime();
+
         if (ctx.getTokenType().equals(OAuth2TokenType.ACCESS_TOKEN)) {
             final OAuth2Authorization authorization = ctx.getAuthorization();
 
@@ -131,6 +137,12 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             } else {
                 throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR));
             }
+        }
+
+        final Duration duration = Duration.ofNanos(System.nanoTime() - start);
+        if (duration.compareTo(REQUEST_TIMEOUT) >= 0) {
+            LOG.warn("request timeout exceeded: {}; returning {}", duration, OAuth2ErrorCodes.SERVER_ERROR);
+            throw new OAuth2AuthenticationException(new OAuth2Error(OAuth2ErrorCodes.SERVER_ERROR));
         }
     }
 
