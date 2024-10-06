@@ -20,7 +20,8 @@ public record OAuth2ConsentInfoResponse(@JsonProperty("clientRegistration") Clie
                                         @JsonProperty("apiTokensWithInsufficientPermissions") List<MinimalApiToken> apiTokensWithInsufficientPermissionResponses,
                                         @JsonProperty("previouslyConsentedGw2AccountIds") Set<UUID> previouslyConsentedGw2AccountIds,
                                         @JsonProperty("containsAnyGw2AccountRelatedScopes") boolean containsAnyGw2AccountRelatedScopes,
-                                        @JsonProperty("redirectUri") String redirectUri) {
+                                        @JsonProperty("redirectUri") String redirectUri,
+                                        @JsonProperty("requestUri") String requestUri) {
 
     public record MinimalApiToken(@JsonProperty("gw2AccountId") UUID gw2AccountId,
                                   @JsonProperty("gw2ApiToken") String gw2ApiToken,

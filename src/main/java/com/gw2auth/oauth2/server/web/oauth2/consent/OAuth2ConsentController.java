@@ -115,6 +115,8 @@ public class OAuth2ConsentController extends AbstractRestController {
                 .replaceQueryParam(OAuth2ParameterNames.STATE, state)
                 .toUriString();
 
+        final OAuth2AuthorizationRequest authorizationRequest = findRequestByState(state).orElseThrow();
+
         return new OAuth2ConsentInfoResponse(
                 ClientRegistrationPublicResponse.create(applicationClient),
                 requestedScopes,
@@ -125,13 +127,14 @@ public class OAuth2ConsentController extends AbstractRestController {
                 apiTokensWithInsufficientPermissionResponses,
                 previouslyConsentedGw2AccountIds,
                 OAuth2Scope.containsAnyGw2AccountRelatedScopes(requestedScopes),
-                findRedirectUriByState(state).orElseThrow()
+                authorizationRequest.getRedirectUri(),
+                authorizationRequest.getAuthorizationRequestUri()
         );
     }
 
     @GetMapping(value = "/api/oauth2/consent-deny")
     public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.STATE) String state) {
-        final URI redirectUri = findRedirectUriByState(state)
+        final URI redirectUri = findRequestByState(state).map(OAuth2AuthorizationRequest::getRedirectUri)
                 .map(UriComponentsBuilder::fromHttpUrl)
                 .map((v) -> {
                     return v
@@ -150,7 +153,7 @@ public class OAuth2ConsentController extends AbstractRestController {
         return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
     }
 
-    private Optional<String> findRedirectUriByState(String state) {
+    private Optional<OAuth2AuthorizationRequest> findRequestByState(String state) {
         final OAuth2Authorization oauth2Authorization = this.auth2AuthorizationService.findByToken(state, new OAuth2TokenType((OAuth2ParameterNames.STATE)));
         if (oauth2Authorization == null) {
             return Optional.empty();
@@ -161,6 +164,6 @@ public class OAuth2ConsentController extends AbstractRestController {
             return Optional.empty();
         }
 
-        return Optional.of(authorizationRequest.getRedirectUri());
+        return Optional.of(authorizationRequest);
     }
 }
