@@ -43,6 +43,7 @@ public class AccountController extends AbstractRestController {
                                 .replacePath("/auth/oauth2/authorization/")
                                 .path(provider)
                                 .replaceQuery(null)
+                                .queryParam("add", "true")
                                 .build()
                                 .toUri()
                 )

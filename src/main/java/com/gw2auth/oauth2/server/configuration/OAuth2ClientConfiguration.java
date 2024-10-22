@@ -16,9 +16,7 @@ import org.springframework.security.web.util.UrlUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Configuration
 @EnableConfigurationProperties(OAuth2ClientProperties.class)
@@ -41,11 +39,47 @@ public class OAuth2ClientConfiguration {
             return Optional.ofNullable(uriComponents.getHost())
                     .flatMap((host) -> findBase(registrationId + "@" + host))
                     .or(() -> findBase(registrationId))
+                    .map((v) -> maybeChangeAuthorizationURL(v, uriComponents))
                     .orElse(null);
         }
 
         private Optional<ClientRegistration> findBase(String registrationId) {
             return Optional.ofNullable(this.base.findByRegistrationId(registrationId));
+        }
+
+        private ClientRegistration maybeChangeAuthorizationURL(ClientRegistration base, UriComponents uriComponents) {
+            if (!Objects.equals(uriComponents.getQueryParams().getFirst("add"), "true")) {
+                return base;
+            }
+
+            return switch (base.getRegistrationId()) {
+                case "cognito" -> changeAuthorizationURLCognito(base);
+                case "github", "google" -> changeAuthorizationURLGitHubOrGoogle(base);
+                default -> base;
+            };
+        }
+
+        private ClientRegistration changeAuthorizationURLCognito(ClientRegistration base) {
+            // https://docs.aws.amazon.com/cognito/latest/developerguide/logout-endpoint.html
+            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+                    .replacePath("/logout")
+                    .toUriString();
+
+            return ClientRegistration.withClientRegistration(base)
+                    .authorizationUri(authorizationUri)
+                    .build();
+        }
+
+        private ClientRegistration changeAuthorizationURLGitHubOrGoogle(ClientRegistration base) {
+            // https://developers.google.com/identity/openid-connect/openid-connect?hl=de#authenticationuriparameters
+            // https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#1-request-a-users-github-identity
+            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+                    .replaceQueryParam("prompt", "select_account")
+                    .toUriString();
+
+            return ClientRegistration.withClientRegistration(base)
+                    .authorizationUri(authorizationUri)
+                    .build();
         }
     }
 }
