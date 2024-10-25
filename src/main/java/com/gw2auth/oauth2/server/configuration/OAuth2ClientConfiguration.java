@@ -39,7 +39,7 @@ public class OAuth2ClientConfiguration {
             return Optional.ofNullable(uriComponents.getHost())
                     .flatMap((host) -> findBase(registrationId + "@" + host))
                     .or(() -> findBase(registrationId))
-                    .map((v) -> maybeChangeAuthorizationURL(v, uriComponents))
+                    .map(CustomClientRegistrationRepository::changeAuthorizationURL)
                     .orElse(null);
         }
 
@@ -47,19 +47,40 @@ public class OAuth2ClientConfiguration {
             return Optional.ofNullable(this.base.findByRegistrationId(registrationId));
         }
 
-        private ClientRegistration maybeChangeAuthorizationURL(ClientRegistration base, UriComponents uriComponents) {
-            if (!Objects.equals(uriComponents.getQueryParams().getFirst("add"), "true")) {
-                return base;
+        private static ClientRegistration changeAuthorizationURL(ClientRegistration base) {
+            // Google and GitHub provider details are populated by org.springframework.security.config.oauth2.client.CommonOAuth2Provider
+
+            final String issuerUri = base.getProviderDetails().getIssuerUri();
+            if (issuerUri != null && !issuerUri.isEmpty()) {
+                final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(issuerUri).build();
+                final String host = uriComponents.getHost();
+
+                if (host != null) {
+                    if (host.startsWith("cognito-idp") && host.endsWith("amazonaws.com")) {
+                        return changeAuthorizationURLCognito(base);
+                    } else if (Objects.equals(host, "accounts.google.com")) {
+                        return changeAuthorizationURLGitHubOrGoogle(base);
+                    } else if (Objects.equals(host, "gw2auth.com")) {
+                        return changeAuthorizationURLGw2auth(base);
+                    }
+                }
             }
 
-            return switch (base.getRegistrationId()) {
-                case "cognito" -> changeAuthorizationURLCognito(base);
-                case "github", "google" -> changeAuthorizationURLGitHubOrGoogle(base);
-                default -> base;
-            };
+            // GitHub provider details dont have a issuer uri, use authorization uri for detection instead
+            final String authorizationUri = base.getProviderDetails().getAuthorizationUri();
+            if (authorizationUri != null && !authorizationUri.isEmpty()) {
+                final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(authorizationUri).build();
+                final String host = uriComponents.getHost();
+
+                if (Objects.equals(host, "github.com")) {
+                    return changeAuthorizationURLGitHubOrGoogle(base);
+                }
+            }
+
+            return base;
         }
 
-        private ClientRegistration changeAuthorizationURLCognito(ClientRegistration base) {
+        private static ClientRegistration changeAuthorizationURLCognito(ClientRegistration base) {
             // https://docs.aws.amazon.com/cognito/latest/developerguide/logout-endpoint.html
             final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
                     .replacePath("/logout")
@@ -70,11 +91,22 @@ public class OAuth2ClientConfiguration {
                     .build();
         }
 
-        private ClientRegistration changeAuthorizationURLGitHubOrGoogle(ClientRegistration base) {
+        private static ClientRegistration changeAuthorizationURLGitHubOrGoogle(ClientRegistration base) {
             // https://developers.google.com/identity/openid-connect/openid-connect?hl=de#authenticationuriparameters
             // https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#1-request-a-users-github-identity
             final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
                     .replaceQueryParam("prompt", "select_account")
+                    .toUriString();
+
+            return ClientRegistration.withClientRegistration(base)
+                    .authorizationUri(authorizationUri)
+                    .build();
+        }
+
+        private static ClientRegistration changeAuthorizationURLGw2auth(ClientRegistration base) {
+            // https://github.com/gw2auth/oauth2-server/wiki/GW2Auth-Developer-Guide#redirect-the-user-to-the-authorization_endpoint
+            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+                    .replaceQueryParam("prompt", "consent")
                     .toUriString();
 
             return ClientRegistration.withClientRegistration(base)
