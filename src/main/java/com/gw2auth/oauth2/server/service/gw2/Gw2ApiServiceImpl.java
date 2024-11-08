@@ -133,6 +133,10 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
         query = new LinkedMultiValueMap<>(query);
         query.set(API_VERSION_PARAM, API_VERSION);
 
+        if (token != null) {
+            query.set(ACCESS_TOKEN_PARAM, token);
+        }
+
         final Long timeoutAt = Optional.ofNullable(TIMEOUT_AT_TL.get()).map(Deque::peekLast).orElse(null);
 
         ResponseEntity<Resource> response;
@@ -179,6 +183,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private static HttpHeaders buildRequestHeaders(String token) {
+        /*
         if (token == null) {
             return HttpHeaders.EMPTY;
         }
@@ -187,6 +192,8 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
         headers.add("Authorization", "Bearer " + token);
 
         return headers;
+         */
+        return HttpHeaders.EMPTY;
     }
 
     private static boolean validateToken(String token) {

@@ -6,7 +6,6 @@ import com.gw2auth.oauth2.server.repository.gw2account.Gw2AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenEntity;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
-import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringStartsWith;
 import org.json.JSONObject;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -20,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.test.web.client.match.MockRestRequestMatchers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -32,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
+import static com.gw2auth.oauth2.server.RequestMatchers.matchAuthorizedRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.ExpectedCount.times;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -95,7 +94,7 @@ class Gw2AccountApiTokenServiceImplTest {
         // prepare the mock server for the upcoming account request
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(matchAuthorizedRequest(gw2ApiToken))
                 .andRespond((request) -> {
                     final JSONObject responseJson = new JSONObject(Map.of(
                             "id", gw2AccountId.toString(),
@@ -153,7 +152,7 @@ class Gw2AccountApiTokenServiceImplTest {
         // prepare the mock server for the upcoming account request
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(matchAuthorizedRequest(gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(
                             "{}".getBytes(StandardCharsets.UTF_8),
@@ -207,7 +206,7 @@ class Gw2AccountApiTokenServiceImplTest {
         // prepare the mock server for the upcoming account request
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new IsEqual<>("Bearer " + gw2ApiToken)))
+                .andExpect(matchAuthorizedRequest(gw2ApiToken))
                 .andRespond((request) -> {
                     final MockClientHttpResponse response = new MockClientHttpResponse(
                             "{}".getBytes(StandardCharsets.UTF_8),

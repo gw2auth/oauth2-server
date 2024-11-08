@@ -12,6 +12,7 @@ public interface Gw2ApiService {
 
     String API_VERSION_PARAM = "v";
     String API_VERSION = "2021-07-15T13:00:00.000Z";
+    String ACCESS_TOKEN_PARAM = "access_token";
 
     Gw2TokenInfo getTokenInfo(String gw2ApiToken);
 

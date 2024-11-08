@@ -79,6 +79,8 @@ import java.util.stream.Collectors;
 
 import static com.gw2auth.oauth2.server.Assertions.assertInstantEquals;
 import static com.gw2auth.oauth2.server.Matchers.*;
+import static com.gw2auth.oauth2.server.RequestMatchers.extractAccessToken;
+import static com.gw2auth.oauth2.server.RequestMatchers.matchAuthorizedRequest;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.client.ExpectedCount.times;
@@ -1299,11 +1301,11 @@ public class OAuth2ServerTest {
         this.gw2RestServer.reset();
         this.gw2RestServer.expect(times(2), requestTo(new StringStartsWith("/v2/createsubtoken")))
                 .andExpect(method(HttpMethod.GET))
-                .andExpect(MockRestRequestMatchers.header("Authorization", new StringStartsWith("Bearer ")))
+                .andExpect(matchAuthorizedRequest())
                 .andExpect(queryParam("permissions", split(",", containingAll(Gw2ApiPermission.ACCOUNT.gw2()))))
                 .andExpect(queryParam("expire", asInstant(instantWithinTolerance(Instant.now().plus(Duration.ofMinutes(30L)), Duration.ofSeconds(5L)))))
                 .andRespond((request) -> {
-                    final String gw2ApiToken = request.getHeaders().getFirst("Authorization").replaceFirst("Bearer ", "");
+                    final String gw2ApiToken = extractAccessToken(request).orElseThrow();
                     final String subtoken;
 
                     if (gw2ApiToken.equals(tokenA)) {
@@ -2469,11 +2471,11 @@ public class OAuth2ServerTest {
         if (!subtokenByGw2ApiToken.isEmpty()) {
             this.gw2RestServer.expect(times(subtokenByGw2ApiToken.size()), requestTo(new StringStartsWith("/v2/createsubtoken")))
                     .andExpect(method(HttpMethod.GET))
-                    .andExpect(MockRestRequestMatchers.header("Authorization", new StringStartsWith("Bearer ")))
+                    .andExpect(matchAuthorizedRequest())
                     .andExpect(queryParam("permissions", split(",", containingAll(expectedGw2ApiPermissionStrs))))
                     .andExpect(queryParam("expire", asInstant(instantWithinTolerance(Instant.now().plus(Duration.ofMinutes(30L)), Duration.ofSeconds(5L)))))
                     .andRespond((request) -> {
-                        final String gw2ApiToken = request.getHeaders().getFirst("Authorization").replaceFirst("Bearer ", "");
+                        final String gw2ApiToken = extractAccessToken(request).orElseThrow();
                         final String subtoken = subtokenByGw2ApiToken.get(gw2ApiToken);
 
                         if (subtoken == null || subtoken.isEmpty()) {
