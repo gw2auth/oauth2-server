@@ -46,6 +46,13 @@ spring:
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: "id"
             redirect-uri: "{baseUrl}/auth/oauth2/code/google"
+          discord:
+            provider: gw2auth
+            client-name: "Discord"
+            client-id: ${DISCORD_CLIENT_ID}
+            client-secret: ${DISCORD_CLIENT_SECRET}
+            scope: "id"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/discord"
         provider:
           gw2auth:
             issuer-uri: "https://gw2auth.com"

@@ -46,6 +46,14 @@ spring:
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: "openid"
             redirect-uri: "{baseUrl}/auth/oauth2/code/google"
+          discord:
+            provider: discord
+            client-name: "Discord"
+            client-id: ${DISCORD_CLIENT_ID}
+            client-secret: ${DISCORD_CLIENT_SECRET}
+            authorization-grant-type: "authorization_code"
+            scope: "identify"
+            redirect-uri: "{baseUrl}/auth/oauth2/code/discord"
         provider:
           cognito:
             issuer-uri: "https://cognito-idp.${AMZ_COGNITO_REGION}.amazonaws.com/${AMZ_COGNITO_POOL_ID}"
@@ -54,6 +62,11 @@ spring:
             user-name-attribute: id
           google:
             user-name-attribute: sub
+          discord:
+            authorization-uri: "https://discord.com/oauth2/authorize"
+            token-uri: "https://discord.com/api/oauth2/token"
+            user-info-uri: "https://discord.com/api/users/@me"
+            user-name-attribute: id
 
 management:
   endpoints:
