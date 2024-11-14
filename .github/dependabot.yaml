@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 20
+    commit-message:
+      prefix: "build"
+    groups:
+      "@actions/artifacts":
+        patterns:
+          - "actions/deploy-pages"
+          - "actions/download-artifact"
+          - "actions/upload-artifact"
+          - "actions/upload-pages-artifact"
