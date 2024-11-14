@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server;
 
+import com.gw2auth.oauth2.server.util.QueryParam.QueryParamWithValue;
 import com.gw2auth.oauth2.server.util.Utils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -35,8 +36,8 @@ public final class Matchers {
                     .fragment(uri.getFragment());
 
             Utils.parseQuery(uri.getRawQuery()).forEach((queryParam) -> {
-                if (queryParam.hasValue()) {
-                    builder.queryParam(queryParam.name(), queryParam.value());
+                if (queryParam instanceof QueryParamWithValue(String name, String value)) {
+                    builder.queryParam(name, value);
                 } else {
                     builder.queryParam(queryParam.name());
                 }

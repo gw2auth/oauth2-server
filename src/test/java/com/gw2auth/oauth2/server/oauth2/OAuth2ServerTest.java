@@ -30,6 +30,7 @@ import com.gw2auth.oauth2.server.service.application.client.ApplicationClientSer
 import com.gw2auth.oauth2.server.service.application.client.account.ApplicationClientAccount;
 import com.gw2auth.oauth2.server.service.application.client.authorization.ApplicationClientAuthorizationServiceImpl;
 import com.gw2auth.oauth2.server.util.QueryParam;
+import com.gw2auth.oauth2.server.util.QueryParam.QueryParamWithValue;
 import com.gw2auth.oauth2.server.util.Utils;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
@@ -1328,9 +1329,10 @@ public class OAuth2ServerTest {
 
         // retrieve the initial access and refresh token
         final String codeParam = Utils.parseQuery(URI.create(Objects.requireNonNull(result.getResponse().getRedirectedUrl())).getRawQuery())
-                .filter(QueryParam::hasValue)
+                .map(queryParam -> queryParam instanceof QueryParamWithValue qpwv ? qpwv : null)
+                .filter(Objects::nonNull)
                 .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.CODE))
-                .map(QueryParam::value)
+                .map(QueryParamWithValue::value)
                 .findFirst()
                 .orElse(null);
 
@@ -1499,8 +1501,9 @@ public class OAuth2ServerTest {
 
         // read request information from redirected uri
         final Map<String, String> params = Utils.parseQuery(URI.create(result.getResponse().getRedirectedUrl()).getRawQuery())
-                .filter(QueryParam::hasValue)
-                .collect(Collectors.toMap(QueryParam::name, QueryParam::value));
+                .map(queryParam -> queryParam instanceof QueryParamWithValue qpwv ? qpwv : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(QueryParam::name, QueryParamWithValue::value));
 
         assertTrue(params.containsKey(OAuth2ParameterNames.CLIENT_ID));
         assertTrue(params.containsKey(OAuth2ParameterNames.STATE));
@@ -2413,9 +2416,10 @@ public class OAuth2ServerTest {
 
     private ResultActions performRetrieveTokenByCode(ApplicationClient applicationClient, String clientSecret, String redirectUri, URI redirectedURI, Map<String, String> subtokenByGw2ApiToken, Set<Gw2ApiPermission> expectedGw2ApiPermissions) throws Exception {
         final String codeParam = Utils.parseQuery(redirectedURI.getRawQuery())
-                .filter(QueryParam::hasValue)
+                .map(queryParam -> queryParam instanceof QueryParamWithValue qpwv ? qpwv : null)
+                .filter(Objects::nonNull)
                 .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.CODE))
-                .map(QueryParam::value)
+                .map(QueryParamWithValue::value)
                 .findFirst()
                 .orElse(null);
 
@@ -2589,8 +2593,9 @@ public class OAuth2ServerTest {
 
         // read request information from redirected uri
         final Map<String, String> params = Utils.parseQuery(redirectedURI.getRawQuery())
-                .filter(QueryParam::hasValue)
-                .collect(Collectors.toMap(QueryParam::name, QueryParam::value));
+                .map(queryParam -> queryParam instanceof QueryParam.QueryParamWithValue qpwv ? qpwv : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(QueryParam::name, QueryParamWithValue::value));
 
         assertTrue(params.containsKey(OAuth2ParameterNames.CLIENT_ID));
         assertTrue(params.containsKey(OAuth2ParameterNames.STATE));
