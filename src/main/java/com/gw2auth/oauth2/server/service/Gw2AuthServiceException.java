@@ -1,18 +1,19 @@
 package com.gw2auth.oauth2.server.service;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
 
 public class Gw2AuthServiceException extends RuntimeException {
 
-    private final HttpStatus proposedStatusCode;
+    private final @Nullable HttpStatus proposedStatusCode;
 
     public Gw2AuthServiceException(String message) {
         this(message, null);
     }
 
-    public Gw2AuthServiceException(String message, HttpStatus proposedStatusCode) {
+    public Gw2AuthServiceException(String message, @Nullable HttpStatus proposedStatusCode) {
         super(message);
         this.proposedStatusCode = proposedStatusCode;
     }

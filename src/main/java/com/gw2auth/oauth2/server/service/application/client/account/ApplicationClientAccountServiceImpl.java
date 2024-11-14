@@ -12,6 +12,7 @@ import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,7 +129,7 @@ public class ApplicationClientAccountServiceImpl implements ApplicationClientAcc
     }
 
     @Override
-    public OAuth2AuthorizationConsent findById(String registeredClientId, String principalName) {
+    public @Nullable OAuth2AuthorizationConsent findById(String registeredClientId, String principalName) {
         final UUID accountId = UUID.fromString(principalName);
         final UUID applicationClientId = UUID.fromString(registeredClientId);
         final ApplicationClientEntity applicationClientEntity = this.applicationClientRepository.findById(applicationClientId).orElseThrow();

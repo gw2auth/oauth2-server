@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.repository.application.client.authorization;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
@@ -81,22 +82,22 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
                                               @Param("display_name") String displayName,
                                               @Param("authorization_grant_type") String authorizationGrantType,
                                               @Param("authorized_scopes") Set<String> authorizedScopes,
-                                              @Param("attributes") String attributes,
-                                              @Param("state") String state,
-                                              @Param("authorization_code_value") String authorizationCodeValue,
-                                              @Param("authorization_code_issued_at") Instant authorizationCodeIssuedAt,
-                                              @Param("authorization_code_expires_at") Instant authorizationCodeExpiresAt,
-                                              @Param("authorization_code_metadata") String authorizationCodeMetadata,
-                                              @Param("access_token_value") String accessTokenValue,
-                                              @Param("access_token_issued_at") Instant accessTokenIssuedAt,
-                                              @Param("access_token_expires_at") Instant accessTokenExpiresAt,
-                                              @Param("access_token_metadata") String accessTokenMetadata,
-                                              @Param("access_token_type") String accessTokenType,
+                                              @Param("attributes") @Nullable String attributes,
+                                              @Param("state") @Nullable String state,
+                                              @Param("authorization_code_value") @Nullable String authorizationCodeValue,
+                                              @Param("authorization_code_issued_at") @Nullable Instant authorizationCodeIssuedAt,
+                                              @Param("authorization_code_expires_at") @Nullable Instant authorizationCodeExpiresAt,
+                                              @Param("authorization_code_metadata") @Nullable String authorizationCodeMetadata,
+                                              @Param("access_token_value") @Nullable String accessTokenValue,
+                                              @Param("access_token_issued_at") @Nullable Instant accessTokenIssuedAt,
+                                              @Param("access_token_expires_at") @Nullable Instant accessTokenExpiresAt,
+                                              @Param("access_token_metadata") @Nullable String accessTokenMetadata,
+                                              @Param("access_token_type") @Nullable String accessTokenType,
                                               @Param("access_token_scopes") Set<String> accessTokenScopes,
-                                              @Param("refresh_token_value") String refreshTokenValue,
-                                              @Param("refresh_token_issued_at") Instant refreshTokenIssuedAt,
-                                              @Param("refresh_token_expires_at") Instant refreshTokenExpiresAt,
-                                              @Param("refresh_token_metadata") String refreshTokenMetadata);
+                                              @Param("refresh_token_value") @Nullable String refreshTokenValue,
+                                              @Param("refresh_token_issued_at") @Nullable Instant refreshTokenIssuedAt,
+                                              @Param("refresh_token_expires_at") @Nullable Instant refreshTokenExpiresAt,
+                                              @Param("refresh_token_metadata") @Nullable String refreshTokenMetadata);
 
     @Query("""
     SELECT *

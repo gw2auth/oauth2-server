@@ -10,6 +10,7 @@ import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.util.UriPatternMatch;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -157,13 +158,13 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
     }
 
     @Override
-    public RegisteredClient findById(String id) {
+    public @Nullable RegisteredClient findById(String id) {
         final UUID registeredClientId = UUID.fromString(id);
         return this.applicationClientRepository.findById(registeredClientId).map(this::registeredClientFromEntity).orElse(null);
     }
 
     @Override
-    public RegisteredClient findByClientId(String clientId) {
+    public @Nullable RegisteredClient findByClientId(String clientId) {
         return findById(clientId);
     }
 

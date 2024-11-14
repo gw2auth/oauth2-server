@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.util;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -26,7 +27,7 @@ public final class UriPatternMatch {
         private final int queryOffset;
         private int cursor;
 
-        private UriMatcher(String scheme, String host, String path, String query) {
+        private UriMatcher(String scheme, String host, String path, @Nullable String query) {
             String uri = scheme + "://";
             this.hostOffset = uri.length();
 

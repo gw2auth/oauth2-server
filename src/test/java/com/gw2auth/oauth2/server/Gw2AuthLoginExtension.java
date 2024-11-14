@@ -11,6 +11,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.IsNot;
 import org.hamcrest.core.StringEndsWith;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -44,7 +45,7 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
     private final MockMvc mockMvc;
     private final TestClientRegistrationRepository testClientRegistrationRepository;
     private final Gw2AuthInternalJwtConverter jwtConverter;
-    private ExtensionContext context;
+    private @Nullable ExtensionContext context;
 
     @Autowired
     public Gw2AuthLoginExtension(MockMvc mockMvc, TestClientRegistrationRepository testClientRegistrationRepository, Gw2AuthInternalJwtConverter jwtConverter) {

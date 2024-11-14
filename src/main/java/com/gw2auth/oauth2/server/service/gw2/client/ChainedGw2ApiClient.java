@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.service.gw2.client;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -43,7 +44,7 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         final Instant timeoutAt;
         if (timeout == null) {
             timeoutAt = Instant.MAX;

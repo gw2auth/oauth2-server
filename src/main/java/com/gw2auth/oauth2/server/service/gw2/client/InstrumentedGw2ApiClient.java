@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.service.gw2.client;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -23,11 +24,11 @@ public class InstrumentedGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         return getWithMetrics(timeout, path, query, headers);
     }
 
-    private ResponseEntity<Resource> getWithMetrics(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    private ResponseEntity<Resource> getWithMetrics(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         final Instant start = Instant.now();
         try {
             final ResponseEntity<Resource> response;

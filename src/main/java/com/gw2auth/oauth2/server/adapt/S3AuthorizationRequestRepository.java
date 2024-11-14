@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -45,7 +46,7 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
     }
 
     @Override
-    public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
+    public @Nullable OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
         final String state = getState(request);
         if (state == null) {
             return null;
@@ -67,7 +68,7 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
     }
 
     @Override
-    public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request, HttpServletResponse response) {
+    public @Nullable OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request, HttpServletResponse response) {
         final String state = getState(request);
         if (state == null) {
             return null;
@@ -79,7 +80,7 @@ public class S3AuthorizationRequestRepository implements AuthorizationRequestRep
         return oldRequest;
     }
 
-    private String getState(HttpServletRequest request) {
+    private @Nullable String getState(HttpServletRequest request) {
         return request.getParameter(OAuth2ParameterNames.STATE);
     }
 

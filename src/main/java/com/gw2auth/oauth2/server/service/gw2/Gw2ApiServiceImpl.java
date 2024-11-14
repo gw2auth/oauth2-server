@@ -11,6 +11,7 @@ import com.nimbusds.jose.Header;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +38,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
 
     private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
     private static final Pattern ROOT_TOKEN_PATTERN = Pattern.compile("^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{20}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$");
-    private static final ThreadLocal<Deque<Long>> TIMEOUT_AT_TL = new ThreadLocal<>();
+    private static final ThreadLocal<@Nullable Deque<Long>> TIMEOUT_AT_TL = new ThreadLocal<>();
 
     private final Gw2ApiClient gw2ApiClient;
     private final ObjectMapper mapper;

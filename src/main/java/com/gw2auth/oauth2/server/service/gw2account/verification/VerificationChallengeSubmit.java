@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.service.gw2account.verification;
 
-public record VerificationChallengeSubmit(VerificationChallengePending verificationChallengePending, boolean succeeded) {
+import org.jspecify.annotations.Nullable;
+
+public record VerificationChallengeSubmit(@Nullable VerificationChallengePending verificationChallengePending, boolean succeeded) {
 
 }

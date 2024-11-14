@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.repository.gw2account;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,8 +48,8 @@ public interface Gw2AccountRepository extends BaseRepository<Gw2AccountEntity>, 
                           @Param("creation_time") Instant creationTime,
                           @Param("display_name") String displayName,
                           @Param("order_rank") String orderRank,
-                          @Param("display_name_if_exists") String displayNameIfExists,
-                          @Param("order_rank_if_exists") String orderRankIfExists);
+                          @Param("display_name_if_exists") @Nullable String displayNameIfExists,
+                          @Param("order_rank_if_exists") @Nullable String orderRankIfExists);
 
     @Query("""
     SELECT *

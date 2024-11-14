@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.service.account.AccountFederationSession;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
@@ -14,7 +15,7 @@ import java.util.UUID;
 public record Gw2AuthLoginUser(OAuth2User parent, UUID accountId, AccountFederationSession session, byte[] encryptionKey) implements OAuth2User, OidcUser {
 
     @Override
-    public <A> A getAttribute(String name) {
+    public <A> @Nullable A getAttribute(String name) {
         return this.parent.getAttribute(name);
     }
 

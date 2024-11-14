@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.adapt;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 
 public class CookieBearerTokenResolver implements BearerTokenResolver {
@@ -13,7 +14,7 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
     }
 
     @Override
-    public String resolve(HttpServletRequest request) {
+    public @Nullable String resolve(HttpServletRequest request) {
         final Cookie[] cookies = request.getCookies();
         String value = null;
 

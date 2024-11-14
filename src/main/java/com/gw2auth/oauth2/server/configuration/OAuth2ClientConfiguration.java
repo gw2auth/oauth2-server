@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.configuration;
 
 import com.gw2auth.oauth2.server.service.security.AuthenticationHelper;
 import jakarta.servlet.http.HttpServletRequest;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.autoconfigure.security.oauth2.client.ClientsConfiguredCondition;
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientPropertiesMapper;
@@ -32,7 +33,7 @@ public class OAuth2ClientConfiguration {
     private record CustomClientRegistrationRepository(ClientRegistrationRepository base) implements ClientRegistrationRepository {
 
         @Override
-        public ClientRegistration findByRegistrationId(String registrationId) {
+        public @Nullable ClientRegistration findByRegistrationId(String registrationId) {
             final HttpServletRequest request = AuthenticationHelper.getCurrentRequest().orElseThrow();
             final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(UrlUtils.buildFullRequestUrl(request)).build();
 

@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.adapt;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactoryUtils;
@@ -29,7 +30,7 @@ import java.util.stream.Stream;
 public class CustomOAuth2ServerAuthenticationProviders {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomOAuth2ServerAuthenticationProviders.class);
-    private static final ThreadLocal<Context> CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<@Nullable Context> CONTEXT = new ThreadLocal<>();
 
     private static Optional<Context> getContext() {
         return Optional.ofNullable(CONTEXT.get());
@@ -151,7 +152,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
         );
     }
 
-    private static String resolveRedirectUri(OAuth2AuthorizationRequest authorizationRequest, RegisteredClient registeredClient) {
+    private static @Nullable String resolveRedirectUri(@Nullable OAuth2AuthorizationRequest authorizationRequest, @Nullable RegisteredClient registeredClient) {
         if (authorizationRequest != null && StringUtils.hasText(authorizationRequest.getRedirectUri())) {
             return authorizationRequest.getRedirectUri();
         }
@@ -178,7 +179,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
     }
 
     private static <B extends HttpSecurityBuilder<B>> RegisteredClientRepository getRegisteredClientRepository(B builder) {
-        RegisteredClientRepository registeredClientRepository = builder.getSharedObject(RegisteredClientRepository.class);
+        RegisteredClientRepository registeredClientRepository = builder.<@Nullable RegisteredClientRepository>getSharedObject(RegisteredClientRepository.class);
         if (registeredClientRepository == null) {
             registeredClientRepository = getBean(builder, RegisteredClientRepository.class);
             builder.setSharedObject(RegisteredClientRepository.class, registeredClientRepository);
@@ -187,7 +188,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
     }
 
     private static <B extends HttpSecurityBuilder<B>> OAuth2AuthorizationService getAuthorizationService(B builder) {
-        OAuth2AuthorizationService authorizationService = builder.getSharedObject(OAuth2AuthorizationService.class);
+        OAuth2AuthorizationService authorizationService = builder.<@Nullable OAuth2AuthorizationService>getSharedObject(OAuth2AuthorizationService.class);
         if (authorizationService == null) {
             authorizationService = getOptionalBean(builder, OAuth2AuthorizationService.class);
             if (authorizationService == null) {
@@ -199,7 +200,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
     }
 
     private static <B extends HttpSecurityBuilder<B>> OAuth2AuthorizationConsentService getAuthorizationConsentService(B builder) {
-        OAuth2AuthorizationConsentService authorizationConsentService = builder.getSharedObject(OAuth2AuthorizationConsentService.class);
+        OAuth2AuthorizationConsentService authorizationConsentService = builder.<@Nullable OAuth2AuthorizationConsentService>getSharedObject(OAuth2AuthorizationConsentService.class);
         if (authorizationConsentService == null) {
             authorizationConsentService = getOptionalBean(builder, OAuth2AuthorizationConsentService.class);
             if (authorizationConsentService == null) {
@@ -214,7 +215,7 @@ public class CustomOAuth2ServerAuthenticationProviders {
         return builder.getSharedObject(ApplicationContext.class).getBean(type);
     }
 
-    private static <B extends HttpSecurityBuilder<B>, T> T getOptionalBean(B builder, Class<T> type) {
+    private static <B extends HttpSecurityBuilder<B>, T> @Nullable T getOptionalBean(B builder, Class<T> type) {
         Map<String, T> beansMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(
                 builder.getSharedObject(ApplicationContext.class), type);
         if (beansMap.size() > 1) {

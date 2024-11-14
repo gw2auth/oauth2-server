@@ -24,6 +24,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Batch;
 import com.gw2auth.oauth2.server.util.Pair;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -422,7 +423,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
         }
 
         // the batch to retrieve new subtokens
-        final Batch.Builder<Map<UUID, Gw2SubToken>> batch = Batch.builder();
+        final Batch.Builder<Map<UUID, @Nullable Gw2SubToken>> batch = Batch.builder();
 
         // the overall result of subtokens (both already existing ones and new ones)
         final Map<UUID, String> result = new HashMap<>(gw2AccountIds.size());
@@ -468,11 +469,11 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
         }
 
-        final Map<UUID, Gw2SubToken> newSubtokensResult = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+        final Map<UUID, @Nullable Gw2SubToken> newSubtokensResult = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
         final List<Gw2AccountApiTokenValidUpdate> apiTokenValidityUpdates = new ArrayList<>(newSubtokensResult.size());
         final List<Gw2AccountApiSubtokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(newSubtokensResult.size());
 
-        for (Map.Entry<UUID, Gw2SubToken> entry : newSubtokensResult.entrySet()) {
+        for (Map.Entry<UUID, @Nullable Gw2SubToken> entry : newSubtokensResult.entrySet()) {
             final UUID gw2AccountId = entry.getKey();
 
             try (AccountService.LoggingContext logging = _logging.with(Map.of("gw2_account_id", gw2AccountId))) {
