@@ -10,6 +10,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -182,7 +183,7 @@ public class OAuth2ServerConfiguration {
         private static final AuthenticationSuccessHandler SUCCESS_DELEGATE = new OAuth2AccessTokenResponseAuthenticationSuccessHandler();
         private static final AuthenticationFailureHandler FAILURE_DELEGATE = new OAuth2ErrorAuthenticationFailureHandler();
 
-        private AuthenticationConverter authenticationConverterDelegate;
+        private @Nullable AuthenticationConverter authenticationConverterDelegate;
 
         private OAuth2TokenResponseHandler() {
             this.authenticationConverterDelegate = null;
@@ -193,7 +194,7 @@ public class OAuth2ServerConfiguration {
         }
 
         @Override
-        public Authentication convert(HttpServletRequest request) {
+        public @Nullable Authentication convert(HttpServletRequest request) {
             final Authentication authentication = this.authenticationConverterDelegate.convert(request);
             if (authentication != null) {
                 final Object principal = authentication.getPrincipal();

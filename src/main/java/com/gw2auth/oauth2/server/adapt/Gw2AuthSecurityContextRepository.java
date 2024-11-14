@@ -5,6 +5,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Constants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.context.DeferredSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,7 +46,7 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
         return loadContext(request).get() != null;
     }
 
-    private Supplier<SecurityContext> loadContext(HttpServletRequest request) {
+    private Supplier<@Nullable SecurityContext> loadContext(HttpServletRequest request) {
         return new SecurityContextSupplier(request);
     }
 
@@ -58,7 +59,7 @@ public class Gw2AuthSecurityContextRepository implements SecurityContextReposito
         }
 
         @Override
-        public SecurityContext get() {
+        public @Nullable SecurityContext get() {
             SecurityContext securityContext = null;
 
             final String jwtString = Gw2AuthSecurityContextRepository.this.bearerTokenResolver.resolve(this.request);

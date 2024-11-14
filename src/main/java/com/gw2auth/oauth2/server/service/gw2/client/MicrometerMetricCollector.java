@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.service.gw2.client;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.actuate.metrics.http.Outcome;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpMethod;
@@ -37,11 +38,11 @@ public class MicrometerMetricCollector implements MetricCollector {
         collectMetrics(requestPath, requestQuery, requestHeaders, null, exc, duration);
     }
 
-    private void collectMetrics(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, ResponseEntity<Resource> response, Exception exc, Duration duration) {
+    private void collectMetrics(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, @Nullable ResponseEntity<Resource> response, @Nullable Exception exc, Duration duration) {
         this.meterRegistry.timer(this.metricName, createTags(requestPath, requestQuery, requestHeaders, response, exc)).record(duration);
     }
 
-    private Collection<Tag> createTags(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, ResponseEntity<Resource> response, Exception exc) {
+    private Collection<Tag> createTags(String requestPath, MultiValueMap<String, String> requestQuery, MultiValueMap<String, String> requestHeaders, @Nullable ResponseEntity<Resource> response, @Nullable Exception exc) {
         return List.of(
                 Tag.of("client.name", this.clientName),
                 Tag.of("method", HttpMethod.GET.name()),

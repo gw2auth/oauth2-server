@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
@@ -7,7 +9,7 @@ import java.util.Optional;
 public interface QueryParam {
 
     String name();
-    String value();
+    @Nullable String value();
     boolean hasValue();
 
     default Optional<String> optionalValue() {
@@ -39,7 +41,7 @@ public interface QueryParam {
     record QueryParamWithoutValue(String name) implements QueryParam {
 
         @Override
-        public String value() {
+        public @Nullable String value() {
             return null;
         }
 

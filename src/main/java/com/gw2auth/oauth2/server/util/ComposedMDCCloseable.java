@@ -1,5 +1,6 @@
 package com.gw2auth.oauth2.server.util;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public final class ComposedMDCCloseable implements AutoCloseable {
         return new ComposedMDCCloseable(mdcCloseables);
     }
 
-    private static RuntimeException wrap(RuntimeException first, Exception curr) {
+    private static RuntimeException wrap(@Nullable RuntimeException first, Exception curr) {
         if (first == null) {
             return new RuntimeException(curr);
         }

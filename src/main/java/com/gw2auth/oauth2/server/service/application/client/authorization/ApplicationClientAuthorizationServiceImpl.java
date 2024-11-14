@@ -20,6 +20,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserMixin;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2Mixin;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -252,7 +253,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
     }
 
     @Override
-    public OAuth2Authorization findByToken(String token, OAuth2TokenType tokenType) {
+    public @Nullable OAuth2Authorization findByToken(String token, @Nullable OAuth2TokenType tokenType) {
         final ApplicationClientAuthorizationEntity entity;
 
         if (tokenType == null) {
@@ -336,7 +337,7 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
         return builder.build();
     }
 
-    private Instant getTokenExpiresAt(OAuth2Authorization.Token<?> token) {
+    private @Nullable Instant getTokenExpiresAt(OAuth2Authorization.Token<?> token) {
         final Instant expiresAt;
 
         if (token.isInvalidated()) {

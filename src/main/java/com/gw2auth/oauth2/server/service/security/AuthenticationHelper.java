@@ -4,6 +4,7 @@ import com.gw2auth.oauth2.server.adapt.CookieBearerTokenResolver;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthTokenUserService;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.util.Constants;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Component
 public final class AuthenticationHelper {
 
-    private static AuthenticationHelper instance;
+    private static @Nullable AuthenticationHelper instance;
 
     private final BearerTokenResolver bearerTokenResolver;
     private final Gw2AuthTokenUserService gw2AuthTokenUserService;

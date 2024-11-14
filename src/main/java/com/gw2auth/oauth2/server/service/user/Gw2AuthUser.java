@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.util.Pair;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
@@ -30,20 +31,20 @@ public class Gw2AuthUser implements OAuth2User, OidcUser, Serializable {
 
     private final OAuth2User parent;
     private final UUID accountId;
-    private final Pair<String, String> accountFederation;
+    private final @Nullable Pair<String, String> accountFederation;
 
     public Gw2AuthUser(OAuth2User parent, UUID accountId) {
         this(parent, accountId, null);
     }
 
-    public Gw2AuthUser(OAuth2User parent, UUID accountId, Pair<String, String> accountFederation) {
+    public Gw2AuthUser(OAuth2User parent, UUID accountId, @Nullable Pair<String, String> accountFederation) {
         this.parent = parent;
         this.accountId = accountId;
         this.accountFederation = accountFederation;
     }
 
     @Override
-    public <A> A getAttribute(String name) {
+    public <A> @Nullable A getAttribute(String name) {
         return this.parent.getAttribute(name);
     }
 

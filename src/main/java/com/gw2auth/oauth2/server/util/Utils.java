@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -68,7 +70,7 @@ public class Utils {
         }
 
         @Override
-        public Spliterator<String> trySplit() {
+        public @Nullable Spliterator<String> trySplit() {
             return null;
         }
 

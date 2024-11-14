@@ -2,6 +2,7 @@ package com.gw2auth.oauth2.server.service.user;
 
 import com.gw2auth.oauth2.server.service.security.SessionMetadata;
 import com.gw2auth.oauth2.server.util.Pair;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.AuthenticatedPrincipal;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -24,16 +25,16 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
 
     private final UUID accountId;
     private final Pair<String, String> accountFederation;
-    private final String sessionId;
-    private final SessionMetadata sessionMetadata;
-    private final Instant sessionCreationTime;
-    private final byte[] encryptionKey;
+    private final @Nullable String sessionId;
+    private final @Nullable SessionMetadata sessionMetadata;
+    private final @Nullable Instant sessionCreationTime;
+    private final byte @Nullable [] encryptionKey;
 
     public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer) {
         this(accountId, issuer, idAtIssuer, null, null, null, null);
     }
 
-    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, String sessionId, SessionMetadata sessionMetadata, Instant sessionCreationTime, byte[] encryptionKey) {
+    public Gw2AuthUserV2(UUID accountId, String issuer, String idAtIssuer, @Nullable String sessionId, @Nullable SessionMetadata sessionMetadata, @Nullable Instant sessionCreationTime, byte @Nullable [] encryptionKey) {
         this.accountId = accountId;
         this.accountFederation = new Pair<>(issuer, idAtIssuer);
         this.sessionId = sessionId;
@@ -59,7 +60,7 @@ public class Gw2AuthUserV2 implements OAuth2User, Principal, AuthenticatedPrinci
         return Objects.requireNonNull(this.accountFederation);
     }
 
-    public String getSessionId() {
+    public @Nullable String getSessionId() {
         return this.sessionId;
     }
 

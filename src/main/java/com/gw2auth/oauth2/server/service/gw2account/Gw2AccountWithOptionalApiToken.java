@@ -1,10 +1,11 @@
 package com.gw2auth.oauth2.server.service.gw2account;
 
 import com.gw2auth.oauth2.server.service.gw2account.apitoken.Gw2AccountApiToken;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
-public record Gw2AccountWithOptionalApiToken(Gw2Account account, Gw2AccountApiToken apiToken) {
+public record Gw2AccountWithOptionalApiToken(Gw2Account account, @Nullable Gw2AccountApiToken apiToken) {
 
     /** @deprecated Use {@link #optionalApiToken()} instead */
     @Deprecated

@@ -3,6 +3,7 @@ package com.gw2auth.oauth2.server.service.gw2.client;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -39,7 +40,7 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         try {
             return get(buildInvokeRequest(timeout, buildPayloadJson(path, query, headers)));
         } catch (Exception e) {
@@ -94,7 +95,7 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
         return payloadJson;
     }
 
-    private InvokeRequest buildInvokeRequest(Duration timeout, byte[] payload) {
+    private InvokeRequest buildInvokeRequest(@Nullable Duration timeout, byte[] payload) {
         InvokeRequest.Builder builder = InvokeRequest.builder()
                 .invocationType(InvocationType.REQUEST_RESPONSE)
                 .logType(LogType.NONE)

@@ -1,5 +1,7 @@
 package com.gw2auth.oauth2.server.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -21,7 +23,7 @@ class BatchImpl<ACC> implements Batch<ACC> {
         );
     }
 
-    private ACC safeAccumulator(ACC accumulator, Supplier<? extends ACC> accumulatorSupplier) {
+    private ACC safeAccumulator(@Nullable ACC accumulator, Supplier<? extends ACC> accumulatorSupplier) {
         if (accumulator == null) {
             accumulator = accumulatorSupplier.get();
         }

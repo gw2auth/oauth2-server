@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server;
 
 import jakarta.servlet.http.Cookie;
+import org.jspecify.annotations.Nullable;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultHandler;
@@ -61,7 +62,7 @@ public class SessionHandle implements RequestPostProcessor, ResultHandler {
         this.longitude = longitude;
     }
 
-    public Cookie getCookie(String name) {
+    public @Nullable Cookie getCookie(String name) {
         return this.cookies.get(name);
     }
 

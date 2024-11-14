@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.repository.application.client;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,7 +47,7 @@ public interface ApplicationClientRepository extends BaseRepository<ApplicationC
                                  @Param("application_id") UUID applicationId,
                                  @Param("creation_time") Instant creationTime,
                                  @Param("display_name") String displayName,
-                                 @Param("client_secret") String clientSecret,
+                                 @Param("client_secret") @Nullable String clientSecret,
                                  @Param("authorization_grant_types") Collection<String> authorizationGrantTypes,
                                  @Param("redirect_uris") Collection<String> redirectUris,
                                  @Param("requires_approval") boolean requiresApproval,
