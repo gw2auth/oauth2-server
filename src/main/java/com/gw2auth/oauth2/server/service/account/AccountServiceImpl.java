@@ -244,8 +244,8 @@ public class AccountServiceImpl implements AccountService, Clocked {
             combinedFields.putAll(this.fields);
             combinedFields.putAll(fields);
 
-            try (MDC.MDCCloseable mdc = MDC.putCloseable("account_id", this.accountId.toString())) {
-                try (ComposedMDCCloseable unused = ComposedMDCCloseable.create(combinedFields, this::fieldValueToString)) {
+            try (MDC.MDCCloseable _ = MDC.putCloseable("account_id", this.accountId.toString())) {
+                try (ComposedMDCCloseable _ = ComposedMDCCloseable.create(combinedFields, this::fieldValueToString)) {
                     LOG.info("account log; {}", message);
                 }
             }

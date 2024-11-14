@@ -141,7 +141,7 @@ public class OAuth2ServerConfiguration {
                 .securityContext(securityContextCustomizer)
                 .requestCache(requestCacheCustomizer)
                 .oauth2Login(oauth2LoginCustomizer)
-                .with(configurer, ignored -> {});
+                .with(configurer, _ -> {});
 
         return http.build();
     }
@@ -211,7 +211,7 @@ public class OAuth2ServerConfiguration {
         @Override
         public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
             if (authentication instanceof OAuth2AccessTokenAuthenticationToken token) {
-                try (MDC.MDCCloseable _unused = MDC.putCloseable("client_id", token.getRegisteredClient().getClientId())) {
+                try (MDC.MDCCloseable _ = MDC.putCloseable("client_id", token.getRegisteredClient().getClientId())) {
                     LOG.info("oauth2 token request succeeded");
                 }
             }
@@ -222,13 +222,13 @@ public class OAuth2ServerConfiguration {
         @Override
         public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
             if (exception instanceof OAuth2AuthenticationException oauth2AuthenticationException) {
-                try (MDC.MDCCloseable _unused = MDC.putCloseable("client_id", getClientId(request))) {
+                try (MDC.MDCCloseable _ = MDC.putCloseable("client_id", getClientId(request))) {
                     final OAuth2Error error = oauth2AuthenticationException.getError();
                     final String errorCode = error.getErrorCode();
                     final String errorDescription = Optional.ofNullable(error.getDescription()).orElse("UNKNOWN");
 
-                    try (MDC.MDCCloseable __unused = MDC.putCloseable("error_code", oauth2AuthenticationException.getError().getErrorCode())) {
-                        try (MDC.MDCCloseable ___unused = MDC.putCloseable("error_description", oauth2AuthenticationException.getError().getDescription())) {
+                    try (MDC.MDCCloseable _ = MDC.putCloseable("error_code", oauth2AuthenticationException.getError().getErrorCode())) {
+                        try (MDC.MDCCloseable _ = MDC.putCloseable("error_description", oauth2AuthenticationException.getError().getDescription())) {
                             LOG.info("oauth2 token request failed", oauth2AuthenticationException);
                         }
                     }
