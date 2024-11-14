@@ -164,9 +164,10 @@ public class Gw2AuthLoginExtension implements BeforeEachCallback, AfterEachCallb
 
         final String location = Objects.requireNonNull(result.getResponse().getRedirectedUrl());
         final String state = Utils.parseQuery(new URI(location).parseServerAuthority().getRawQuery())
-                .filter(QueryParam::hasValue)
+                .map(queryParam -> queryParam instanceof QueryParam.QueryParamWithValue qpwv ? qpwv : null)
+                .filter(Objects::nonNull)
                 .filter((queryParam) -> queryParam.name().equals(OAuth2ParameterNames.STATE))
-                .map(QueryParam::value)
+                .map(QueryParam.QueryParamWithValue::value)
                 .findFirst()
                 .orElseThrow();
 

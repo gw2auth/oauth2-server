@@ -1,24 +1,11 @@
 package com.gw2auth.oauth2.server.util;
 
-import org.jspecify.annotations.Nullable;
-
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
-public interface QueryParam {
+public sealed interface QueryParam {
 
     String name();
-    @Nullable String value();
-    boolean hasValue();
-
-    default Optional<String> optionalValue() {
-        if (hasValue()) {
-            return Optional.of(value());
-        } else {
-            return Optional.empty();
-        }
-    }
 
     static QueryParam parse(String rawPair) {
         final String[] pair = Utils.split(rawPair, "=", 2).map((part) -> URLDecoder.decode(part, StandardCharsets.UTF_8)).toArray(String[]::new);
@@ -30,24 +17,7 @@ public interface QueryParam {
         }
     }
 
-    record QueryParamWithValue(String name, String value) implements QueryParam {
+    record QueryParamWithValue(String name, String value) implements QueryParam {}
 
-        @Override
-        public boolean hasValue() {
-            return true;
-        }
-    }
-
-    record QueryParamWithoutValue(String name) implements QueryParam {
-
-        @Override
-        public @Nullable String value() {
-            return null;
-        }
-
-        @Override
-        public boolean hasValue() {
-            return false;
-        }
-    }
+    record QueryParamWithoutValue(String name) implements QueryParam {}
 }
