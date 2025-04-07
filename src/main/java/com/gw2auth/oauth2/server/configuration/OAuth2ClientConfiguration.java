@@ -35,7 +35,7 @@ public class OAuth2ClientConfiguration {
         @Override
         public @Nullable ClientRegistration findByRegistrationId(String registrationId) {
             final HttpServletRequest request = AuthenticationHelper.getCurrentRequest().orElseThrow();
-            final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(UrlUtils.buildFullRequestUrl(request)).build();
+            final UriComponents uriComponents = UriComponentsBuilder.fromUriString(UrlUtils.buildFullRequestUrl(request)).build();
 
             return Optional.ofNullable(uriComponents.getHost())
                     .flatMap((host) -> findBase(registrationId + "@" + host))
@@ -53,7 +53,7 @@ public class OAuth2ClientConfiguration {
 
             final String issuerUri = base.getProviderDetails().getIssuerUri();
             if (issuerUri != null && !issuerUri.isEmpty()) {
-                final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(issuerUri).build();
+                final UriComponents uriComponents = UriComponentsBuilder.fromUriString(issuerUri).build();
                 final String host = uriComponents.getHost();
 
                 if (host != null) {
@@ -70,7 +70,7 @@ public class OAuth2ClientConfiguration {
             // GitHub provider details dont have a issuer uri, use authorization uri for detection instead
             final String authorizationUri = base.getProviderDetails().getAuthorizationUri();
             if (authorizationUri != null && !authorizationUri.isEmpty()) {
-                final UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(authorizationUri).build();
+                final UriComponents uriComponents = UriComponentsBuilder.fromUriString(authorizationUri).build();
                 final String host = uriComponents.getHost();
 
                 if (Objects.equals(host, "github.com")) {
@@ -83,7 +83,7 @@ public class OAuth2ClientConfiguration {
 
         private static ClientRegistration changeAuthorizationURLCognito(ClientRegistration base) {
             // https://docs.aws.amazon.com/cognito/latest/developerguide/logout-endpoint.html
-            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+            final String authorizationUri = UriComponentsBuilder.fromUriString(base.getProviderDetails().getAuthorizationUri())
                     .replacePath("/logout")
                     .toUriString();
 
@@ -95,7 +95,7 @@ public class OAuth2ClientConfiguration {
         private static ClientRegistration changeAuthorizationURLGitHubOrGoogle(ClientRegistration base) {
             // https://developers.google.com/identity/openid-connect/openid-connect?hl=de#authenticationuriparameters
             // https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#1-request-a-users-github-identity
-            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+            final String authorizationUri = UriComponentsBuilder.fromUriString(base.getProviderDetails().getAuthorizationUri())
                     .replaceQueryParam("prompt", "select_account")
                     .toUriString();
 
@@ -106,7 +106,7 @@ public class OAuth2ClientConfiguration {
 
         private static ClientRegistration changeAuthorizationURLGw2auth(ClientRegistration base) {
             // https://github.com/gw2auth/oauth2-server/wiki/GW2Auth-Developer-Guide#redirect-the-user-to-the-authorization_endpoint
-            final String authorizationUri = UriComponentsBuilder.fromHttpUrl(base.getProviderDetails().getAuthorizationUri())
+            final String authorizationUri = UriComponentsBuilder.fromUriString(base.getProviderDetails().getAuthorizationUri())
                     .replaceQueryParam("prompt", "consent")
                     .toUriString();
 

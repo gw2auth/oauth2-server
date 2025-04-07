@@ -139,7 +139,7 @@ public class OAuth2ConsentController extends AbstractRestController {
     @GetMapping(value = "/api/oauth2/consent-deny")
     public ResponseEntity<Void> consentDeny(@RequestParam(OAuth2ParameterNames.STATE) String state) {
         final URI redirectUri = findRequestByState(state).map(OAuth2AuthorizationRequest::getRedirectUri)
-                .map(UriComponentsBuilder::fromHttpUrl)
+                .map(UriComponentsBuilder::fromUriString)
                 .map((v) -> {
                     return v
                             .replaceQueryParam(OAuth2ParameterNames.STATE, state)
