@@ -35,6 +35,6 @@ public abstract class AbstractRestController {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ApiErrorResponse(exc.getClass().getSimpleName(), "An unknown error occured while processing your request"));
+                .body(new ApiErrorResponse(exc.getClass().getSimpleName(), "An unknown error occurred while processing your request"));
     }
 }
