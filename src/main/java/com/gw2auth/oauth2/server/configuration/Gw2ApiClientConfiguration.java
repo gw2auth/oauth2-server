@@ -33,8 +33,8 @@ public class Gw2ApiClientConfiguration {
 
         final RestTemplate restTemplate = restTemplateBuilder
                 .rootUri("https://api.guildwars2.com")
-                .setConnectTimeout(CONNECT_TIMEOUT)
-                .setReadTimeout(READ_TIMEOUT)
+                .connectTimeout(CONNECT_TIMEOUT)
+                .readTimeout(READ_TIMEOUT)
                 .build();
 
         final List<Gw2ApiClient> chain = new ArrayList<>(awsLambdaProxyARNs.size() + 1);
