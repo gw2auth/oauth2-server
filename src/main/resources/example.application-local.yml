@@ -37,9 +37,20 @@ com.gw2auth:
         - issuer: "google"
           id-at-issuer: ${GW2AUTH_USER_ID}
   session:
-    key:
-      id: "generate"
-      path: "generate"
+    # Must match those configured in https://github.com/gw2auth/gw2auth.com-api/blob/main/main.go
+    # oauth2-server uses session_id_rsa_1 to issue session tokens
+    # gw2auth.com-api uses session_id_rsa_2 to issue session tokens
+    # the public keys are configured for both, the private key is only configured for the issuing party
+    # also make sure the IDs match
+    priv:
+      id: "0412f229-a208-45d1-8c00-93f1ff92d24b"
+      path: "/Users/felix/.gw2auth/session_id_rsa_1"
+    pub1:
+      id: "0412f229-a208-45d1-8c00-93f1ff92d24b"
+      path: "/Users/felix/.gw2auth/session_id_rsa_1.pub"
+    pub2:
+      id: "dbb703c6-87ec-4329-844e-01d03e373dac"
+      path: "/Users/felix/.gw2auth/session_id_rsa_2.pub"
   oauth2:
     keypair:
       id: "generate"

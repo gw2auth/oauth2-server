@@ -24,6 +24,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.List;
 
 public final class JWKHelper {
 
@@ -108,6 +109,19 @@ public final class JWKHelper {
         keyPairGenerator.initialize(2048);
 
         return keyPairGenerator.generateKeyPair();
+    }
+
+    public static void main(String[] args) throws Exception {
+        final String userHome = System.getProperty("user.home");
+        if (userHome == null) {
+            throw new IllegalStateException("user.home is null");
+        }
+
+        final Path gw2authConfigBasePath = Paths.get(userHome).resolve(".gw2auth");
+        for (String name : List.of("session_id_rsa_1", "session_id_rsa_2")) {
+            final KeyPair keyPair = generateRsaKeyPair();
+            writeKeyPair(keyPair, gw2authConfigBasePath.resolve(name), gw2authConfigBasePath.resolve(name + ".pub"));
+        }
     }
 
     public static void writeKeyPair(KeyPair keyPair, Path privateKeyPath, Path publicKeyPath) throws Exception {
