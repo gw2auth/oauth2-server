@@ -469,7 +469,7 @@ public class OAuth2TokenCustomizerService implements OAuth2TokenCustomizer<JwtEn
             }
         }
 
-        final Map<UUID, @Nullable Gw2SubToken> newSubtokensResult = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 10L, TimeUnit.SECONDS);
+        final Map<UUID, @Nullable Gw2SubToken> newSubtokensResult = batch.build().execute(this.gw2ApiClientExecutorService, HashMap::new, 15L, TimeUnit.SECONDS);
         final List<Gw2AccountApiTokenValidUpdate> apiTokenValidityUpdates = new ArrayList<>(newSubtokensResult.size());
         final List<Gw2AccountApiSubtokenEntity> apiSubTokenEntitiesToSave = new ArrayList<>(newSubtokensResult.size());
 

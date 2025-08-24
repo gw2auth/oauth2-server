@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 public class Gw2ApiClientConfiguration {
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3L);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5L);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10L);
 
     @Bean
     public Gw2ApiClient gw2ApiClient(RestTemplateBuilder restTemplateBuilder,

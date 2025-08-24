@@ -3,10 +3,13 @@ package com.gw2auth.oauth2.server.service.gw2.client;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import software.amazon.awssdk.core.SdkBytes;
@@ -57,7 +60,14 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
                 payload = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             }
 
-            throw new RuntimeException(lambdaResponse.functionError() + ": " + payload);
+            try {
+                final JSONObject errorResponseObj = new JSONObject(payload);
+                if (errorResponseObj.has("errorType") && errorResponseObj.optString("errorType").equals("Sandbox.Timedout")) {
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
+            } catch (JSONException e) {
+                throw new RuntimeException(lambdaResponse.functionError() + ": " + payload);
+            }
         }
 
         final int statusCode;
@@ -107,6 +117,11 @@ public class AwsLambdaGw2ApiClient implements Gw2ApiClient {
         }
 
         return builder.build();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s[%s]", getClass().getSimpleName(), this.functionName);
     }
 
     record LambdaRequestPayload(@JsonProperty("path") String path, @JsonProperty("query") Map<String, String> query, @JsonProperty("headers") Map<String, String> headers) {}

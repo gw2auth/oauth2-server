@@ -68,13 +68,15 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
                         response = clientAndMetadata.client.get(Duration.between(now, timeoutAt), path, query, headers);
                     }
                 } catch (Exception e) {
-                    LOG.warn("unexpected exception thrown in gw2 api request chain", e);
+                    LOG.warn("unexpected exception thrown in gw2 api request chain (client {})", clientAndMetadata.client, e);
                 }
 
                 if (response != null) {
                     if (response.getStatusCode() == HttpStatus.REQUEST_TIMEOUT) {
                         response = null;
                     } else if (response.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                        LOG.info("client {} got a 429; cooling down",  clientAndMetadata.client);
+
                         clientAndMetadata.cooldownUntil = Instant.now().plus(this.cooldownDuration);
                         response = null;
                     }
