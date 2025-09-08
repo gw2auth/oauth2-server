@@ -20,6 +20,7 @@ import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserMixin;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2Mixin;
+import com.gw2auth.oauth2.server.util.ComposedMDCCloseable;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,7 +184,8 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
                 refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getTokenValue).orElse(null),
                 refreshToken.map(OAuth2Authorization.Token::getToken).map(AbstractOAuth2Token::getIssuedAt).orElse(null),
                 refreshToken.map(this::getTokenExpiresAt).orElse(null),
-                refreshToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null)
+                refreshToken.map(OAuth2Authorization.Token::getMetadata).map(this::writeJson).orElse(null),
+                null
         ));
 
         if (this.authorizationCodeParamAccessor.isInCodeRequest()) {
@@ -269,6 +271,26 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
         }
 
         if (entity == null) {
+            LOG.info(
+                    "could not find authorization for token=[{}] tokenType={}",
+                    token,
+                    Optional.ofNullable(tokenType).map(OAuth2TokenType::getValue).orElse(null)
+            );
+            return null;
+        } else if (entity.invalidationStatus() != null) {
+            try (ComposedMDCCloseable _ = ComposedMDCCloseable.create(Map.of("client_id", entity.applicationClientId().toString(), "account_id", entity.accountId().toString()))) {
+                LOG.info(
+                        "invalidated authorization found for token=[{}] tokenType={}; id={} invalidationStatus={} creationTime={} lastUpdateTime={} accessTokenExpiresAt={} refreshTokenExpiresAt={}",
+                        token,
+                        Optional.ofNullable(tokenType).map(OAuth2TokenType::getValue).orElse(null),
+                        entity.id(),
+                        entity.invalidationStatus(),
+                        entity.creationTime(),
+                        entity.lastUpdateTime(),
+                        entity.accessTokenExpiresAt(),
+                        entity.refreshTokenExpiresAt()
+                );
+            }
             return null;
         }
 

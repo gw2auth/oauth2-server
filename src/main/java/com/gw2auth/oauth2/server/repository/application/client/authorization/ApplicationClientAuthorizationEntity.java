@@ -32,6 +32,7 @@ public record ApplicationClientAuthorizationEntity(@Column("id") String id,
                                                    @Column("refresh_token_value") @Nullable String refreshTokenValue,
                                                    @Column("refresh_token_issued_at") @Nullable Instant refreshTokenIssuedAt,
                                                    @Column("refresh_token_expires_at") @Nullable Instant refreshTokenExpiresAt,
-                                                   @Column("refresh_token_metadata") @Nullable String refreshTokenMetadata) {
+                                                   @Column("refresh_token_metadata") @Nullable String refreshTokenMetadata,
+                                                   @Column("invalidation_status") @Nullable String invalidationStatus) {
 
 }

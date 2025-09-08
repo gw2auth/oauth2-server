@@ -154,6 +154,7 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     ON auth.id = auth_acc.application_client_authorization_id
     WHERE auth.account_id = :account_id
     AND auth.application_client_id = :application_client_id
+    AND auth.invalidation_status IS NULL
     GROUP BY auth.id
     """)
     List<ApplicationClientAuthorizationWithGw2AccountIdsEntity> findAllWithGw2AccountIdsByAccountIdAndApplicationClientId(@Param("account_id") UUID accountId, @Param("application_client_id") UUID applicationClientId);
@@ -166,6 +167,7 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
         WHERE account_id = :account_id
         AND application_client_id = :application_client_id
         AND authorized_scopes @> ARRAY[ :authorized_scopes ]::TEXT[]
+        AND invalidation_status IS NULL
         ORDER BY creation_time DESC
         LIMIT 1
     ) auth
@@ -195,17 +197,24 @@ public interface ApplicationClientAuthorizationRepository extends BaseRepository
     ON auth.id = auth_acc.application_client_authorization_id
     WHERE auth.id = :id
     AND auth.account_id = :account_id
+    AND auth.invalidation_status IS NULL
     GROUP BY auth.id
     """)
     Optional<ApplicationClientAuthorizationWithGw2AccountIdsEntity> findWithGw2AccountIdsByIdAndAccountId(@Param("id") String id, @Param("account_id") UUID accountId);
 
     @Modifying
-    @Query("DELETE FROM application_client_authorizations WHERE id = :id AND account_id = :account_id")
+    @Query("""
+    UPDATE application_client_authorizations
+    SET invalidation_status = 'REMOVED'
+    WHERE id = :id
+    AND account_id = :account_id
+    """)
     boolean deleteByIdAndAccountId(@Param("id") String id, @Param("account_id") UUID accountId);
 
     @Modifying
     @Query("""
-    DELETE FROM application_client_authorizations
+    UPDATE application_client_authorizations
+    SET invalidation_status = 'EXPIRED'
     WHERE COALESCE(GREATEST(authorization_code_expires_at, access_token_expires_at, refresh_token_expires_at), (last_update_time + INTERVAL '1 DAY')) <= :now
     """)
     int deleteAllExpired(@Param("now") Instant now);
