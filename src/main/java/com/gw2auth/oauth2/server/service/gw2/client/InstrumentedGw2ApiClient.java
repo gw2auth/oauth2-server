@@ -28,6 +28,11 @@ public class InstrumentedGw2ApiClient implements Gw2ApiClient {
         return getWithMetrics(timeout, path, query, headers);
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s[%s]", getClass().getSimpleName(), this.client);
+    }
+
     private ResponseEntity<Resource> getWithMetrics(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
         final Instant start = Instant.now();
         try {

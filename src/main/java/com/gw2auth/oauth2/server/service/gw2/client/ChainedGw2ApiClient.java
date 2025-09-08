@@ -10,10 +10,8 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ChainedGw2ApiClient implements Gw2ApiClient {
 
@@ -90,6 +88,11 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
         }
 
         return response;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s[%s]", getClass().getSimpleName(), this.chain.stream().map(Objects::toString).collect(Collectors.joining(",")));
     }
 
     private static class ClientAndMetadata {
