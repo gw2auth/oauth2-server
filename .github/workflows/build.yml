@@ -26,7 +26,7 @@ jobs:
       - name: 'Build'
         run: ./mvnw clean package
       - name: 'Upload artifact'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.WORKSPACE_ARTIFACT }}
           path: |
@@ -42,7 +42,7 @@ jobs:
       - build_jar
     steps:
       - name: 'Download artifact'
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ env.WORKSPACE_ARTIFACT }}
           path: .
