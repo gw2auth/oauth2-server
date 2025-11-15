@@ -95,6 +95,27 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
         return String.format("%s[%s]", getClass().getSimpleName(), this.chain.stream().map(Objects::toString).collect(Collectors.joining(",")));
     }
 
+    @Override
+    public void close() throws Exception {
+        Exception exc = null;
+
+        for (ClientAndMetadata clientAndMetadata : this.chain) {
+            try {
+                clientAndMetadata.client.close();
+            } catch (Exception e) {
+                if (exc == null) {
+                    exc = e;
+                } else {
+                    exc.addSuppressed(e);
+                }
+            }
+        }
+
+        if (exc != null) {
+            throw exc;
+        }
+    }
+
     private static class ClientAndMetadata {
 
         private final Gw2ApiClient client;

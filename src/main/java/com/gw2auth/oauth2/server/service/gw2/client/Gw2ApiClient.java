@@ -6,7 +6,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.Duration;
 
-public interface Gw2ApiClient {
+public interface Gw2ApiClient extends AutoCloseable {
 
     ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers);
     ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers);

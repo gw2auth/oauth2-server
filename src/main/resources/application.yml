@@ -10,8 +10,7 @@ com.gw2auth:
         prefix: "oauth2/addfederation/"
   gw2:
     client:
-      aws-lambda-proxy:
-        arns: ${AWS_LAMBDA_PROXY_ARNS}
+      proxy-hosts: ${GW2_API_PROXY_HOSTS}
   token:
     name-check:
       interval: ${GW2AUTH_TOKEN_NAME_CHECK_INTERVAL}

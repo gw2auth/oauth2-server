@@ -70,4 +70,9 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
 
         return response;
     }
+
+    @Override
+    public void close() throws Exception {
+        // noop
+    }
 }

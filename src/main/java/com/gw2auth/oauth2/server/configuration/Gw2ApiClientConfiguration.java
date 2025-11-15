@@ -1,22 +1,23 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gw2auth.oauth2.server.service.gw2.client.*;
+import com.gw2auth.oauth2.server.util.AllowAlternateDomainX509TrustManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
-import software.amazon.awssdk.arns.Arn;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.lambda.LambdaClient;
 
+import javax.net.ssl.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 @Configuration
 public class Gw2ApiClientConfiguration {
@@ -24,36 +25,49 @@ public class Gw2ApiClientConfiguration {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3L);
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(10L);
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public Gw2ApiClient gw2ApiClient(RestTemplateBuilder restTemplateBuilder,
-                                     ObjectMapper objectMapper,
-                                     @Value("${com.gw2auth.gw2.client.aws-lambda-proxy.arns}") List<String> awsLambdaProxyARNs,
+                                     @Value("${com.gw2auth.gw2.client.proxy-hosts}") List<String> proxyHosts,
                                      @Value("${management.endpoint.prometheus.enabled:false}") boolean metricsEnabled,
-                                     MeterRegistry meterRegistry) {
+                                     MeterRegistry meterRegistry) throws Exception {
 
-        final RestTemplate restTemplate = restTemplateBuilder
-                .rootUri("https://api.guildwars2.com")
-                .connectTimeout(CONNECT_TIMEOUT)
-                .readTimeout(READ_TIMEOUT)
-                .build();
-
-        final List<Gw2ApiClient> chain = new ArrayList<>(awsLambdaProxyARNs.size() + 1);
-        chain.add(new InstrumentedGw2ApiClient(
-                new RestOperationsGw2ApiClient(restTemplate),
+        final Gw2ApiClient localApiClient = new InstrumentedGw2ApiClient(
+                new RestOperationsGw2ApiClient(
+                        restTemplateBuilder
+                                .rootUri("https://api.guildwars2.com")
+                                .connectTimeout(CONNECT_TIMEOUT)
+                                .readTimeout(READ_TIMEOUT)
+                                .build()
+                ),
                 createMetricCollector(metricsEnabled, meterRegistry, "http.local")
-        ));
+        );
 
-        for (String awsLambdaProxyARN : awsLambdaProxyARNs) {
-            final LambdaClient lambdaClient = createLambdaClientForARN(awsLambdaProxyARN);
+        final List<Gw2ApiClient> chain = new ArrayList<>(proxyHosts.size() + 1);
+        chain.add(localApiClient);
 
-            chain.add(new InstrumentedGw2ApiClient(
-                    new AwsLambdaGw2ApiClient(
-                            lambdaClient,
-                            awsLambdaProxyARN,
-                            objectMapper
-                    ),
-                    createMetricCollector(metricsEnabled, meterRegistry, "lambda." + Arn.fromString(awsLambdaProxyARN).region().orElseThrow())
-            ));
+        if (!proxyHosts.isEmpty()) {
+            System.setProperty("jdk.httpclient.allowRestrictedHeaders", "host");
+
+            final Function<HttpRequest.Builder, HttpRequest> requestFinalizer = (builder) -> builder
+                    .setHeader("Host", "api.guildwars2.com")
+                    .build();
+
+            for (String proxyHost : proxyHosts) {
+                final TrustManager[] trustAlternateDomain = new TrustManager[]{new AllowAlternateDomainX509TrustManager(proxyHost)};
+                final SSLContext sslContext = SSLContext.getInstance("SSL");
+                sslContext.init(null, trustAlternateDomain, new SecureRandom());
+
+                final HttpClient httpClient = HttpClient.newBuilder()
+                        .sslContext(sslContext)
+                        .version(HttpClient.Version.HTTP_1_1)
+                        .connectTimeout(CONNECT_TIMEOUT)
+                        .build();
+
+                chain.add(new InstrumentedGw2ApiClient(
+                        new HttpClientGw2ApiClient(httpClient, "https://" + proxyHost, requestFinalizer),
+                        createMetricCollector(metricsEnabled, meterRegistry, "http." + proxyHost)
+                ));
+            }
         }
 
         return new InstrumentedGw2ApiClient(
@@ -68,17 +82,6 @@ public class Gw2ApiClientConfiguration {
         }
 
         return new MicrometerMetricCollector(meterRegistry, "gw2_api_requests", clientName);
-    }
-
-    private LambdaClient createLambdaClientForARN(String awsLambdaProxyARN) {
-        final Region region = Arn.fromString(awsLambdaProxyARN).region()
-                .map(Region::of)
-                .orElseThrow();
-
-        return LambdaClient.builder()
-                .region(region)
-                .overrideConfiguration((config) -> config.apiCallTimeout(READ_TIMEOUT))
-                .build();
     }
 
     @Bean("gw2-api-client-executor-service")

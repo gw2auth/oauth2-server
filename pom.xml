@@ -6,7 +6,7 @@
 
     <groupId>com.gw2auth</groupId>
     <artifactId>oauth2-server</artifactId>
-    <version>1.94.0</version>
+    <version>1.95.0</version>
     <packaging>jar</packaging>
 
     <parent>
@@ -130,11 +130,6 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>lambda</artifactId>
         </dependency>
 
         <dependency>

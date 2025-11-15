@@ -50,4 +50,9 @@ public class InstrumentedGw2ApiClient implements Gw2ApiClient {
             throw e;
         }
     }
+
+    @Override
+    public void close() throws Exception {
+        this.client.close();
+    }
 }
