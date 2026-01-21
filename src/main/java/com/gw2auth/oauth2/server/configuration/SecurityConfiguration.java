@@ -20,9 +20,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
@@ -32,6 +34,7 @@ import org.springframework.security.oauth2.client.web.AuthorizationRequestReposi
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -39,7 +42,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.CookieRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -185,7 +188,7 @@ public class SecurityConfiguration {
 
     @Bean("auth-request-matcher")
     public RequestMatcher authRequestMatcher() {
-        return new AntPathRequestMatcher("/auth/**");
+        return PathPatternRequestMatcher.pathPattern("/auth/**");
     }
 
     @Bean
@@ -220,7 +223,7 @@ public class SecurityConfiguration {
 
     @Bean("api-request-matcher")
     public RequestMatcher apiRequestMatcher() {
-        return new AntPathRequestMatcher("/api/**");
+        return PathPatternRequestMatcher.pathPattern("/api/**");
     }
 
     @Bean
@@ -237,6 +240,9 @@ public class SecurityConfiguration {
                             .requestMatchers("/api/authinfo", "/api/application/summary").permitAll()
                             .anyRequest().authenticated();
                 })
+                .exceptionHandling((exc) -> {
+                    exc.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.FORBIDDEN));
+                })
                 .csrf(csrfCustomizer)
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .securityContext(securityContextCustomizer);
@@ -247,7 +253,7 @@ public class SecurityConfiguration {
     @Bean("actuator-request-matcher")
     @ConditionalOnExpression("${management.endpoint.prometheus.enabled:false} && ${management.server.port:${server.port:8080}} != ${server.port:8080}")
     public RequestMatcher actuatorRequestMatcher() {
-        return new AntPathRequestMatcher("/actuator/prometheus");
+        return PathPatternRequestMatcher.pathPattern("/actuator/prometheus");
     }
 
     @Bean

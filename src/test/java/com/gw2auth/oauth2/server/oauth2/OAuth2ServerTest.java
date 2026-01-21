@@ -46,8 +46,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -187,14 +187,14 @@ public class OAuth2ServerTest {
                 .andExpect(jsonPath("$.issuer").isString())
                 .andExpect(jsonPath("$.authorization_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/authorize")))
                 .andExpect(jsonPath("$.token_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/token")))
-                .andExpect(jsonPath("$.token_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
+                .andExpect(jsonPath("$.token_endpoint_auth_methods_supported").value(containingAll("client_secret_basic", "client_secret_post", "client_secret_jwt", "private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
                 .andExpect(jsonPath("$.jwks_uri").value(org.hamcrest.Matchers.endsWith("/oauth2/jwks")))
                 .andExpect(jsonPath("$.response_types_supported").value(containingAll("code")))
-                .andExpect(jsonPath("$.grant_types_supported").value(containingAll("authorization_code","client_credentials","refresh_token","urn:ietf:params:oauth:grant-type:device_code", "urn:ietf:params:oauth:grant-type:token-exchange")))
+                .andExpect(jsonPath("$.grant_types_supported").value(containingAll("authorization_code", "client_credentials", "refresh_token", "urn:ietf:params:oauth:grant-type:token-exchange")))
                 .andExpect(jsonPath("$.revocation_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/revoke")))
-                .andExpect(jsonPath("$.revocation_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
+                .andExpect(jsonPath("$.revocation_endpoint_auth_methods_supported").value(containingAll("client_secret_basic", "client_secret_post", "client_secret_jwt", "private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
                 .andExpect(jsonPath("$.introspection_endpoint").value(org.hamcrest.Matchers.endsWith("/oauth2/introspect")))
-                .andExpect(jsonPath("$.introspection_endpoint_auth_methods_supported").value(containingAll("client_secret_basic","client_secret_post","client_secret_jwt","private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
+                .andExpect(jsonPath("$.introspection_endpoint_auth_methods_supported").value(containingAll("client_secret_basic", "client_secret_post", "client_secret_jwt", "private_key_jwt", "tls_client_auth", "self_signed_tls_client_auth")))
                 .andExpect(jsonPath("$.code_challenge_methods_supported").value(containingAll("S256")))
                 // oidc not expected
                 .andExpect(jsonPath("$.subject_types_supported").doesNotExist())
@@ -2392,7 +2392,7 @@ public class OAuth2ServerTest {
         if (applicationClient.type() == OAuth2ClientType.CONFIDENTIAL) {
             builder = builder.part(part(OAuth2ParameterNames.CLIENT_SECRET, clientSecret));
         } else {
-            // builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
+            builder = builder.queryParam("code_verifier", generateCodeChallenge(applicationClient));
         }
 
         return this.mockMvc.perform(builder);
@@ -2907,7 +2907,7 @@ public class OAuth2ServerTest {
             throw new RuntimeException(e);
         }
 
-        final byte[] bytes = md.digest(codeChallenge.getBytes(StandardCharsets.UTF_8));
+        final byte[] bytes = md.digest(codeChallenge.getBytes(StandardCharsets.US_ASCII));
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 

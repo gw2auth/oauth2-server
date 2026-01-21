@@ -12,8 +12,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -92,6 +92,7 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
         // prepare the mock server for the upcoming account request
+        this.gw2RestServer.reset();
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(matchAuthorizedRequest(gw2ApiToken))
@@ -150,6 +151,7 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
         // prepare the mock server for the upcoming account request
+        this.gw2RestServer.reset();
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(matchAuthorizedRequest(gw2ApiToken))
@@ -204,6 +206,7 @@ class Gw2AccountApiTokenServiceImplTest {
         assertEquals("Felix.9127 (Main)", gw2AccountEntity.displayName());
 
         // prepare the mock server for the upcoming account request
+        this.gw2RestServer.reset();
         this.gw2RestServer.expect(times(1), requestTo(new StringStartsWith("/v2/account")))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(matchAuthorizedRequest(gw2ApiToken))

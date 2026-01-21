@@ -2,10 +2,7 @@ package com.gw2auth.oauth2.server.service.gw2.client;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
@@ -26,16 +23,16 @@ public class RestOperationsGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         return getInternal(path, query, headers);
     }
 
     @Override
-    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         return getInternal(path, query, headers);
     }
 
-    private ResponseEntity<Resource> getInternal(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    private ResponseEntity<Resource> getInternal(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromPath(path);
         final Map<String, String> params = new HashMap<>(query.size());
         int i = 0;
