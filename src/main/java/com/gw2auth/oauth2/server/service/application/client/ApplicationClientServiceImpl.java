@@ -9,6 +9,7 @@ import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.OAuth2ClientType;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
+import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessorImpl;
 import com.gw2auth.oauth2.server.util.UriPatternMatch;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -68,6 +69,11 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
         this.passwordEncoder = passwordEncoder;
         this.authorizationCodeParamAccessor = authorizationCodeParamAccessor;
         this.clock = Clock.systemUTC();
+
+        if (this.authorizationCodeParamAccessor instanceof AuthorizationCodeParamAccessorImpl accessor) {
+            // hacky, happy for a workaround
+            accessor.setRegisteredClientRepository(this);
+        }
     }
 
     @Override
@@ -193,7 +199,12 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 .clientId(entity.id().toString())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(redirectUris))
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+                .clientSettings(
+                        ClientSettings.builder()
+                                .requireAuthorizationConsent(true)
+                                .requireProofKey(OAuth2ClientType.valueOf(entity.type()) == OAuth2ClientType.PUBLIC)
+                                .build()
+                )
                 .tokenSettings(
                         TokenSettings.builder()
                                 .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
@@ -213,7 +224,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                     .clientSecret(Objects.requireNonNull(entity.clientSecret()))
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST);
-            case PUBLIC -> builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE);
+            case PUBLIC -> builder
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.NONE);
         }
 
         final OAuth2ClientApiVersion clientApiVersion = OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion());

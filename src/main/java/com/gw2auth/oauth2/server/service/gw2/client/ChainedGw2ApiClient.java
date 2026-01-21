@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
@@ -37,12 +38,12 @@ public class ChainedGw2ApiClient implements Gw2ApiClient {
     }
 
     @Override
-    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         return get(null, path, query, headers);
     }
 
     @Override
-    public ResponseEntity<Resource> get(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(@Nullable Duration timeout, String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         final Instant timeoutAt;
         if (timeout == null) {
             timeoutAt = Instant.MAX;

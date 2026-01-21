@@ -18,9 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
@@ -40,7 +38,6 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@EnableRetry
 @RestController
 public class OAuth2ConsentController extends AbstractRestController {
 
@@ -158,8 +155,10 @@ public class OAuth2ConsentController extends AbstractRestController {
     }
 
     @Retryable(
-            retryFor = NoSuchElementException.class,
-            backoff = @Backoff(delay = 500, multiplier = 1.5, maxDelay = 5000)
+            includes = NoSuchElementException.class,
+            delay = 500L,
+            multiplier = 1.5,
+            maxDelay = 5000L
     )
     private OAuth2AuthorizationRequest mustFindRequestByState(String state) {
         return findRequestByState(state).orElseThrow();

@@ -16,6 +16,7 @@ import com.gw2auth.oauth2.server.service.OAuth2ClientApiVersion;
 import com.gw2auth.oauth2.server.service.OAuth2Scope;
 import com.gw2auth.oauth2.server.service.account.AccountService;
 import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
+import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessorImpl;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUser;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserMixin;
 import com.gw2auth.oauth2.server.service.user.Gw2AuthUserV2;
@@ -95,6 +96,11 @@ public class ApplicationClientAuthorizationServiceImpl implements ApplicationCli
         this.objectMapper.registerModule(new LinkedHashSetJackson2Module());
         this.objectMapper.addMixIn(Gw2AuthUser.class, Gw2AuthUserMixin.class);
         this.objectMapper.addMixIn(Gw2AuthUserV2.class, Gw2AuthUserV2Mixin.class);
+
+        if (this.authorizationCodeParamAccessor instanceof AuthorizationCodeParamAccessorImpl accessor) {
+            // hacky, happy for a workaround
+            accessor.setOAuth2AuthorizationService(this);
+        }
     }
 
     @Override

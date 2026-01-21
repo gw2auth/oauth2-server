@@ -1,7 +1,5 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import com.gw2auth.oauth2.server.adapt.CustomOAuth2ServerAuthenticationProviders;
-import com.gw2auth.oauth2.server.service.application.AuthorizationCodeParamAccessor;
 import com.gw2auth.oauth2.server.util.JWKHelper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -28,17 +26,15 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SecurityContextConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
+import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AccessTokenResponseAuthenticationSuccessHandler;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ErrorAuthenticationFailureHandler;
@@ -48,7 +44,7 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.DelegatingAuthenticationConverter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -66,9 +62,9 @@ public class OAuth2ServerConfiguration {
     @Bean("oidc-server-request-matcher")
     public RequestMatcher oidcServerRequestMatcher() {
         return new OrRequestMatcher(
-                new AntPathRequestMatcher("/.well-known/openid-configuration"),
-                new AntPathRequestMatcher("/connect/register"),
-                new AntPathRequestMatcher("/userinfo")
+                PathPatternRequestMatcher.pathPattern("/.well-known/openid-configuration"),
+                PathPatternRequestMatcher.pathPattern("/connect/register"),
+                PathPatternRequestMatcher.pathPattern("/userinfo")
         );
     }
 
@@ -88,31 +84,34 @@ public class OAuth2ServerConfiguration {
     }
 
     @Bean
-    public OAuth2AuthorizationServerConfigurer oAuth2AuthorizationServerConfigurer(HttpSecurity http) {
+    public OAuth2AuthorizationServerConfigurer oauth2AuthorizationServerConfigurer(HttpSecurity http) {
         final OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
+        authorizationServerConfigurer.init(http);
         authorizationServerConfigurer.authorizationEndpoint((authorizationEndpoint) -> {
             authorizationEndpoint
-                    .authenticationProviders((authenticationProviders) -> {
-                        authenticationProviders.removeIf((v) -> OAuth2AuthorizationCodeRequestAuthenticationProvider.class.isAssignableFrom(v.getClass()));
-                        authenticationProviders.removeIf((v) -> OAuth2AuthorizationConsentAuthenticationProvider.class.isAssignableFrom(v.getClass()));
+                    .authorizationRequestConverters((authenticationConverters) -> {
+                        final OAuth2AuthorizationRequestDecorator decorator = new OAuth2AuthorizationRequestDecorator(new DelegatingAuthenticationConverter(List.copyOf(authenticationConverters)));
 
-                        authenticationProviders.add(CustomOAuth2ServerAuthenticationProviders.createCodeRequestAuthenticationProvider(http));
-                        authenticationProviders.add(CustomOAuth2ServerAuthenticationProviders.createConsentAuthenticationProvider(http));
+                        authenticationConverters.clear();
+                        authenticationConverters.add(decorator);
                     })
                     .consentPage(OAUTH2_CONSENT_PAGE);
         });
 
         authorizationServerConfigurer.tokenEndpoint((tokenEndpoint) -> {
-            final OAuth2TokenResponseHandler handler = new OAuth2TokenResponseHandler();
+            final OAuth2TokenRequestDecorator decorator = new OAuth2TokenRequestDecorator(
+                    new OAuth2AccessTokenResponseAuthenticationSuccessHandler(),
+                    new OAuth2ErrorAuthenticationFailureHandler()
+            );
 
-            tokenEndpoint.accessTokenRequestConverters((accessTokenRequestConverters) -> {
-                handler.setAuthenticationConverters(accessTokenRequestConverters);
-                accessTokenRequestConverters.clear();
-                accessTokenRequestConverters.add(handler);
-            });
-
-            tokenEndpoint.accessTokenResponseHandler(handler);
-            tokenEndpoint.errorResponseHandler(handler);
+            tokenEndpoint
+                    .accessTokenRequestConverters((accessTokenRequestConverters) -> {
+                        decorator.setAuthenticationConverters(accessTokenRequestConverters);
+                        accessTokenRequestConverters.clear();
+                        accessTokenRequestConverters.add(decorator);
+                    })
+                    .accessTokenResponseHandler(decorator)
+                    .errorResponseHandler(decorator);
         });
 
         return authorizationServerConfigurer;
@@ -171,21 +170,44 @@ public class OAuth2ServerConfiguration {
         return AuthorizationServerSettings.builder().issuer(selfURL).build();
     }
 
-    @Bean
-    public AuthorizationCodeParamAccessor authorizationCodeParamAccessor() {
-        return AuthorizationCodeParamAccessor.DEFAULT;
+    @Bean("oauth2-authorization-authentication-request-attribute-name")
+    public String oauth2AuthorizationRequestAuthenticationRequestAttributeName() {
+        return OAuth2AuthorizationRequestDecorator.AUTHENTICATION_ATTRIBUTE_NAME;
     }
 
-    private static class OAuth2TokenResponseHandler implements AuthenticationConverter, AuthenticationSuccessHandler, AuthenticationFailureHandler {
+    private static class OAuth2AuthorizationRequestDecorator implements AuthenticationConverter {
 
-        private static final Logger LOG = LoggerFactory.getLogger(OAuth2TokenResponseHandler.class);
-        private static final String CLIENT_ID_ATTRIBUTE_NAME = OAuth2TokenResponseHandler.class.getName() + "::CLIENT_ID";
-        private static final AuthenticationSuccessHandler SUCCESS_DELEGATE = new OAuth2AccessTokenResponseAuthenticationSuccessHandler();
-        private static final AuthenticationFailureHandler FAILURE_DELEGATE = new OAuth2ErrorAuthenticationFailureHandler();
+        private static final String AUTHENTICATION_ATTRIBUTE_NAME = OAuth2AuthorizationRequestDecorator.class.getName() + "::AUTHENTICATION";
 
+        private final AuthenticationConverter authenticationConverterDelegate;
+
+        private OAuth2AuthorizationRequestDecorator(AuthenticationConverter authenticationConverterDelegate) {
+            this.authenticationConverterDelegate = Objects.requireNonNull(authenticationConverterDelegate);
+        }
+
+        @Override
+        public @Nullable Authentication convert(HttpServletRequest request) {
+            final Authentication authentication = this.authenticationConverterDelegate.convert(request);
+            if (authentication != null) {
+                request.setAttribute(AUTHENTICATION_ATTRIBUTE_NAME, authentication);
+            }
+
+            return authentication;
+        }
+    }
+
+    private static class OAuth2TokenRequestDecorator implements AuthenticationConverter, AuthenticationSuccessHandler, AuthenticationFailureHandler {
+
+        private static final Logger LOG = LoggerFactory.getLogger(OAuth2TokenRequestDecorator.class);
+        private static final String CLIENT_ID_ATTRIBUTE_NAME = OAuth2TokenRequestDecorator.class.getName() + "::CLIENT_ID";
+
+        private final AuthenticationSuccessHandler successHandler;
+        private final AuthenticationFailureHandler failureHandler;
         private @Nullable AuthenticationConverter authenticationConverterDelegate;
 
-        private OAuth2TokenResponseHandler() {
+        private OAuth2TokenRequestDecorator(AuthenticationSuccessHandler successHandler, AuthenticationFailureHandler failureHandler) {
+            this.successHandler = Objects.requireNonNull(successHandler);
+            this.failureHandler = Objects.requireNonNull(failureHandler);
             this.authenticationConverterDelegate = null;
         }
 
@@ -217,7 +239,7 @@ public class OAuth2ServerConfiguration {
                 }
             }
 
-            SUCCESS_DELEGATE.onAuthenticationSuccess(request, response, authentication);
+            this.successHandler.onAuthenticationSuccess(request, response, authentication);
         }
 
         @Override
@@ -228,15 +250,15 @@ public class OAuth2ServerConfiguration {
                     final String errorCode = error.getErrorCode();
                     final String errorDescription = Optional.ofNullable(error.getDescription()).orElse("UNKNOWN");
 
-                    try (MDC.MDCCloseable _ = MDC.putCloseable("error_code", oauth2AuthenticationException.getError().getErrorCode())) {
-                        try (MDC.MDCCloseable _ = MDC.putCloseable("error_description", oauth2AuthenticationException.getError().getDescription())) {
+                    try (MDC.MDCCloseable _ = MDC.putCloseable("error_code", errorCode)) {
+                        try (MDC.MDCCloseable _ = MDC.putCloseable("error_description", errorDescription)) {
                             LOG.info("oauth2 token request failed", oauth2AuthenticationException);
                         }
                     }
                 }
             }
 
-            FAILURE_DELEGATE.onAuthenticationFailure(request, response, exception);
+            this.failureHandler.onAuthenticationFailure(request, response, exception);
         }
 
         private static String getClientId(HttpServletRequest request) {

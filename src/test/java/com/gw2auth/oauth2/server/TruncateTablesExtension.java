@@ -3,7 +3,7 @@ package com.gw2auth.oauth2.server;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
+import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;

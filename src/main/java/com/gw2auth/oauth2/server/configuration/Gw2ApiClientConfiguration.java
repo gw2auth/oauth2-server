@@ -4,7 +4,7 @@ import com.gw2auth.oauth2.server.service.gw2.client.*;
 import com.gw2auth.oauth2.server.util.AllowAlternateDomainX509TrustManager;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

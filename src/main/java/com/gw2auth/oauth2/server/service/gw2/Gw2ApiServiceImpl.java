@@ -39,6 +39,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     private static final Logger LOG = LoggerFactory.getLogger(Gw2ApiServiceImpl.class);
     private static final Pattern ROOT_TOKEN_PATTERN = Pattern.compile("^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{20}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$");
     private static final ThreadLocal<@Nullable Deque<Long>> TIMEOUT_AT_TL = new ThreadLocal<>();
+    private static final MultiValueMap<String, String> EMPTY_QUERY = new LinkedMultiValueMap<>();
 
     private final Gw2ApiClient gw2ApiClient;
     private final ObjectMapper mapper;
@@ -111,7 +112,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private <T> T getFromAPI(String url, String token, TypeReference<T> typeReference) {
-        return getFromAPI(url, HttpHeaders.EMPTY, token, typeReference);
+        return getFromAPI(url, EMPTY_QUERY, token, typeReference);
     }
 
     private <T> T getFromAPI(String url, MultiValueMap<String, String> query, String token, TypeReference<T> typeReference) {
@@ -119,7 +120,7 @@ public class Gw2ApiServiceImpl implements Gw2ApiService {
     }
 
     private <T> T getFromAPI(String url, String token, Class<T> clazz) {
-        return getFromAPI(url, HttpHeaders.EMPTY, token, clazz);
+        return getFromAPI(url, EMPTY_QUERY, token, clazz);
     }
 
     private <T> T getFromAPI(String url, MultiValueMap<String, String> query, String token, Class<T> clazz) {

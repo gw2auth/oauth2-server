@@ -1,6 +1,6 @@
 package com.gw2auth.oauth2.server.configuration;
 
-import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
+import org.springframework.boot.flyway.autoconfigure.FlywayDataSource;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -19,7 +19,7 @@ public class CockroachContainerConfiguration {
 
     @Bean
     public JdbcDatabaseContainer<?> cockroachDBContainer() throws Exception {
-        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v25.2.6");
+        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v25.4.1");
         container.start();
 
         try (Connection conn = new SimpleDriverDataSource(container.getJdbcDriverInstance(), container.getJdbcUrl(), container.getUsername(), container.getPassword()).getConnection()) {
