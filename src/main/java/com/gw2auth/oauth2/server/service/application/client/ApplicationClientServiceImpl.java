@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -33,6 +34,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Lazy
 @Service
 public class ApplicationClientServiceImpl implements ApplicationClientService, RegisteredClientRepository, Clocked {
 
@@ -193,7 +195,12 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                 .clientId(entity.id().toString())
                 .clientIdIssuedAt(entity.creationTime())
                 .redirectUris((v) -> v.addAll(redirectUris))
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+                .clientSettings(
+                        ClientSettings.builder()
+                                .requireAuthorizationConsent(true)
+                                .requireProofKey(OAuth2ClientType.valueOf(entity.type()) == OAuth2ClientType.PUBLIC)
+                                .build()
+                )
                 .tokenSettings(
                         TokenSettings.builder()
                                 .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
@@ -213,7 +220,8 @@ public class ApplicationClientServiceImpl implements ApplicationClientService, R
                     .clientSecret(Objects.requireNonNull(entity.clientSecret()))
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST);
-            case PUBLIC -> builder.clientAuthenticationMethod(ClientAuthenticationMethod.NONE);
+            case PUBLIC -> builder
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.NONE);
         }
 
         final OAuth2ClientApiVersion clientApiVersion = OAuth2ClientApiVersion.fromValueRequired(entity.apiVersion());

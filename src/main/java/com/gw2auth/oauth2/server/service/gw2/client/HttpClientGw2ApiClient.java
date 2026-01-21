@@ -41,16 +41,16 @@ public class HttpClientGw2ApiClient implements Gw2ApiClient, AutoCloseable {
     }
 
     @Override
-    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         return getInternal(path, query, headers);
     }
 
     @Override
-    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    public ResponseEntity<Resource> get(Duration timeout, String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         return getInternal(path, query, headers);
     }
 
-    private ResponseEntity<Resource> getInternal(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    private ResponseEntity<Resource> getInternal(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         final HttpRequest request = buildRequest(path, query, headers);
         final HttpResponse<byte[]> response;
         try {
@@ -73,16 +73,16 @@ public class HttpClientGw2ApiClient implements Gw2ApiClient, AutoCloseable {
                 .body(new ByteArrayResource(response.body()));
     }
 
-    private HttpRequest buildRequest(String path, MultiValueMap<String, String> query, MultiValueMap<String, String> headers) {
+    private HttpRequest buildRequest(String path, MultiValueMap<String, String> query, HttpHeaders headers) {
         final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .GET()
                 .uri(buildRequestURI(path, query));
 
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            for (String value : entry.getValue()) {
-                requestBuilder.header(entry.getKey(), value);
+        headers.forEach((key, values) -> {
+            for (String value : values) {
+                requestBuilder.header(key, value);
             }
-        }
+        });
 
         return this.requestFinalizer.apply(requestBuilder);
     }
