@@ -19,7 +19,7 @@ public class CockroachContainerConfiguration {
 
     @Bean
     public JdbcDatabaseContainer<?> cockroachDBContainer() throws Exception {
-        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v25.4.1");
+        final JdbcDatabaseContainer<?> container = new CockroachContainerProvider().newInstance("v26.2.3");
         container.start();
 
         try (Connection conn = new SimpleDriverDataSource(container.getJdbcDriverInstance(), container.getJdbcUrl(), container.getUsername(), container.getPassword()).getConnection()) {
@@ -41,6 +41,10 @@ public class CockroachContainerConfiguration {
     @Bean
     @FlywayDataSource
     public DataSource flywayDataSource(JdbcDatabaseContainer<?> pg) {
-        return new SimpleDriverDataSource(pg.getJdbcDriverInstance(), pg.getJdbcUrl(), "flyway", "");
+        return new SimpleDriverDataSource(pg.getJdbcDriverInstance(), appendJdbcUrlParameter(pg.getJdbcUrl(), "options=-c%20allow_unsafe_internals%3Dtrue"), "flyway", "");
+    }
+
+    private static String appendJdbcUrlParameter(String jdbcUrl, String parameter) {
+        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + parameter;
     }
 }
