@@ -183,7 +183,9 @@ public class AccountServiceImpl implements AccountService, Clocked {
         AccountEntity accountEntity;
 
         if (optionalAccount.isEmpty()) {
-            accountEntity = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), this.clock.instant()));
+            final UUID accountId = UUID.randomUUID();
+            this.accountRepository.register(accountId);
+            accountEntity = this.accountRepository.save(new AccountEntity(accountId, this.clock.instant()));
 
             AccountFederationEntity accountFederationEntity = new AccountFederationEntity(issuer, idAtIssuer, accountEntity.id());
             accountFederationEntity = this.accountFederationRepository.save(accountFederationEntity);

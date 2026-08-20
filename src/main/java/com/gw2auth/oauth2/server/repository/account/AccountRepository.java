@@ -1,6 +1,7 @@
 package com.gw2auth.oauth2.server.repository.account;
 
 import com.gw2auth.oauth2.server.repository.BaseRepository;
+import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,10 @@ public interface AccountRepository extends BaseRepository<AccountEntity> {
     default AccountEntity save(AccountEntity account) {
         return save(account.id(), account.creationTime());
     }
+
+    @Modifying
+    @Query("INSERT INTO account_registry (id) VALUES (:id)")
+    void register(@Param("id") UUID id);
 
     @Query("""
     INSERT INTO accounts

@@ -120,10 +120,9 @@ public class TestHelper {
     }
 
     public AccountEntity createAccount() {
-        return this.accountRepository.save(new AccountEntity(
-                UUID.randomUUID(),
-                Instant.now()
-        ));
+        final UUID accountId = UUID.randomUUID();
+        this.accountRepository.register(accountId);
+        return this.accountRepository.save(new AccountEntity(accountId, Instant.now()));
     }
 
     public Gw2AccountEntity getOrCreateGw2Account(UUID accountId, UUID gw2AccountId) {

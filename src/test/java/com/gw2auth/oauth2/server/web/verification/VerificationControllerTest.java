@@ -1,8 +1,6 @@
 package com.gw2auth.oauth2.server.web.verification;
 
 import com.gw2auth.oauth2.server.*;
-import com.gw2auth.oauth2.server.repository.account.AccountEntity;
-import com.gw2auth.oauth2.server.repository.account.AccountRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.apitoken.Gw2AccountApiTokenRepository;
 import com.gw2auth.oauth2.server.repository.gw2account.verification.*;
 import com.gw2auth.oauth2.server.service.Gw2ApiPermission;
@@ -76,9 +74,6 @@ class VerificationControllerTest {
 
     @Autowired
     private Gw2AccountVerificationRepository gw2AccountVerificationRepository;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     @Autowired
     private Gw2AccountApiTokenRepository gw2AccountApiTokenRepository;
@@ -289,7 +284,7 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -358,7 +353,7 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -411,7 +406,7 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -464,7 +459,7 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
@@ -708,7 +703,7 @@ class VerificationControllerTest {
         final UUID gw2AccountId = UUID.randomUUID();
 
         // insert an api token for another account but for the same gw2 account id
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.testHelper.createApiToken(otherUserAccountId, gw2AccountId, Set.of(), "Name");
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();

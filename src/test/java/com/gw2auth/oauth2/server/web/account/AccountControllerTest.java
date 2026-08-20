@@ -10,7 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,9 +32,6 @@ class AccountControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     @Autowired
     private AccountFederationRepository accountFederationRepository;
@@ -75,7 +71,7 @@ class AccountControllerTest {
     @ParameterizedTest
     @WithGw2AuthLogin(issuer = "dummyIssuer", idAtIssuer = "A")
     public void addAccountFederationAlreadyLinkedToOtherAccount(SessionHandle sessionHandle) throws Exception {
-        final UUID otherUserAccountId = this.accountRepository.save(new AccountEntity(UUID.randomUUID(), Instant.now())).id();
+        final UUID otherUserAccountId = this.testHelper.createAccount().id();
         this.accountFederationRepository.save("dummyIssuer", "B", otherUserAccountId);
 
         final UUID accountId = this.testHelper.getAccountIdForCookie(sessionHandle).orElseThrow();
